@@ -15,6 +15,7 @@ It performs the following steps:
 # Setup
 ################################################################################
 
+import math
 import sys
 import duckdb
 import polars as pl
@@ -26,7 +27,8 @@ from utils.config import config
 from utils.io import read_data
 from clifpy.utils.stitching_encounters import stitch_encounters
 from utils.outlier_handler import outlier_range
-from utils.checks import mixed_tz_awareness
+from utils.checks import mixed_tz_awareness, usable_number_sql
+from utils.dtypes import align_time_zone
 from utils.criteria import DECLARED_NOT_APPLIED, OPERATORS, Criteria, icd_range_sql
 import gc
 
@@ -85,8 +87,10 @@ if not COHORT_LOCATIONS:
 def _num(dotted: str) -> float:
     """A numeric criterion. These are formatted into SQL, so a non-number stops the run."""
     v = CRIT.get(dotted)
-    if isinstance(v, bool) or not isinstance(v, (int, float)):
-        raise SystemExit(f"config/donor_criteria.yaml: '{dotted}' must be a number, got {v!r}")
+    if (isinstance(v, bool) or not isinstance(v, (int, float))
+            or not math.isfinite(v) or v <= 0):
+        raise SystemExit(f"config/donor_criteria.yaml: '{dotted}' must be a positive number, "
+                         f"got {v!r}")
     return v
 
 
@@ -137,6 +141,12 @@ _EXTERNAL_SQL = _RANGE_SQL["external_causes"]
 CALC_POSITION = str(CRIT.get("calc.diagnosis_position")).lower()
 CALC_APPLY_CONTRAINDICATIONS = CRIT.get("calc.apply_contraindications")
 VENT_APPLY_AGE_LIMIT = CRIT.get("ventilated_patient.apply_age_limit")
+if VENT_APPLY_AGE_LIMIT:
+    raise SystemExit(
+        "ventilated_patient.apply_age_limit is true. Steps 02 and 03 and the pooled report "
+        "use the Ventilated Patient definition with no age limit; the age-capped count is "
+        "always reported beside it as ventilated_age_le75. An age-limited primary definition "
+        "is not implemented, so the switch would change no reported number.")
 
 _unread = [k for k in CRIT.unused("clif_donor", "calc", "ventilated_patient")
            if k not in DECLARED_NOT_APPLIED]
@@ -157,6 +167,7 @@ if _unread:
 
 REQ = yaml.safe_load((PROJECT_ROOT / "config/clif_data_requirements.yaml").read_text())
 _problems, _warnings = [], []
+_TIMESTAMPS_NAIVE = False
 
 # 1. config
 for _k in ("site_name", "tables_path", "file_type", "timezone", "project_root",
@@ -171,6 +182,11 @@ try:
     ZoneInfo(config["timezone"])
 except Exception:
     _problems.append(f"config.json: timezone '{config.get('timezone')}' is not a valid IANA zone")
+if str(config.get("timezone", "")).upper().replace("ETC/", "") in {
+        "UTC", "GMT", "UCT", "Z", "ZULU", "UNIVERSAL", "GMT0", "GMT+0", "GMT-0"}:
+    _problems.append("config.json: timezone is UTC. Give the zone your hospital is in, e.g. "
+                     "US/Central. CLIF stores timestamps in UTC, but this setting decides "
+                     "which calendar year an admission or a death falls in")
 if str(config.get("clif_version")) != str(REQ["clif_version"]):
     _problems.append(f"config.json: clif_version '{config.get('clif_version')}' — "
                      f"this pipeline requires CLIF {REQ['clif_version']}")
@@ -209,8 +225,26 @@ else:
                     OPTIONAL_UNUSABLE.add(_tbl)
                 (_problems if _kind == "required" else _warnings).append(
                     _msg + (f" ({_impact[_tbl]})" if _tbl in _impact else ""))
-    # 3. every 48-hour window subtracts one of these columns from another
-    _problems += mixed_tz_awareness(_dttm_types)
+    # 3. the timestamps step 01 subtracts from one another: the death-anchored
+    #    windows and the death/discharge comparison. A mix of timezone-aware and
+    #    naive among THESE silently shifts a window, so it stops the run. The
+    #    other declared *_dttm columns are not used in arithmetic here; one that
+    #    differs is a warning, not a reason to make a site re-export.
+    _WINDOW_DTTM = {"clif_patient.death_dttm", "clif_hospitalization.discharge_dttm",
+                    "clif_vitals.recorded_dttm", "clif_respiratory_support.recorded_dttm",
+                    "clif_crrt_therapy.recorded_dttm", "clif_labs.lab_collect_dttm",
+                    "clif_microbiology_culture.collect_dttm",
+                    "clif_patient_assessments.recorded_dttm"}
+    _window_types = {c: t for c, t in _dttm_types.items() if c in _WINDOW_DTTM}
+    _problems += mixed_tz_awareness(_window_types)
+    _aware = {t.upper() == "TIMESTAMP WITH TIME ZONE" for t in _window_types.values()}
+    _TIMESTAMPS_NAIVE = _aware == {False}
+    for _c, _t in sorted(_dttm_types.items()):
+        if _c not in _WINDOW_DTTM and len(_aware) == 1 and (
+                not _t.upper().startswith("TIMESTAMP")
+                or (_t.upper() == "TIMESTAMP WITH TIME ZONE") not in _aware):
+            _warnings.append(f"{_c} is {_t}, unlike the timestamps used for the death-anchored "
+                             f"windows; variables built from it may be affected")
 
 # 4. the hospital crosswalk must know this site and every hospital it declares.
 #    A hospital without a crosswalk row cannot be linked to SRTR; its decedents
@@ -322,6 +356,13 @@ strobe_counts = {}
 # Conditions that do not stop the run but change what a number means at this
 # site. Written to data_quality_flags.csv and shown in provenance.md.
 dq_flags: list[dict] = []
+if _TIMESTAMPS_NAIVE:
+    dq_flags.append({
+        "site": site_name, "flag": "timestamps_timezone_naive", "severity": "medium",
+        "detail": (f"The timestamp columns carry no timezone. They are taken to be local "
+                   f"wall-clock time ({SITE_TZ}) when assigning calendar years; if they are "
+                   f"in fact UTC, admissions and deaths within a few hours of New Year are "
+                   f"assigned to the wrong year.")})
 
 ################################################################################
 # Load data
@@ -719,7 +760,9 @@ last_location_per_hosp = (
       .group_by('hospitalization_id')
       .agg([
           pl.col('location_category').first().alias('last_location_category'),
-          pl.col('location_name').first().alias('last_location_name'),
+          # the unit name is informational and not every extract carries it
+          *([pl.col('location_name').first().alias('last_location_name')]
+            if 'location_name' in adt_df.columns else []),
           pl.col('out_dttm').first().alias('last_location_out_dttm'),
           (pl.col('location_category').str.to_lowercase() == 'icu').any().alias('ever_icu'),
           (pl.col('location_category').str.to_lowercase() == 'ward').any().alias('ever_ward'),
@@ -894,8 +937,13 @@ final_cohort_df = final_cohort_df.join(
 # never under-include. HIPAA caps age_at_admission at 89, which is well above
 # the 75 threshold and so does not affect the flag. The substitution is
 # recorded in strobe_counts and must be reported as a site-level deviation.
+# Some sites store birth_date without a timezone and death_dttm with one; polars
+# refuses to subtract the two, so relabel birth_date to match first.
+_birth = (align_time_zone('birth_date', final_cohort_df.schema['birth_date'],
+                          final_cohort_df.schema['final_death_dttm'])
+          if 'birth_date' in final_cohort_df.columns else pl.col('birth_date'))
 _age_from_birth = (
-    (pl.col('final_death_dttm') - pl.col('birth_date')).dt.total_days() / 365.25
+    (pl.col('final_death_dttm') - _birth).dt.total_days() / 365.25
 )
 _has_birth_date = (
     'birth_date' in final_cohort_df.columns
@@ -1358,6 +1406,22 @@ WHERE hrs_before_death <= {CRRT_HOURS} AND hrs_before_death >= 0
 """
 
 crrt_48h_result = pl.from_pandas(duckdb.sql(crrt_query).df())
+# No CRRT row for anyone in the cohort reads as "nobody was on dialysis", which
+# makes more patients kidney-eligible. That is correct at a hospital that does
+# not provide CRRT and wrong where the table is empty or keyed differently, and
+# the two cannot be told apart from here, so it is flagged rather than fatal.
+_n_crrt_rows = duckdb.sql(f"""
+    SELECT COUNT(*) FROM read_parquet('{crrt_filepath}')
+    WHERE hospitalization_id IN (SELECT hospitalization_id FROM final_cohort_for_crrt)
+""").fetchone()[0]
+if _n_crrt_rows == 0:
+    dq_flags.append({
+        "site": site_name, "flag": "no_crrt_records_for_cohort", "severity": "high",
+        "detail": ("No decedent has any row in clif_crrt_therapy, so every patient is read as "
+                   "not on CRRT and kidney eligibility may be over-counted. Expected only at "
+                   "a hospital that does not provide CRRT.")})
+    print("  WARNING  no clif_crrt_therapy rows for any decedent: everyone is read as not on "
+          "CRRT (see data_quality_flags.csv)")
 on_crrt_flag = crrt_48h_result.with_columns(
     pl.lit(True).alias('on_crrt_48h_before_death')
 )
@@ -1376,6 +1440,7 @@ final_cohort_for_labs = final_cohort_df.select([
     "patient_id", "hospitalization_id", "final_death_dttm",
 ]).to_pandas()
 
+_LAB_VALUE_USABLE = usable_number_sql("l.lab_value_numeric")
 labs_query = f"""
 WITH labs_data AS (
     SELECT
@@ -1398,10 +1463,10 @@ labs_with_death AS (
     INNER JOIN final_cohort_for_labs f ON l.hospitalization_id = f.hospitalization_id
     WHERE l.lab_collect_dttm <= f.final_death_dttm
       -- Only results that carry a number can be the "last value". A text-only
-      -- result (haemolysed, see note) at the latest timestamp otherwise won the
-      -- ranking below and nulled the value, which reads as missing, which is
-      -- ineligible.
-      AND l.lab_value_numeric IS NOT NULL
+      -- result (haemolysed, see note) or a NaN at the latest timestamp otherwise
+      -- won the ranking below and nulled the value, which reads as missing,
+      -- which is ineligible.
+      AND {_LAB_VALUE_USABLE}
 ),
 latest_creatinine AS (
     -- Every "last value before death" selection breaks ties deterministically.

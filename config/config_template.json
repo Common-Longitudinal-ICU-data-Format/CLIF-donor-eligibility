@@ -12,8 +12,8 @@
     ],
     "_notes": {
         "site_name": "lowercase, e.g. ucmc, nu, rush",
-        "timezone": "the local timezone your CLIF datetimes are in, e.g. US/Central",
+        "timezone": "the IANA timezone your hospital is in, e.g. US/Central. Not UTC, even though CLIF stores timestamps in UTC: this decides which calendar year an admission or a death falls in",
         "project_root": "the folder this repository is in",
-        "hospital_ids": "every hospital_id that appears in clif_adt for your decedents, written exactly as it appears there. 01_cohort_and_definitions.py stops if the cohort contains an id not listed here, or if a listed id contributes no decedents."
+        "hospital_ids": "every hospital_id that appears in clif_adt for your decedents, written exactly as it appears there. 01_cohort_and_definitions.py stops if the cohort contains an id not listed here, or if a listed id has no row in config/hospital_crosswalk.yaml. A listed id that contributes no decedents is a warning."
     }
 }

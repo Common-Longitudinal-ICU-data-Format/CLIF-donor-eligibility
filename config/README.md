@@ -10,7 +10,7 @@ Site settings live in `config/config.json`. It is git-ignored and never leaves y
 | `site_name` | Your site's short name: lowercase letters, digits and underscores, e.g. `ucmc`, `nu`, `rush`. It names your output folder and must match your site's rows in `hospital_crosswalk.yaml`. |
 | `tables_path` | Absolute path to the folder holding your CLIF tables (`clif_patient.parquet`, `clif_adt.parquet`, …). |
 | `file_type` | `parquet`. No other type is supported. |
-| `timezone` | The IANA zone your hospital is in, e.g. `US/Central`. It places admissions, discharges and deaths in the right calendar year. |
+| `timezone` | The IANA zone your hospital is in, e.g. `US/Central`. It places admissions, discharges and deaths in the right calendar year. Not `UTC`, even though CLIF stores timestamps in UTC. |
 | `project_root` | Absolute path to this repository on your machine. |
 | `clif_version` | `2.1` |
 | `hospital_ids` | Every `hospital_id` that appears in `clif_adt` for your decedents, written exactly as it appears there. |
@@ -25,9 +25,11 @@ plain message if something is wrong:
 - every field above is present and well-formed;
 - every required table in `clif_data_requirements.yaml` exists and has the listed columns
   (a missing optional table is a warning that names the manuscript rows it costs);
-- the `*_dttm` columns are all timezone-aware or all timezone-naive, not a mix;
+- the timestamps used for the 48-hour windows are all timezone-aware or all timezone-naive,
+  not a mix;
 - `hospital_crosswalk.yaml` has rows for your `site_name` and for every id in `hospital_ids`;
-- every criterion in `donor_criteria.yaml` is one the code applies.
+- every criterion in `donor_criteria.yaml` is one the code applies, apart from two keys that
+  are listed as not applied and printed on every run (`use_poa`, `sepsis_window_hours`).
 
 ### The other files in this folder
 

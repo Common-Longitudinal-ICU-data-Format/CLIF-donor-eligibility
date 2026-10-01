@@ -15,7 +15,7 @@ tables:
   required:
     patient:                     [patient_id, birth_date, death_dttm, race_category, ethnicity_category, sex_category]
     hospitalization:             [patient_id, hospitalization_id, admission_dttm, discharge_dttm, age_at_admission, discharge_category, admission_type_category]
-    adt:                         [hospitalization_id, hospital_id, hospital_type, in_dttm, out_dttm, location_category, location_name]
+    adt:                         [hospitalization_id, hospital_id, hospital_type, in_dttm, out_dttm, location_category]
     hospital_diagnosis:          [hospitalization_id, diagnosis_code, diagnosis_code_format, diagnosis_primary, poa_present]
     labs:                        [hospitalization_id, lab_category, lab_value_numeric, lab_collect_dttm]
     respiratory_support:         [hospitalization_id, recorded_dttm, device_category]

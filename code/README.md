@@ -9,7 +9,7 @@ Three scripts, run in order. Each reads `config/config.json` (see
 | script | what it does | main outputs |
 |---|---|---|
 | `01_cohort_and_definitions.py` | Setup checks, then the cohort of in-hospital deaths and the three definitions (CLIF-donor, CALC, Ventilated Patient). | `strobe_counts.csv`, `definition_counts.csv`, `decedents_by_location.csv`, `data_quality_flags.csv`, `srtr_ref/`, `run_log.txt` |
-| `02_build_tables.py` | Clinical-care variables from the optional tables, the manuscript tables, and a CONSORT per definition. | `table2_characteristics.csv`, `table3_clinical_care.csv`, `tableS2_missingness.csv`, `table_stats_raw.csv`, `consort_counts.csv`, `hospital_level_counts.csv`, `exclusion_codes_by_step.csv` |
+| `02_build_tables.py` | Clinical-care variables from the optional tables, the manuscript tables, and a CONSORT per definition. | `table2_characteristics.csv`, `table3_clinical_care.csv`, `tableS2_missingness.csv`, `table_stats_raw.csv`, `consort_counts.csv`, `hospital_level_counts.csv`, `exclusion_codes_by_step.csv` (step totals; per-code detail stays local) |
 | `03_diagnostics.py` | Missingness, data-element coverage and definition overlap, then a reconciliation of the counts above and `provenance.md`. | `missingness_*.csv`, `element_coverage.csv`, `definition_overlap_upset.*`, `provenance.md` |
 
 ```bash

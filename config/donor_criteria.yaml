@@ -26,6 +26,13 @@ study:
   cohort_locations: [ed, ward, stepdown, icu, hospice]
   suppress_small_cells: false
   small_cell_suppression_n: 11
+  # exclusion_codes_by_step.csv can list, for the cancer step, every ICD-10 code
+  # and how many excluded patients carried it. Most of those counts are below
+  # the small-cell threshold and some are single patients with a rare diagnosis.
+  # false: the per-code rows stay in the site's local folder and the shipped
+  # file carries one row per step. Set true only once the small-cell policy for
+  # the study allows it.
+  ship_exclusion_code_detail: false
 
 # ── CLIF-donor (definition of interest) ──────────────────────────────────────
 clif_donor:
@@ -39,7 +46,8 @@ clif_donor:
   # is an open question for the PI.
   imv_post_death_tolerance_hours: 24
   bmi_max: 50
-  sepsis_window_hours: 48                # only used for the reporting flag
+  sepsis_window_hours: 48                # NOT APPLIED: no time-windowed sepsis flag exists.
+                                         # Listed in utils/criteria.py DECLARED_NOT_APPLIED.
   # NO sepsis exclusion. Settled 2026-09-19: sepsis codes are reported (Table 1)
   # but never exclude a patient from any definition. The former
   # apply_sepsis_exclusion switch has been removed rather than set to false, so
@@ -56,7 +64,9 @@ clif_donor:
   missing_is_ineligible: true
   contraindications:
     icd10_file: utils/icd10_contraindications.csv
-    use_poa: true                        
+    use_poa: true                        # NOT APPLIED: a contraindication code counts at any
+                                         # position whether or not it was present on admission.
+                                         # Open PI decision; see DECLARED_NOT_APPLIED.
     positive_blood_culture_hours: 48
 
 # ── CALC — secondary administrative comparator ───────────────────────────────

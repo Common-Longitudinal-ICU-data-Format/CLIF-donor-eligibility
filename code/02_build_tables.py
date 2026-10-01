@@ -636,5 +636,29 @@ for _defn, _steps in CASCADES.items():
                           "code": None, "description": "no code matched the dropped patients",
                           "n_excluded_carrying_code": 0, "n_excluded_only_this_code": 0})
 
-pl.DataFrame(_excl).write_csv(FINAL / "exclusion_codes_by_step.csv")
-print(f"Exclusion attribution: {len(_excl)} rows -> exclusion_codes_by_step.csv")
+# Per-code rows count the patients carrying one specific diagnosis, and most of
+# those counts are below the small-cell threshold. Unless
+# study.ship_exclusion_code_detail is true, the full table is written to the
+# site's local folder and the shipped file carries one row per step.
+_excl_df = pl.DataFrame(_excl, infer_schema_length=None).with_row_index("_i")
+_has_code = pl.col("code").is_not_null()
+if CRIT["study"].get("ship_exclusion_code_detail", False) or not _excl_df.filter(_has_code).height:
+    _shipped = _excl_df
+else:
+    _excl_df.drop("_i").write_csv(INTER / "exclusion_codes_by_step.csv")
+    _keys = ["site", "definition", "step_label", "flag", "n_entering_step", "n_excluded_at_step"]
+    _summary = (_excl_df.filter(_has_code).group_by(_keys)
+                .agg(pl.col("_i").min(), pl.col("code").n_unique().alias("_n_codes"))
+                .with_columns(
+                    pl.lit("presence (per-code counts kept at the site)").alias("criterion_type"),
+                    pl.lit(None, pl.Utf8).alias("code"),
+                    pl.format("{} distinct codes; the per-code breakdown is in the site's "
+                              "local output folder", pl.col("_n_codes")).alias("description"),
+                    pl.lit(None, pl.Int64).alias("n_excluded_carrying_code"),
+                    pl.lit(None, pl.Int64).alias("n_excluded_only_this_code")))
+    _shipped = pl.concat([_excl_df.filter(~_has_code), _summary.select(_excl_df.columns)],
+                         how="vertical_relaxed").sort("_i")
+    print(f"  per-code detail ({_excl_df.filter(_has_code).height} rows) kept local -> "
+          f"{(INTER / 'exclusion_codes_by_step.csv').relative_to(REPO)}")
+_shipped.drop("_i").write_csv(FINAL / "exclusion_codes_by_step.csv")
+print(f"Exclusion attribution: {_shipped.height} rows -> exclusion_codes_by_step.csv")

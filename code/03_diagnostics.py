@@ -129,7 +129,7 @@ patterns = (pat.filter(pl.col("n_missing") > 0)
                 [pl.when(pl.col(f).is_null()).then(pl.lit(f)).otherwise(pl.lit(""))
                  for f in CLIF_MEAS], separator="|").alias("pattern"))
             .group_by("pattern").agg(pl.len().alias("n_patients"))
-            .sort("n_patients", descending=True).head(15)
+            .sort(["n_patients", "pattern"], descending=[True, False]).head(15)   # pattern breaks ties
             .with_columns(pl.col("pattern").str.replace_all(r"\|+", " + ").str.strip_chars(" +")))
 patterns.write_csv(FINAL / "missingness_patterns.csv")
 

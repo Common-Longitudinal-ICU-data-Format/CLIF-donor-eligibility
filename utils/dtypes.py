@@ -55,3 +55,17 @@ def write_parquet(df: pl.DataFrame, path) -> pl.DataFrame:
     out = normalize_datetimes(df)
     out.write_parquet(str(path))
     return out
+
+
+def align_time_zone(col: str, dtype, target) -> pl.Expr:
+    """`col` relabelled to the timezone of `target`, keeping its wall-clock reading.
+
+    For subtracting two timestamp columns a site stores under different timezone
+    labels, most often a naive birth_date and an aware death_dttm, which polars
+    refuses. A Date column, or one already in the same zone, is returned as is.
+    """
+    e = pl.col(col)
+    if (isinstance(dtype, pl.Datetime) and isinstance(target, pl.Datetime)
+            and dtype.time_zone != target.time_zone):
+        e = e.dt.replace_time_zone(target.time_zone)
+    return e

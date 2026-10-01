@@ -33,7 +33,8 @@ Two points where the code deliberately departs from a naive reading:
 
 Every criterion lives in `config/donor_criteria.yaml`. Nothing is hard-coded in
 the scripts: step 01 reads each value and stops if the YAML declares a criterion
-the code does not apply.
+the code does not apply. Two keys are declared and knowingly not applied,
+`use_poa` and `sepsis_window_hours`; every run prints them.
 
 "IMV within 48 h of death" counts ventilator records from 48 h before to 24 h
 after the recorded death time. The 24 h allowance is
@@ -48,8 +49,8 @@ cp config/config_template.json config/config.json
 #    Fill in ALL of: site_name, tables_path, file_type, timezone,
 #    project_root, clif_version, hospital_ids
 #    hospital_ids must list every hospital_id in clif_adt that has decedents.
-#    The run stops if the cohort contains an id you did not declare, or if a
-#    declared id contributes no decedents.
+#    The run stops if the cohort contains an id you did not declare. A declared
+#    id that contributes no decedents is reported as a warning.
 
 # 2. Install (Python 3.10 or newer)
 uv sync
@@ -86,7 +87,7 @@ only — no patient-level data.
 | `table_stats_raw.csv` | the same numbers as raw n / denominator, so they pool exactly |
 | `tableS2_missingness.csv` | per-variable missingness |
 | `hospital_level_counts.csv` | per analytic hospital |
-| `exclusion_codes_by_step.csv` | for each CONSORT step, the ICD-10 codes carried by the patients excluded there |
+| `exclusion_codes_by_step.csv` | for each CONSORT step, how many patients it excluded and whether a diagnosis code decided it. The per-code breakdown stays in your local folder unless `study.ship_exclusion_code_detail` is true |
 | `donor_administrative_code_availability.csv` | whether donor-related procedure codes exist in your extract |
 | `decedents_by_location.csv` | decedents by terminal ADT location, and which are in the cohort |
 | `missingness_*.csv`, `element_coverage.csv`, `data_availability_by_hospital.csv` | data-quality diagnostics |
