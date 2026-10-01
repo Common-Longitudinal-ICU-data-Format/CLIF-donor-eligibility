@@ -27,6 +27,7 @@ from utils.io import read_data
 from clifpy.utils.stitching_encounters import stitch_encounters
 from utils.outlier_handler import outlier_range
 from utils.checks import mixed_tz_awareness
+from utils.criteria import DECLARED_NOT_APPLIED, OPERATORS, Criteria, icd_range_sql
 import gc
 
 # Timestamp arithmetic must not depend on the machine this runs on. DuckDB's
@@ -61,8 +62,8 @@ UTILS_DIR = PROJECT_ROOT / "utils"
 # <site>_upload_to_box/ holds aggregate, shareable output. Per-site subfolders so
 # three sites can be run on one machine without clobbering each other.
 # Every study criterion comes from this one file, loaded once.
-CRITERIA = yaml.safe_load((PROJECT_ROOT / "config/donor_criteria.yaml").read_text())
-STUDY = CRITERIA["study"]
+CRIT = Criteria(PROJECT_ROOT / "config/donor_criteria.yaml")
+STUDY = CRIT.get("study")
 
 # ADT locations that put a death in the cohort. A death at any other location,
 # or with no ADT record at all, is excluded and counted separately.
@@ -70,6 +71,80 @@ COHORT_LOCATIONS = [str(x).lower() for x in
                     STUDY.get("cohort_locations", ["ed", "ward", "stepdown", "icu"])]
 if not COHORT_LOCATIONS:
     raise SystemExit("study.cohort_locations is empty — fix config/donor_criteria.yaml")
+
+
+# ── Definition thresholds ────────────────────────────────────────────────────
+# Read once, here, and used by name below. Nothing further down may write a
+# clinical number. The check after this block stops the run, before any data is
+# read, if a key under clif_donor, calc or ventilated_patient is declared in the
+# YAML and not read here.
+#
+# Flag and column names such as age_75_less, imv_48hr_expire and creatinine_lt_4
+# keep the default value in their name because steps 02 and 03 and the
+# coordinating scripts read them. The value applied is the one in the YAML.
+def _num(dotted: str) -> float:
+    """A numeric criterion. These are formatted into SQL, so a non-number stops the run."""
+    v = CRIT.get(dotted)
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        raise SystemExit(f"config/donor_criteria.yaml: '{dotted}' must be a number, got {v!r}")
+    return v
+
+
+AGE_MAX = _num("clif_donor.age_at_death_max")
+_AGE_OP_NAME = str(CRIT.get("clif_donor.age_operator"))
+if _AGE_OP_NAME not in OPERATORS:
+    raise SystemExit(f"clif_donor.age_operator is '{_AGE_OP_NAME}'; expected one of "
+                     f"{sorted(OPERATORS)} — fix config/donor_criteria.yaml")
+AGE_OK = OPERATORS[_AGE_OP_NAME]
+IMV_HOURS = _num("clif_donor.imv_hours_before_death")
+IMV_POST_DEATH_HOURS = _num("clif_donor.imv_post_death_tolerance_hours")
+BMI_MAX = _num("clif_donor.bmi_max")
+CREATININE_MAX = _num("clif_donor.kidney.creatinine_max")
+CRRT_HOURS = _num("clif_donor.kidney.exclude_if_crrt_within_hours")
+BILIRUBIN_MAX = _num("clif_donor.liver.total_bilirubin_max")
+AST_MAX = _num("clif_donor.liver.ast_max")
+ALT_MAX = _num("clif_donor.liver.alt_max")
+CULTURE_HOURS = _num("clif_donor.contraindications.positive_blood_culture_hours")
+CONTRA_FILE = PROJECT_ROOT / str(CRIT.get("clif_donor.contraindications.icd10_file"))
+if not CONTRA_FILE.is_file():
+    raise SystemExit(f"clif_donor.contraindications.icd10_file not found: {CONTRA_FILE}")
+
+# One age flag and one IMV flag each serve two definitions, so the values the
+# YAML gives those definitions have to agree. Different values would need
+# separate flags; refuse, rather than silently apply one value to both.
+if _num("calc.age_at_death_max") != AGE_MAX:
+    raise SystemExit("calc.age_at_death_max differs from clif_donor.age_at_death_max. "
+                     "This code computes one age flag for both definitions; make them equal.")
+if _num("ventilated_patient.imv_hours_before_death") != IMV_HOURS:
+    raise SystemExit("ventilated_patient.imv_hours_before_death differs from "
+                     "clif_donor.imv_hours_before_death. This code computes one IMV flag "
+                     "for both definitions; make them equal.")
+if CRIT.get("clif_donor.missing_is_ineligible") is not True:
+    raise SystemExit("clif_donor.missing_is_ineligible must be true: a missing organ-quality "
+                     "value is always ineligible, and no other behaviour is implemented.")
+
+# The CALC cause-of-death ranges, each as a SQL predicate on the normalised code.
+CALC_CAUSE_RANGES = CRIT.get("calc.cause_icd10_prefixes")
+for _k in ("ischemic_heart_disease", "cerebrovascular_disease", "external_causes"):
+    if not (isinstance(CALC_CAUSE_RANGES.get(_k), list) and len(CALC_CAUSE_RANGES[_k]) == 2):
+        raise SystemExit(f"calc.cause_icd10_prefixes.{_k} must be a [first, last] pair of "
+                         f"ICD-10 categories, e.g. [I20, I25]")
+_RANGE_SQL = {k: icd_range_sql("dx_norm", lo, hi) for k, (lo, hi) in CALC_CAUSE_RANGES.items()}
+_ISCHEMIC_SQL = _RANGE_SQL["ischemic_heart_disease"]
+_CEREBRO_SQL = _RANGE_SQL["cerebrovascular_disease"]
+_EXTERNAL_SQL = _RANGE_SQL["external_causes"]
+
+CALC_POSITION = str(CRIT.get("calc.diagnosis_position")).lower()
+CALC_APPLY_CONTRAINDICATIONS = CRIT.get("calc.apply_contraindications")
+VENT_APPLY_AGE_LIMIT = CRIT.get("ventilated_patient.apply_age_limit")
+
+_unread = [k for k in CRIT.unused("clif_donor", "calc", "ventilated_patient")
+           if k not in DECLARED_NOT_APPLIED]
+if _unread:
+    raise SystemExit(
+        "config/donor_criteria.yaml declares criteria that this code does not apply: "
+        + ", ".join(_unread) + ". Implement them in code/01_cohort_and_definitions.py, "
+        "or remove them from the YAML.")
 
 
 ################################################################################
@@ -219,6 +294,9 @@ atexit.register(lambda: (_run_log_handle.flush(), _run_log_handle.close()))
 print(f"=== Run started {_dt.datetime.now():%Y-%m-%d %H:%M:%S} ===")
 print(f"Site: {site_name} | Tables: {tables_path} | File type: {file_type}")
 print(f"Logging stdout to: {_RUN_LOG_PATH}")
+for _k, _why in DECLARED_NOT_APPLIED.items():
+    if _k in CRIT.leaves("clif_donor", "calc", "ventilated_patient"):
+        print(f"  note  {_k} is in donor_criteria.yaml but is NOT applied: {_why}")
 print("-" * 80)
 
 strobe_counts = {}
@@ -817,13 +895,13 @@ else:
 strobe_counts['age_source'] = _age_source
 print(f"Age source: {_age_source}")
 
-# Create age_75_less flag per patient_id ( age_at_death <= 75)
+# Create age_75_less flag per patient_id (age_at_death within clif_donor.age_at_death_max)
 age_flag_df = (
     final_cohort_df
     .group_by('patient_id')
     .agg([
         (
-            (pl.col('age_at_death') <= 75).any()
+            AGE_OK(pl.col('age_at_death'), AGE_MAX).any()
         ).alias('age_75_less')
     ])
 )
@@ -887,7 +965,7 @@ n_age_relevant = duckdb.sql(f"""
 strobe_counts["5_age_relevant_in_hospital_dx"] = n_age_relevant
 
 # ---- 0) Load contraindications list from CSV ----
-contraindications_df = pl.read_csv(str(UTILS_DIR / "icd10_contraindications.csv"))
+contraindications_df = pl.read_csv(str(CONTRA_FILE))
 _contra_norm = contraindications_df.with_columns([
     pl.col("ICD-10-CM").cast(pl.Utf8).str.to_lowercase()
       .str.replace_all(r"[.\s]", "").alias("code_norm")
@@ -951,12 +1029,7 @@ comorbidity_bool_or_clauses = ",\n    ".join(
 
 # The three CALC cause ranges from 42 CFR 486.302, written once and reused for
 # every diagnosis-position variant so the three cannot drift apart.
-_CAUSE_SQL = (
-    "sys IN ('icd10','icd10cm') AND ("
-    r"REGEXP_MATCHES(dx_norm, '^i2[0-5]\w*$') OR "
-    r"REGEXP_MATCHES(dx_norm, '^i6[0-9]\w*$') OR "
-    r"REGEXP_MATCHES(dx_norm, '^(v0[1-9]|v[1-9]\d|w\d{2}|x\d{2}|y[0-8]\d)\w*$'))"
-)
+_CAUSE_SQL = "sys IN ('icd10','icd10cm') AND (" + " OR ".join(_RANGE_SQL.values()) + ")"
 
 query = f"""
 WITH hospital_dx_normalized AS (
@@ -976,9 +1049,9 @@ WITH hospital_dx_normalized AS (
 hospital_dx_flags AS (
     SELECT
         hospitalization_id,
-        CASE WHEN sys IN ('icd10','icd10cm') AND REGEXP_MATCHES(dx_norm, '^i2[0-5]\\w*$') THEN true ELSE false END AS icd10_ischemic,
-        CASE WHEN sys IN ('icd10','icd10cm') AND REGEXP_MATCHES(dx_norm, '^i6[0-9]\\w*$') THEN true ELSE false END AS icd10_cerebro,
-        CASE WHEN sys IN ('icd10','icd10cm') AND REGEXP_MATCHES(dx_norm, '^(v0[1-9]|v[1-9]\\d|w\\d{{2}}|x\\d{{2}}|y[0-8]\\d)\\w*$') THEN true ELSE false END AS icd10_external,
+        CASE WHEN sys IN ('icd10','icd10cm') AND {_ISCHEMIC_SQL} THEN true ELSE false END AS icd10_ischemic,
+        CASE WHEN sys IN ('icd10','icd10cm') AND {_CEREBRO_SQL} THEN true ELSE false END AS icd10_cerebro,
+        CASE WHEN sys IN ('icd10','icd10cm') AND {_EXTERNAL_SQL} THEN true ELSE false END AS icd10_external,
         CASE WHEN sys IN ('icd10','icd10cm') AND dx_norm IN (SELECT code FROM contraindication_codes_df) THEN true ELSE false END AS icd10_contraindication,
         -- CALC cause of death, in three diagnosis-position variants. All three
         -- are computed every run; calc.diagnosis_position picks which becomes
@@ -1076,14 +1149,12 @@ strobe_counts["calc_cause"] = strobe_counts["calc_cause_any"]   # legacy key
 # Which diagnosis position defines the cause of death. Set in
 # config/donor_criteria.yaml; invalid values stop the run rather than silently
 # falling back, because the wrong variant is a plausible-looking wrong answer.
-_CALC_CFG = yaml.safe_load(
-    (PROJECT_ROOT / "config/donor_criteria.yaml").read_text())["calc"]
-_POSITION = str(_CALC_CFG.get("diagnosis_position", "any")).lower()
+_POSITION = CALC_POSITION
 if _POSITION not in CALC_POSITIONS:
     raise SystemExit(
         f"calc.diagnosis_position is '{_POSITION}'; expected one of "
         f"{sorted(CALC_POSITIONS)} — fix config/donor_criteria.yaml")
-if _CALC_CFG.get("apply_contraindications", False):
+if CALC_APPLY_CONTRAINDICATIONS:
     raise SystemExit(
         "calc.apply_contraindications is true. CALC applies no contraindication "
         "codes (42 CFR 486.302; CMS-3380-F pp. 45, 51). See DECISIONS D-43.")
@@ -1092,7 +1163,7 @@ print(f"CALC diagnosis position: {_POSITION} -> {CALC_POSITIONS[_POSITION]}")
 for _name, _col in CALC_POSITIONS.items():
     _n = final_cohort_df.filter(pl.col('age_75_less') & pl.col(_col))["patient_id"].n_unique()
     strobe_counts[f"calc_qualified_{_name}"] = _n
-    print(f"  age <= 75 and cause ({_name:11}): {_n:>7,}"
+    print(f"  age {_AGE_OP_NAME} {AGE_MAX:g} and cause ({_name:11}): {_n:>7,}"
           + ("   <- calc_flag" if _name == _POSITION else ""))
 
 final_cohort_df = final_cohort_df.with_columns(
@@ -1166,8 +1237,8 @@ SELECT
     hr_2death_last_imv
 FROM latest_imv_per_patient
 WHERE rn = 1
-    AND hr_2death_last_imv <= 48
-    AND hr_2death_last_imv >= -24
+    AND hr_2death_last_imv <= {IMV_HOURS}
+    AND hr_2death_last_imv >= -{IMV_POST_DEATH_HOURS}
 """
 
 resp_expired_cohort = pl.from_pandas(duckdb.sql(imv_query).df())
@@ -1194,7 +1265,7 @@ imv_48hr_expire = final_cohort_df.filter(pl.col("died_while_imv"))["patient_id"]
 # "imv_48hr_expire" flag, without the age cap, is the Ventilated Patient
 # definition and is counted separately.
 strobe_counts["6_died_while_imv_age_le75"] = imv_48hr_expire
-print(f"✓ Died while receiving IMV (age <=75 + IMV <=48h): {imv_48hr_expire}")
+print(f"✓ Died while receiving IMV (age {_AGE_OP_NAME}{AGE_MAX:g} + IMV <={IMV_HOURS:g}h): {imv_48hr_expire}")
 
 ################################################################################
 # Organ quality check
@@ -1235,7 +1306,7 @@ crrt_with_death AS (
 )
 SELECT DISTINCT hospitalization_id
 FROM crrt_with_death
-WHERE hrs_before_death <= 48 AND hrs_before_death >= 0
+WHERE hrs_before_death <= {CRRT_HOURS} AND hrs_before_death >= 0
 """
 
 crrt_48h_result = pl.from_pandas(duckdb.sql(crrt_query).df())
@@ -1247,7 +1318,7 @@ final_cohort_df = final_cohort_df.join(
 ).with_columns(pl.col('on_crrt_48h_before_death').fill_null(False))
 
 on_crrt_n = final_cohort_df.filter(pl.col('on_crrt_48h_before_death'))['patient_id'].n_unique()
-print(f"✓ Patients on CRRT within 48h before death: {on_crrt_n}")
+print(f"✓ Patients on CRRT within {CRRT_HOURS:g}h before death: {on_crrt_n}")
 
 # ============================================
 # Organ-quality labs (creatinine, bili, AST, ALT) — streamed via DuckDB
@@ -1378,7 +1449,7 @@ final_cohort_df = final_cohort_df.with_columns([
     # Kidney criteria: creatinine < 4 AND not on CRRT
     (
         (pl.col('creatinine_value').is_not_null()) &
-        (pl.col('creatinine_value') < 4) &
+        (pl.col('creatinine_value') < CREATININE_MAX) &
         (~pl.col('on_crrt_48h_before_death'))
     ).alias('kidney_eligible'),
 
@@ -1387,15 +1458,15 @@ final_cohort_df = final_cohort_df.with_columns([
         (pl.col('bilirubin_total_value').is_not_null()) &
         (pl.col('ast_value').is_not_null()) &
         (pl.col('alt_value').is_not_null()) &
-        (pl.col('bilirubin_total_value') < 4) &
-        (pl.col('ast_value') < 700) &
-        (pl.col('alt_value') < 700)
+        (pl.col('bilirubin_total_value') < BILIRUBIN_MAX) &
+        (pl.col('ast_value') < AST_MAX) &
+        (pl.col('alt_value') < ALT_MAX)
     ).alias('liver_eligible'),
 
     # BMI criteria: <= 50
     (
         (pl.col('bmi').is_not_null()) &
-        (pl.col('bmi') <= 50)
+        (pl.col('bmi') <= BMI_MAX)
     ).alias('bmi_eligible'),
 ])
 
@@ -1469,7 +1540,7 @@ cultures_48h AS (
             THEN true ELSE false
         END AS is_negative_culture
     FROM cultures_with_death
-    WHERE hrs_before_death >= 0 AND hrs_before_death <= 48
+    WHERE hrs_before_death >= 0 AND hrs_before_death <= {CULTURE_HOURS}
 ),
 positive_cultures AS (
     SELECT DISTINCT hospitalization_id
@@ -1503,8 +1574,8 @@ no_positive_culture_n = final_cohort_df.filter(pl.col('no_positive_culture_48hrs
 positive_culture_n = final_cohort_df.filter(~pl.col('no_positive_culture_48hrs'))['patient_id'].n_unique()
 strobe_counts["no_positive_culture_48hrs"] = no_positive_culture_n
 strobe_counts["positive_culture_48hrs"] = positive_culture_n
-print(f"  Patients with no positive cultures in last 48h: {no_positive_culture_n}")
-print(f"  Patients with positive cultures in last 48h: {positive_culture_n}")
+print(f"  Patients with no positive cultures in last {CULTURE_HOURS:g}h: {no_positive_culture_n}")
+print(f"  Patients with positive cultures in last {CULTURE_HOURS:g}h: {positive_culture_n}")
 
 final_cohort_df.columns
 
@@ -1564,25 +1635,25 @@ final_cohort_df = final_cohort_df.with_columns([
     # Terminal creatinine < 4
     (
         (pl.col('creatinine_value').is_not_null()) &
-        (pl.col('creatinine_value') < 4)
+        (pl.col('creatinine_value') < CREATININE_MAX)
     ).alias('creatinine_lt_4'),
 
     # Terminal bilirubin < 4
     (
         (pl.col('bilirubin_total_value').is_not_null()) &
-        (pl.col('bilirubin_total_value') < 4)
+        (pl.col('bilirubin_total_value') < BILIRUBIN_MAX)
     ).alias('bilirubin_lt_4'),
 
     # Terminal AST < 700
     (
         (pl.col('ast_value').is_not_null()) &
-        (pl.col('ast_value') < 700)
+        (pl.col('ast_value') < AST_MAX)
     ).alias('ast_lt_700'),
 
     # Terminal ALT < 700
     (
         (pl.col('alt_value').is_not_null()) &
-        (pl.col('alt_value') < 700)
+        (pl.col('alt_value') < ALT_MAX)
     ).alias('alt_lt_700'),
 ])
 
@@ -1592,28 +1663,28 @@ final_cohort_df = final_cohort_df.with_columns([
     (
         (pl.col('bmi_eligible') == True) &
         (pl.col('creatinine_value').is_not_null()) &
-        (pl.col('creatinine_value') < 4)
+        (pl.col('creatinine_value') < CREATININE_MAX)
     ).alias('creatinine_lt_4_bmi50'),
 
     # Terminal bilirubin < 4 (BMI ≤50 only)
     (
         (pl.col('bmi_eligible') == True) &
         (pl.col('bilirubin_total_value').is_not_null()) &
-        (pl.col('bilirubin_total_value') < 4)
+        (pl.col('bilirubin_total_value') < BILIRUBIN_MAX)
     ).alias('bilirubin_lt_4_bmi50'),
 
     # Terminal AST < 700 (BMI ≤50 only)
     (
         (pl.col('bmi_eligible') == True) &
         (pl.col('ast_value').is_not_null()) &
-        (pl.col('ast_value') < 700)
+        (pl.col('ast_value') < AST_MAX)
     ).alias('ast_lt_700_bmi50'),
 
     # Terminal ALT < 700 (BMI ≤50 only)
     (
         (pl.col('bmi_eligible') == True) &
         (pl.col('alt_value').is_not_null()) &
-        (pl.col('alt_value') < 700)
+        (pl.col('alt_value') < ALT_MAX)
     ).alias('alt_lt_700_bmi50'),
 ])
 
@@ -1638,8 +1709,8 @@ strobe_counts["clif_liver_eligible"] = clif_liver_eligible_n
 strobe_counts["clif_both_kidney_liver_eligible"] = clif_both_eligible_n
 
 print(f"\nCLIF Donor Organ Eligibility (n={clif_eligible_n}):")
-print(f"  Kidney eligible (Cr <4 AND not on CRRT): {clif_kidney_eligible_n} ({clif_kidney_pct:.1f}%)")
-print(f"  Liver eligible (Bili <4 AND AST <700 AND ALT <700): {clif_liver_eligible_n} ({clif_liver_pct:.1f}%)")
+print(f"  Kidney eligible (Cr <{CREATININE_MAX:g} AND not on CRRT): {clif_kidney_eligible_n} ({clif_kidney_pct:.1f}%)")
+print(f"  Liver eligible (Bili <{BILIRUBIN_MAX:g} AND AST <{AST_MAX:g} AND ALT <{ALT_MAX:g}): {clif_liver_eligible_n} ({clif_liver_pct:.1f}%)")
 print(f"  Both kidney AND liver eligible: {clif_both_eligible_n} ({clif_both_pct:.1f}%)")
 
 ################################################################################
@@ -1769,7 +1840,7 @@ _audit = StageAudit(site_name, OUTPUT_FINAL_DIR, label="definitions")
 # Both variants are computed: Table 1 of the manuscript says "No restrictions",
 # so the no-age-limit flag is the reported one, but the age-capped variant is
 # kept so the difference is a reported number rather than a re-run.
-_vent_age = CRITERIA["ventilated_patient"]["apply_age_limit"]
+_vent_age = VENT_APPLY_AGE_LIMIT
 final_cohort_df = final_cohort_df.with_columns([
     pl.col("imv_48hr_expire").alias("ventilated_patient_no_age_limit"),
     (pl.col("imv_48hr_expire") & pl.col("age_75_less")).alias("ventilated_patient_age_le75"),
@@ -1780,10 +1851,11 @@ final_cohort_df = final_cohort_df.with_columns(
 _audit.record("20_ventilated_no_age_limit", final_cohort_df,
               final_cohort_df.filter(pl.col("ventilated_patient_no_age_limit")),
               key="patient_id",
-              rule="IMV within 48h of death, NO age restriction (Table 1 as written)")
+              rule=f"IMV within {IMV_HOURS:g}h of death, NO age restriction (Table 1 as written)")
 _audit.record("21_ventilated_age_le75", final_cohort_df,
               final_cohort_df.filter(pl.col("ventilated_patient_age_le75")),
-              key="patient_id", rule="IMV within 48h of death AND age <= 75")
+              key="patient_id",
+              rule=f"IMV within {IMV_HOURS:g}h of death AND age {_AGE_OP_NAME} {AGE_MAX:g}")
 
 # ── hospital identity ────────────────────────────────────────────────────────
 # The TERMINAL ADT record is the hospital where the patient died, which is the

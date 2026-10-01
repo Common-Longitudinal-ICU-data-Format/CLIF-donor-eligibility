@@ -32,6 +32,12 @@ clif_donor:
   age_at_death_max: 75
   age_operator: "<="                     
   imv_hours_before_death: 48
+  # IMV charted up to this many hours AFTER the recorded death time still counts.
+  # This was a literal in the code until 2026-10-01; the value is unchanged. It
+  # matters where death_dttm is date-only (stored as midnight), because the last
+  # ventilator row then falls after the recorded death time. Whether to keep it
+  # is an open question for the PI.
+  imv_post_death_tolerance_hours: 24
   bmi_max: 50
   sepsis_window_hours: 48                # only used for the reporting flag
   # NO sepsis exclusion. Settled 2026-09-19: sepsis codes are reported (Table 1)
