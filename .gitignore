@@ -1,0 +1,26 @@
+# R specific gitignores
+.Rprofile
+.Rhistory
+.Rprofile
+.Ruserdata
+.DS_Store
+*.Rproj
+.Rproj.user
+
+## ignore the renv initialization file
+initialize_renv.R
+
+## ignore filtered CLIF tables stored as Rdata
+*.RData
+
+#ignore source CLIF_ files
+clif_*.parquet
+clif_*.csv
+clif_*.fst
+
+# but DO ship the bundled CLIF demo dataset (synthetic, safe) so templates run out of the box
+!clif_demo/*.parquet
+
+# NEVER commit patient-level intermediate outputs (PHI) — keep only the folder's README
+output/intermediate_phi/*
+!output/intermediate_phi/README.md
