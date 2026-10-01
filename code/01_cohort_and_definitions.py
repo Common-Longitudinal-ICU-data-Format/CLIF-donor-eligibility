@@ -286,7 +286,8 @@ OUTPUT_FINAL_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_INTERMEDIATE_DIR.mkdir(parents=True, exist_ok=True)
 
 # ---- Run log -----------------------------------------------------------
-# Tee stdout so every print() in this run also lands in output/final/run_log.txt.
+# Tee stdout so every print() in this run also lands in <site>_upload_to_box/run_log.txt.
+# That file ships, so nothing printed may identify a patient: counts only, never ids.
 # Overwrites the previous run's log; sites only need the most recent.
 import atexit, datetime as _dt
 

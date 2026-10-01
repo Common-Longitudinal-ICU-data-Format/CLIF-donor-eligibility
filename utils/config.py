@@ -8,6 +8,8 @@ same code runs unmodified at every site:
 Falls back to config/config.json when the variable is unset, preserving the
 original single-site behaviour.
 """
+from __future__ import annotations
+
 import json
 import os
 from pathlib import Path

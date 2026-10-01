@@ -6,6 +6,6 @@ anything with `patient_id` or row-level records). Treat everything here as conta
 - **Never** upload the contents of this folder to Box, share with the PI, or send across the
   consortium.
 - Its contents are **git-ignored** so they cannot be committed — only this `README.md` is tracked.
-- Share results **only** from [`../final_no_phi/`](../final_no_phi) (aggregate, n ≥ 10, no row-level
-  records). See [`../README.md`](../README.md) and [`../../guides/primer.md`](../../guides/primer.md)
-  for the full data-security rules.
+- Share results **only** from `<site>_upload_to_box/` at the repository root (aggregate, no
+  row-level records). See [`../README.md`](../README.md) and
+  [`../../guides/primer.md`](../../guides/primer.md) for the full data-security rules.

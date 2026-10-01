@@ -1,52 +1,42 @@
-## Code directory
+## Code
 
-This is where your project's scripts live. The repository ships starter scripts under
-[`templates/`](templates) for both **R** and **Python** — as the project creator you **copy the
-language(s) you use into `code/`** (see the [Creator Guide](../guides/creator-guide.md)), then adapt
-them.
+Three scripts, run in order. Each reads `config/config.json` (see
+[`../config/README.md`](../config/README.md)) and writes to two places:
 
-> [!NOTE]
-> **These templates are suggestions, not requirements.** They exist to make it easy to follow a
-> shared convention across the consortium — the numbered steps, file layout, and naming are just a
-> starting point. Rename, restructure, combine, or replace anything to fit your project.
+- `<site>_upload_to_box/` at the repository root: aggregate results, the folder you return;
+- `output/intermediate_phi/<site>/`: patient-level working files, which never leave your site.
 
-Only **step 01 (cohort identification)** is a fully worked example
-([Python](templates/Python/01_cohort_identification_template.py) ·
-[R](templates/R/01_cohort_identification_template.R)) — it shows the CLIF idiom end to end:
-load `config/config.json`, read the tables you need, build a cohort, and split outputs into
-patient-level working data ([`output/intermediate_phi/`](../output/intermediate_phi)) vs. shareable
-aggregates ([`output/final_no_phi/`](../output/final_no_phi)).
+| script | what it does | main outputs |
+|---|---|---|
+| `01_cohort_and_definitions.py` | Setup checks, then the cohort of in-hospital deaths and the three definitions (CLIF-donor, CALC, Ventilated Patient). | `strobe_counts.csv`, `definition_counts.csv`, `decedents_by_location.csv`, `data_quality_flags.csv`, `srtr_ref/`, `run_log.txt` |
+| `02_build_tables.py` | Clinical-care variables from the optional tables, the manuscript tables, and a CONSORT per definition. | `table2_characteristics.csv`, `table3_clinical_care.csv`, `tableS2_missingness.csv`, `table_stats_raw.csv`, `consort_counts.csv`, `hospital_level_counts.csv`, `exclusion_codes_by_step.csv` |
+| `03_diagnostics.py` | Missingness, data-element coverage and definition overlap, then a reconciliation of the counts above and `provenance.md`. | `missingness_*.csv`, `element_coverage.csv`, `definition_overlap_upset.*`, `provenance.md` |
 
-**Steps 02–04 are skeletons** (purpose + expected inputs/outputs, no code) for you to fill in.
-
-**Try it on demo data:** the config defaults to the bundled [`clif_demo/`](../clif_demo) dataset, so
-once you create your config you can run `01` immediately — no real data needed:
+```bash
+uv sync
+uv run python code/01_cohort_and_definitions.py
+uv run python code/02_build_tables.py
+uv run python code/03_diagnostics.py
 ```
-cp config/config_template.json config/config.json   # default data_directory = clif_demo
-uv run python code/templates/Python/01_cohort_identification_template.py
-# or: Rscript code/templates/R/01_cohort_identification_template.R
+
+Step 01 stops within a second if the config, the tables or the criteria are not usable, before
+any patient data is read. Step 03 fails the run if the counts it reconciles disagree.
+
+Every clinical threshold is read from [`../config/donor_criteria.yaml`](../config/donor_criteria.yaml).
+Flag names such as `age_75_less` and `imv_48hr_expire` keep the default value in their name; the
+value applied is the one in the YAML.
+
+### `coordinating/`
+
+Pooling across sites and linkage to SRTR. Run at the coordinating centre only, on the bundles
+sites return. The SRTR extract is under a data use agreement and lives outside the repository;
+point `CLIF_SRTR_DIR` at it.
+
+### Tests
+
+```bash
+uv run pytest
 ```
-Point `data_directory` at your CLIF tables when you're ready to run on real data.
 
-### General workflow
-
-1. **Cohort identification** (`01`, worked example)
-   - Apply inclusion/exclusion criteria, select required fields, filter the tables.
-   - Output: the cohort + a `cohort_summary` aggregate.
-
-2. **Quality checks** (`02`, skeleton)
-   - Project-specific QC on the cohort: required fields present, categories valid (mCIDE),
-     plausible ranges.
-   - Input: cohort from `01` → Output: cleaned cohort.
-
-3. **Outlier handling** (`03`, skeleton)
-   - Set physiologically implausible values to NaN/NA. **Python:** use clifpy's
-     `apply_outlier_handling` (CLIF-wide thresholds, no CSVs to manage). **R:** apply your
-     project's agreed plausible ranges.
-   - Input: cleaned cohort → Output: outlier-handled data.
-
-4. **Analysis** (`04`, skeleton)
-   - The main analysis. Write **aggregate** results to
-     [`output/final_no_phi/`](../output/README.md) — no row-level data, every reported statistic
-     n ≥ 10 (see the data-security rules in [`output/README.md`](../output/README.md) and
-     [`../guides/primer.md`](../guides/primer.md)).
+The tests need no patient data. They cover the criteria loader, the ICD-10 range matching, the
+timestamp check and the provenance document.

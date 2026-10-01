@@ -3,8 +3,10 @@
 
 Adds the Table 3 variables that need tables 01 does not read (procedures,
 medications, microbiology, position), then builds every aggregate table the
-manuscript needs. Output is aggregate only, small cells suppressed, and lands in
-<site>_upload_to_box/ — the folder that may leave the site.
+manuscript needs. Output is aggregate only and lands in
+<site>_upload_to_box/ — the folder that may leave the site. Small cells are masked in
+the formatted tables only when study.suppress_small_cells is true in
+config/donor_criteria.yaml; the raw-count files are never masked, so they pool.
 
 Tables produced, matching CLIF-donor manuscript_4_WFP:
     table2_characteristics.csv   demographics + labs + contraindications by definition

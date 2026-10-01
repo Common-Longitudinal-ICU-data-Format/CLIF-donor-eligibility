@@ -2,7 +2,7 @@
 name = "clif-donor-identifier"
 version = "2.1.0"
 description = "CLIF Epidemiology of Potential and Actual Deceased Organ Donors"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "polars>=0.20.0",
     "matplotlib>=3.7.0",

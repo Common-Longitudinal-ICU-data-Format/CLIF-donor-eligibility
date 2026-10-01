@@ -32,7 +32,13 @@ Two points where the code deliberately departs from a naive reading:
   in Table 2 but exclude nobody.
 
 Every criterion lives in `config/donor_criteria.yaml`. Nothing is hard-coded in
-the scripts.
+the scripts: step 01 reads each value and stops if the YAML declares a criterion
+the code does not apply.
+
+"IMV within 48 h of death" counts ventilator records from 48 h before to 24 h
+after the recorded death time. The 24 h allowance is
+`clif_donor.imv_post_death_tolerance_hours`; it exists because some sites record
+death as a date, stored as midnight.
 
 ## Running it
 
@@ -45,7 +51,7 @@ cp config/config_template.json config/config.json
 #    The run stops if the cohort contains an id you did not declare, or if a
 #    declared id contributes no decedents.
 
-# 2. Install
+# 2. Install (Python 3.10 or newer)
 uv sync
 
 # 3. Run, in order
@@ -54,7 +60,8 @@ uv run python code/02_build_tables.py
 uv run python code/03_diagnostics.py
 ```
 
-Or all three at once: `uv run python run_pipeline.py --sites <site>`.
+Or, if you keep your config as `config/config_<site>.json`, all three at once:
+`uv run python run_pipeline.py --sites <site>`.
 
 The run validates the config, the required tables and the required columns
 before reading any patient data, and stops with a plain message if something is
@@ -70,17 +77,21 @@ only — no patient-level data.
 | file | contents |
 |---|---|
 | `provenance.md` | **start here.** Cohort cascade, CONSORT per definition, every audit stage, and the reconciliation result |
-| `definition_counts.csv` | one row: decedents and each definition's count |
+| `definition_counts.csv` | one row: decedents, each definition's count, the three CALC cause-arm counts, and decedents with no diagnosis rows |
+| `data_quality_flags.csv` | conditions that do not stop the run but change what a number means at your site; also shown in `provenance.md` |
+| `definition_counts_by_hospital_type.csv` | definition counts for academic and community hospitals |
 | `consort_counts.csv` | per-definition cascade, step by step |
 | `strobe_counts.csv` | every filter-stage count from step 01 |
 | `table2_characteristics.csv`, `table3_clinical_care.csv` | manuscript tables |
 | `table_stats_raw.csv` | the same numbers as raw n / denominator, so they pool exactly |
 | `tableS2_missingness.csv` | per-variable missingness |
 | `hospital_level_counts.csv` | per analytic hospital |
+| `exclusion_codes_by_step.csv` | for each CONSORT step, the ICD-10 codes carried by the patients excluded there |
+| `donor_administrative_code_availability.csv` | whether donor-related procedure codes exist in your extract |
 | `decedents_by_location.csv` | decedents by terminal ADT location, and which are in the cohort |
 | `missingness_*.csv`, `element_coverage.csv`, `data_availability_by_hospital.csv` | data-quality diagnostics |
 | `definition_overlap_upset.{csv,png}` | which patients the definitions share |
-| `srtr_ref/` | hospital ids and year coverage, for linking to SRTR centrally |
+| `srtr_ref/` | hospital ids and the calendar years covered, for linking to SRTR centrally |
 | `audit/` | stage cards, counts only |
 | `run_log.txt` | full stdout |
 
@@ -97,6 +108,7 @@ code/coordinating/                  pooling and SRTR linkage — coordinating ce
 config/donor_criteria.yaml          every criterion
 config/clif_data_requirements.yaml  required tables, columns and mCIDE values
 utils/                              shared python modules
+tests/                              unit tests, no patient data needed (uv run pytest)
 utils/codes/, utils/*.csv           ICD-10 and procedure code lists
 ```
 

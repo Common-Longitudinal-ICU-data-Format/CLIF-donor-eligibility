@@ -49,7 +49,7 @@ def collect_hospitals(sites_dir: Path) -> pl.DataFrame:
         frames.append(d)
     if not frames:
         raise SystemExit(f"no hospital_level_counts.csv under {sites_dir}\n"
-                         "Collect the sites' returned <site>_upload_to_box/final/ folders first.")
+                         "Collect the sites' returned <site>_upload_to_box/ folders first.")
     d = pl.concat(frames, how="diagonal")
     for c in ("n_decedents", "CLIF_donor", "CALC", "Ventilated_Patient"):
         if c in d.columns:
