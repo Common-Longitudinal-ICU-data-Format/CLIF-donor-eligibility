@@ -391,12 +391,13 @@ print(f"Unique patients who died:           {unique_patients:,}")
 print(f"Patients with multiple deaths:      {num_multi_death:,}")
 
 if num_multi_death > 0:
-    print("\nDEBUG: Patients with multiple death hospitalizations (showing first 5):")
-    for row in multi_death_patients.head(5).iter_rows(named=True):
-        print(f"  Patient {row['patient_id']}: {row['death_encounter_count']} death hospitalizations")
-        print(f"    Encounter blocks: {row['encounter_blocks']}")
-        print(f"    Discharge times:  {row['discharge_times']}")
+    # Count only. Everything printed is teed into run_log.txt, which ships, so
+    # no patient_id, encounter key or timestamp may appear here. The ids go to
+    # the local PHI folder for the site to inspect.
+    multi_death_patients.select(["patient_id", "death_encounter_count"]).write_csv(
+        OUTPUT_INTERMEDIATE_DIR / "multi_death_patients.csv")
     print(f"\nNOTE: {num_multi_death} patients have multiple death rows — likely a data quality issue.")
+    print("  (ids written to the local intermediate folder, never shipped)")
     print("Will collapse each patient to their LATEST death encounter below.")
 else:
     print("✓ No patients with multiple death hospitalizations — data is clean.")
@@ -551,8 +552,11 @@ decedent_hosp_in_adt = set(adt_df.select('hospitalization_id').to_series().to_li
 missing_in_adt = set(all_decedent_hosp_ids) - decedent_hosp_in_adt
 
 if missing_in_adt:
-    print(f"Warning: {len(missing_in_adt)} hospitalization(s) missing in ADT table")
-    print(f"Missing hospitalization_ids: {missing_in_adt}")
+    # Count only: run_log.txt ships, and these are encounter keys.
+    pl.DataFrame({"hospitalization_id": sorted(str(h) for h in missing_in_adt)}).write_csv(
+        OUTPUT_INTERMEDIATE_DIR / "decedent_hospitalizations_missing_in_adt.csv")
+    print(f"Warning: {len(missing_in_adt)} hospitalization(s) missing in ADT table "
+          f"(ids written to the local intermediate folder, never shipped)")
 else:
     print(f"✓ All {len(all_decedent_hosp_ids)} decedent hospitalizations present in ADT table")
 
@@ -1852,7 +1856,12 @@ _cov = final_cohort_df.select(
      "ccn_facility_type", "hospital_type", "in_srtr_denominator", "final_death_dttm"]
 ).drop_nulls("hospital_id_key")
 
-(_cov.with_columns(pl.col("final_death_dttm").dt.year().alias("year"))
+# Year of death only. The earliest and latest death timestamps are dates tied to
+# two individual patients, which may not leave the site; SRTR linkage needs the
+# calendar years covered and nothing finer.
+_cov = _cov.with_columns(pl.col("final_death_dttm").dt.year().alias("death_year"))
+
+(_cov.rename({"death_year": "year"})
  .group_by(["hospital_id_key", "hospital_label", "srtr_ccn_id", "year"])
  .agg(pl.col("patient_id").n_unique().alias("n_decedents"))
  .with_columns(pl.lit(site_name).alias("site"))
@@ -1863,11 +1872,9 @@ _cov = final_cohort_df.select(
 _hc = (_cov.group_by(["hospital_id_key", "hospital_label", "srtr_ccn_id",
                       "ccn_facility_type", "hospital_type", "in_srtr_denominator"])
        .agg(pl.col("patient_id").n_unique().alias("n_decedents"),
-            pl.col("final_death_dttm").min().alias("first_death"),
-            pl.col("final_death_dttm").max().alias("last_death"))
-       .with_columns(pl.lit(site_name).alias("site"),
-                     pl.col("first_death").dt.year().alias("first_year"),
-                     pl.col("last_death").dt.year().alias("last_year"))
+            pl.col("death_year").min().alias("first_year"),
+            pl.col("death_year").max().alias("last_year"))
+       .with_columns(pl.lit(site_name).alias("site"))
        .with_columns((pl.col("last_year") - pl.col("first_year") + 1).alias("n_years_spanned"))
        .sort("n_decedents", descending=True))
 _hc.write_csv(_SREF / "hospital_coverage.csv")
@@ -1879,14 +1886,14 @@ pl.DataFrame([{
         _cov.filter(pl.col("in_srtr_denominator"))["hospital_id_key"].n_unique(),
     "n_distinct_ccn": _cov["srtr_ccn_id"].drop_nulls().n_unique(),
     "n_decedents": _cov["patient_id"].n_unique(),
-    "first_death": str(_cov["final_death_dttm"].min()),
-    "last_death": str(_cov["final_death_dttm"].max()),
+    "first_year": _cov["death_year"].min(),
+    "last_year": _cov["death_year"].max(),
 }]).write_csv(_SREF / "site_coverage.csv")
 
 print(f"\nSRTR reference -> {_SREF}")
 for _r in _hc.iter_rows(named=True):
-    _fd = _r["first_death"].date() if _r["first_death"] else "?"
-    _ld = _r["last_death"].date() if _r["last_death"] else "?"
+    _fd = _r["first_year"] if _r["first_year"] else "?"
+    _ld = _r["last_year"] if _r["last_year"] else "?"
     _flag = "" if _r["first_year"] and _r["first_year"] <= WINDOW_START_YEAR else "   <-- PARTIAL COVERAGE"
     print(f"    {str(_r['hospital_id_key'])[:32]:32s} ccn={str(_r['srtr_ccn_id']):8s} "
           f"n={_r['n_decedents']:5,}  {_fd} -> {_ld}{_flag}")
