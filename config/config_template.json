@@ -1,7 +1,19 @@
 {
-    "site_name": "Your_Site_Name",
-    "data_directory": "./clif_demo",
-    "filetype": "parquet",
-    "timezone": "US/Eastern",
-    "output_directory": "./output"
+    "_instructions": "Copy this file to config/config.json and replace every value below. Then run: python code/01_cohort_and_definitions.py",
+    "site_name": "your_site_name",
+    "tables_path": "/absolute/path/to/your/clif/parquet/tables",
+    "file_type": "parquet",
+    "timezone": "Area/City",
+    "project_root": "/absolute/path/to/CLIF-donor-eligibility",
+    "clif_version": "2.1",
+    "hospital_ids": [
+        "your_hospital_id_1",
+        "your_hospital_id_2"
+    ],
+    "_notes": {
+        "site_name": "lowercase, e.g. ucmc, nu, rush",
+        "timezone": "the local timezone your CLIF datetimes are in, e.g. US/Central",
+        "project_root": "the folder this repository is in",
+        "hospital_ids": "every hospital_id that appears in clif_adt for your decedents, written exactly as it appears there. 01_cohort_and_definitions.py stops if the cohort contains an id not listed here, or if a listed id contributes no decedents."
+    }
 }

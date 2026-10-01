@@ -24,3 +24,18 @@ clif_*.fst
 # NEVER commit patient-level intermediate outputs (PHI) — keep only the folder's README
 output/intermediate_phi/*
 !output/intermediate_phi/README.md
+
+# ── CLIF-donor outputs: never commit, never push ─────────────────────────────
+output/
+*_upload_to_box/
+config/config.json
+config/config_*.json
+!config/config_template.json
+
+# Python bytecode embeds absolute source paths
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Review notes quote small cells from a site's bundle — keep local
+first_review.md

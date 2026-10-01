@@ -1,0 +1,39 @@
+concept,vocabulary,match_type,pattern,description
+craniotomy_hematoma,cpt,exact,61312,"Craniectomy/craniotomy, evacuation of hematoma, supratentorial; extradural or subdural"
+craniotomy_hematoma,cpt,exact,61313,"Craniectomy/craniotomy, evacuation of hematoma, supratentorial; intracerebral"
+craniotomy_hematoma,cpt,exact,61314,"Craniectomy/craniotomy, infratentorial; extradural or subdural hematoma"
+craniotomy_hematoma,cpt,exact,61315,"Craniectomy/craniotomy, infratentorial; intracerebral hematoma"
+craniotomy_hematoma,cpt,exact,61154,"Burr hole(s), evacuation/drainage of hematoma, extradural or subdural"
+craniotomy_hematoma,cpt,exact,61108,"Twist drill hole, evacuation/drainage of subdural hematoma"
+decompressive_craniectomy,cpt,exact,61322,"Craniectomy, decompressive, for intracranial hypertension, without evacuation"
+decompressive_craniectomy,cpt,exact,61323,"Craniectomy, decompressive, for intracranial hypertension, with evacuation"
+decompressive_craniectomy,cpt,exact,61343,"Craniectomy, suboccipital/decompressive (older code family)"
+icp_evd,cpt,exact,61107,Twist drill hole for implanting ventricular catheter/pressure recording device
+icp_evd,cpt,exact,61210,Burr hole(s) for implanting ventricular catheter/reservoir/pressure device (EVD)
+cerebral_angiography,cpt,exact,36221,"Non-selective catheter placement, thoracic aorta, with cervicocerebral angiography"
+cerebral_angiography,cpt,exact,36223,"Selective catheter placement, carotid circulation, with angiography"
+cerebral_angiography,cpt,exact,36224,"Selective catheter placement, internal carotid, with angiography"
+cerebral_angiography,cpt,exact,36225,"Selective catheter placement, subclavian/vertebral, with angiography"
+cerebral_angiography,cpt,exact,36226,"Selective catheter placement, vertebral artery, with angiography"
+cerebral_angiography,cpt,exact,36228,Add-on: additional selective intracranial catheterization/angiography
+endovascular_stroke,cpt,exact,61645,"Percutaneous mechanical thrombectomy and/or infusion for thrombolysis, intracranial"
+endovascular_stroke,cpt,exact,61650,"Endovascular prolonged intra-arterial infusion, intracranial; initial territory"
+endovascular_stroke,cpt,exact,61651,"Endovascular prolonged intra-arterial infusion, intracranial; additional territory"
+continuous_eeg,cpt,exact,95717,"Continuous EEG monitoring, physician review/interpretation (2-12 hrs, without video)"
+continuous_eeg,cpt,exact,95718,"Continuous EEG monitoring, physician review/interpretation (2-12 hrs, with video)"
+continuous_eeg,cpt,exact,95719,"Continuous EEG monitoring, physician review/interpretation (12-26 hrs, without video)"
+continuous_eeg,cpt,exact,95720,"Continuous EEG monitoring, physician review/interpretation (12-26 hrs, with video)"
+continuous_eeg,cpt,exact,95721,"Continuous EEG monitoring, physician review/interpretation (26+ hrs, without video)"
+continuous_eeg,cpt,exact,95722,"Continuous EEG monitoring, physician review/interpretation (26+ hrs, with video)"
+continuous_eeg,cpt,exact,95723,"Continuous EEG monitoring, physician review/interpretation (36+ hrs tier)"
+continuous_eeg,cpt,exact,95724,"Continuous EEG monitoring, physician review/interpretation (36+ hrs tier, with video)"
+continuous_eeg,cpt,exact,95725,"Continuous EEG monitoring, physician review/interpretation (60+ hrs tier)"
+continuous_eeg,cpt,exact,95726,"Continuous EEG monitoring, physician review/interpretation (60+ hrs tier, with video)"
+icp_evd,icd10pcs,regex,^009[46U],"Drainage of cerebral ventricle / subdural / subarachnoid space (EVD, ventriculostomy)"
+icp_evd,icd10pcs,regex,^00H[06U],"Insertion of device into brain / cerebral ventricle (ICP monitor, EVD catheter)"
+craniotomy_hematoma,icd10pcs,regex,^00C[0-9A-Z],Extirpation of matter from central nervous system (hematoma evacuation)
+decompressive_craniectomy,icd10pcs,regex,^00N[0-9A-Z],Release of central nervous system (decompression)
+decompressive_craniectomy,icd10pcs,regex,^0N[BC]1,Excision / extirpation of frontal or parietal bone (craniectomy)
+endovascular_stroke,icd10pcs,regex,^03C[GHJKLM],Extirpation of matter from intracranial / cerebral arteries (mechanical thrombectomy)
+cerebral_angiography,icd10pcs,regex,^B3[01],Fluoroscopy / plain radiography of cerebral and cervicocerebral arteries
+continuous_eeg,icd10pcs,regex,^4A10X4,Monitoring of CENTRAL nervous system electrical activity (EEG)

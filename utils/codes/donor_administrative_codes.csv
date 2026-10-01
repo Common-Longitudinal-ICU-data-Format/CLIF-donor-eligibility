@@ -1,0 +1,12 @@
+code,vocabulary,match_type,concept,organ_or_service,description,donor_type
+Z52.9,icd10cm,exact,donor_diagnosis,Unspecified,Donor of unspecified organs or tissues,Deceased or living
+Z52,icd10cm,prefix,donor_diagnosis_family,Any,"Donor of organs or tissues, whole Z52 family (blood, skin, bone, marrow, kidney, liver, etc.)",Deceased or living
+G93.82,icd10cm,exact,brain_death,Neurologic,Brain death,DBD
+01990,cpt,exact,donor_support,Physiologic support / anesthesia,Physiological support for harvesting of organ(s) from brain-dead patient,DBD
+32850,cpt,exact,donor_recovery,Lung,"Donor pneumonectomy(s), including cold preservation, from cadaver donor",Deceased donor
+33930,cpt,exact,donor_recovery,Heart-lung,"Donor cardiectomy-pneumonectomy, including cold preservation",Deceased donor
+33940,cpt,exact,donor_recovery,Heart,"Donor cardiectomy, including cold preservation",Deceased donor
+44132,cpt,exact,donor_recovery,Intestine,"Donor enterectomy, including cold preservation, open; from cadaver donor",Deceased donor
+47133,cpt,exact,donor_recovery,Liver,"Donor hepatectomy, including cold preservation, from cadaver donor",Deceased donor
+48550,cpt,exact,donor_recovery,Pancreas,"Donor pancreatectomy, including cold preservation, with or without duodenal segment for transplantation",Deceased donor
+50300,cpt,exact,donor_recovery,Kidney,"Donor nephrectomy, including cold preservation; from cadaver donor, unilateral or bilateral",Deceased donor

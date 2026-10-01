@@ -1,0 +1,55 @@
+# ── config/clif_data_requirements.yaml ───────────────────────────────────────
+# CLIF tables, columns and mCIDE category values this study requires.
+# Replaces the previous srtr_clif_data_requirements.yaml, whose contents were an
+# APS (Acute Physiology Score) crosswalk left over from another project.
+#
+# 01_cohort_and_definitions.py reads this file and reports, per site, which
+# requirements are met. A missing REQUIRED table halts the run; a missing
+# OPTIONAL table is recorded as site-level missingness and the dependent rows
+# are reported as unavailable rather than blank.
+# ─────────────────────────────────────────────────────────────────────────────
+
+clif_version: "2.1"
+
+tables:
+  required:
+    patient:                     [patient_id, birth_date, death_dttm, race_category, ethnicity_category, sex_category]
+    hospitalization:             [patient_id, hospitalization_id, admission_dttm, discharge_dttm, age_at_admission, discharge_category]
+    adt:                         [hospitalization_id, hospital_id, hospital_type, in_dttm, out_dttm, location_category]
+    hospital_diagnosis:          [hospitalization_id, diagnosis_code, diagnosis_code_format, diagnosis_primary, poa_present]
+    labs:                        [hospitalization_id, lab_category, lab_value_numeric, lab_result_dttm]
+    respiratory_support:         [hospitalization_id, recorded_dttm, device_category]
+    vitals:                      [hospitalization_id, recorded_dttm, vital_category, vital_value]
+    crrt_therapy:                [hospitalization_id, recorded_dttm]
+    microbiology_culture:        [hospitalization_id, collect_dttm, fluid_category, method_category, organism_category]
+  optional:
+    patient_procedures:          [hospitalization_id, procedure_code, procedure_code_format, procedure_billed_dttm]
+    patient_assessments:         [hospitalization_id, recorded_dttm, assessment_category, numerical_value]
+    medication_admin_continuous: [hospitalization_id, admin_dttm, med_category]
+    medication_admin_intermittent: [hospitalization_id, admin_dttm, med_category]
+    ecmo_mcs:                    [hospitalization_id, recorded_dttm, device_category]
+    position:                    [hospitalization_id, recorded_dttm, position_category]
+
+# Consequence of each optional table being absent, so the effect on the
+# manuscript is explicit rather than discovered at table-build time.
+optional_table_impact:
+  patient_procedures:            "Table 3 CPT rows (craniotomy, EVD, angiography, cEEG) unavailable"
+  patient_assessments:           "Table 2 GCS and RASS rows unavailable"
+  medication_admin_continuous:   "Table 3 vasopressin and levothyroxine rows unavailable"
+  medication_admin_intermittent: "Table 3 corticosteroid, sedative and antiepileptic rows unavailable"
+  ecmo_mcs:                      "Table 3 ECMO/MCS row unavailable"
+  position:                      "Table 3 prone-positioning row unavailable"
+
+category_values:
+  adt.location_category:            [ed, ward, stepdown, icu]
+  adt.hospital_type:                [academic, community, LTACH]
+  hospitalization.discharge_category: [expired]
+  respiratory_support.device_category: [imv]
+  labs.lab_category:                [creatinine, bilirubin_total, ast, alt, bun, sodium]
+  vitals.vital_category:            [weight_kg, height_cm]
+  microbiology_culture.fluid_category: [blood_buffy]
+  patient_assessments.assessment_category: [gcs_total, RASS]
+
+# Known site gaps, recorded 2026-08-24 (DECISIONS F-13).
+known_site_gaps:
+  rush: [ecmo_mcs, microbiology_nonculture]

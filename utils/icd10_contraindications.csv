@@ -1,0 +1,1175 @@
+﻿ICD-10-CM,description,dx_broad,Diagnosis,Sheet 
+A021,Salmonella sepsis,sepsis,Cancer of brain and nervous system,CCS 2015 -> ICD-10
+A403,Sepsis due to Streptococcus pneumoniae,sepsis,Cancer of brain and nervous system,CCS 2015 -> ICD-11
+A409,"Streptococcal sepsis, unspecified",sepsis,Cancer of brain and nervous system,CCS 2015 -> ICD-12
+A4102,Sepsis due to Methicillin resistant Staphylococcus aureus,sepsis,Cancer of brain and nervous system,CCS 2015 -> ICD-13
+A413,Sepsis due to Hemophilus influenzae,sepsis,Cancer of brain and nervous system,CCS 2015 -> ICD-14
+A414,Sepsis due to anaerobes,sepsis,Cancer of brain and nervous system,CCS 2015 -> ICD-15
+A4150,"Gram-negative sepsis, unspecified",sepsis,Cancer of brain and nervous system,CCS 2015 -> ICD-16
+A4151,Sepsis due to Escherichia coli [E. coli],sepsis,Cancer of brain and nervous system,CCS 2015 -> ICD-17
+A4152,Sepsis due to Pseudomonas,sepsis,Cancer of brain and nervous system,CCS 2015 -> ICD-18
+A4153,Sepsis due to Serratia,sepsis,Cancer of brain and nervous system,CCS 2015 -> ICD-19
+A4159,Other Gram-negative sepsis,sepsis,Cancer of brain and nervous system,CCS 2015 -> ICD-20
+A4189,Other specified sepsis,sepsis,Cancer of brain and nervous system,CCS 2015 -> ICD-21
+A419,"Sepsis, unspecified organism",sepsis,Cancer of brain and nervous system,CCS 2015 -> ICD-22
+B007,Disseminated herpesviral disease,other,Cancer of brain and nervous system,CCS 2015 -> ICD-23
+C000,Malignant neoplasm of external upper lip,cancer,Cancer of brain and nervous system,CCS 2015 -> ICD-24
+C001,Malignant neoplasm of external lower lip,cancer,Cancer of brain and nervous system,CCS 2015 -> ICD-25
+C002,"Malignant neoplasm of external lip, unspecified",cancer,Cancer of brain and nervous system,CCS 2015 -> ICD-26
+C003,"Malignant neoplasm of upper lip, inner aspect",cancer,Cancer of brain and nervous system,CCS 2015 -> ICD-27
+C004,"Malignant neoplasm of lower lip, inner aspect",cancer,Cancer of brain and nervous system,CCS 2015 -> ICD-28
+C005,,cancer,Cancer of brain and nervous system,CCS 2015 -> ICD-29
+C006,"Malignant neoplasm of commissure of lip, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-30
+C008,Malignant neoplasm of overlapping sites of lip,cancer,Non CNS Cancer,CCS 2015 -> ICD-31
+C01,Malignant neoplasm of base of tongue,cancer,Non CNS Cancer,CCS 2015 -> ICD-32
+C020,Malignant neoplasm of dorsal surface of tongue,cancer,Non CNS Cancer,CCS 2015 -> ICD-33
+C021,Malignant neoplasm of border of tongue,cancer,Non CNS Cancer,CCS 2015 -> ICD-34
+C022,Malignant neoplasm of ventral surface of tongue,cancer,Non CNS Cancer,CCS 2015 -> ICD-35
+C023,"Malignant neoplasm of anterior two-thirds of tongue, part unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-36
+C024,Malignant neoplasm of lingual tonsil,cancer,Non CNS Cancer,CCS 2015 -> ICD-37
+C028,Malignant neoplasm of overlapping sites of tongue,cancer,Non CNS Cancer,CCS 2015 -> ICD-38
+C028,Malignant neoplasm of overlapping sites of tongue,cancer,Non CNS Cancer,CCS 2015 -> ICD-39
+C029,"Malignant neoplasm of tongue, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-40
+C030,Malignant neoplasm of upper gum,cancer,Non CNS Cancer,CCS 2015 -> ICD-41
+C031,Malignant neoplasm of lower gum,cancer,Non CNS Cancer,CCS 2015 -> ICD-42
+C039,"Malignant neoplasm of gum, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-43
+C039,"Malignant neoplasm of gum, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-44
+C040,Malignant neoplasm of anterior floor of mouth,cancer,Non CNS Cancer,CCS 2015 -> ICD-45
+C041,Malignant neoplasm of lateral floor of mouth,cancer,Non CNS Cancer,CCS 2015 -> ICD-46
+C048,Malignant neoplasm of overlapping sites of floor of mouth,cancer,Non CNS Cancer,CCS 2015 -> ICD-47
+C049,"Malignant neoplasm of floor of mouth, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-48
+C050,Malignant neoplasm of hard palate,cancer,Non CNS Cancer,CCS 2015 -> ICD-49
+C051,Malignant neoplasm of soft palate,cancer,Non CNS Cancer,CCS 2015 -> ICD-50
+C052,Malignant neoplasm of uvula,cancer,Non CNS Cancer,CCS 2015 -> ICD-51
+C059,"Malignant neoplasm of palate, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-52
+C060,Malignant neoplasm of cheek mucosa,cancer,Non CNS Cancer,CCS 2015 -> ICD-53
+C061,Malignant neoplasm of vestibule of mouth,cancer,Non CNS Cancer,CCS 2015 -> ICD-54
+C062,Malignant neoplasm of retromolar area,cancer,Non CNS Cancer,CCS 2015 -> ICD-55
+C0689,Malignant neoplasm of overlapping sites of other parts of mouth,cancer,Non CNS Cancer,CCS 2015 -> ICD-56
+C069,"Malignant neoplasm of mouth, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-57
+C07,Malignant neoplasm of parotid gland,cancer,Non CNS Cancer,CCS 2015 -> ICD-58
+C080,Malignant neoplasm of submandibular gland,cancer,Non CNS Cancer,CCS 2015 -> ICD-59
+C081,Malignant neoplasm of sublingual gland,cancer,Non CNS Cancer,CCS 2015 -> ICD-60
+C089,"Malignant neoplasm of major salivary gland, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-61
+C089,"Malignant neoplasm of major salivary gland, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-62
+C090,Malignant neoplasm of tonsillar fossa,cancer,Non CNS Cancer,CCS 2015 -> ICD-63
+C091,Malignant neoplasm of tonsillar pillar (anterior) (posterior),cancer,Non CNS Cancer,CCS 2015 -> ICD-64
+C099,"Malignant neoplasm of tonsil, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-65
+C100,Malignant neoplasm of vallecula,cancer,Non CNS Cancer,CCS 2015 -> ICD-66
+C101,Malignant neoplasm of anterior surface of epiglottis,cancer,Non CNS Cancer,CCS 2015 -> ICD-67
+C102,Malignant neoplasm of lateral wall of oropharynx,cancer,Non CNS Cancer,CCS 2015 -> ICD-68
+C103,Malignant neoplasm of posterior wall of oropharynx,cancer,Non CNS Cancer,CCS 2015 -> ICD-69
+C104,Malignant neoplasm of branchial cleft,cancer,Non CNS Cancer,CCS 2015 -> ICD-70
+C108,Malignant neoplasm of overlapping sites of oropharynx,cancer,Non CNS Cancer,CCS 2015 -> ICD-71
+C108,Malignant neoplasm of overlapping sites of oropharynx,cancer,Non CNS Cancer,CCS 2015 -> ICD-72
+C109,"Malignant neoplasm of oropharynx, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-73
+C110,Malignant neoplasm of superior wall of nasopharynx,cancer,Non CNS Cancer,CCS 2015 -> ICD-74
+C111,Malignant neoplasm of posterior wall of nasopharynx,cancer,Non CNS Cancer,CCS 2015 -> ICD-75
+C112,Malignant neoplasm of lateral wall of nasopharynx,cancer,Non CNS Cancer,CCS 2015 -> ICD-76
+C113,Malignant neoplasm of anterior wall of nasopharynx,cancer,Non CNS Cancer,CCS 2015 -> ICD-77
+C118,Malignant neoplasm of overlapping sites of nasopharynx,cancer,Non CNS Cancer,CCS 2015 -> ICD-78
+C119,"Malignant neoplasm of nasopharynx, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-79
+C12,Malignant neoplasm of pyriform sinus,cancer,Non CNS Cancer,CCS 2015 -> ICD-80
+C130,Malignant neoplasm of postcricoid region,cancer,Non CNS Cancer,CCS 2015 -> ICD-81
+C131,"Malignant neoplasm of aryepiglottic fold, hypopharyngeal aspect",cancer,Non CNS Cancer,CCS 2015 -> ICD-82
+C132,Malignant neoplasm of posterior wall of hypopharynx,cancer,Non CNS Cancer,CCS 2015 -> ICD-83
+C138,Malignant neoplasm of overlapping sites of hypopharynx,cancer,Non CNS Cancer,CCS 2015 -> ICD-84
+C139,"Malignant neoplasm of hypopharynx, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-85
+C140,"Malignant neoplasm of pharynx, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-86
+C142,Malignant neoplasm of Waldeyer's ring,cancer,Non CNS Cancer,CCS 2015 -> ICD-87
+C148,"Malignant neoplasm of overlapping sites of lip, oral cavity and pharynx",cancer,Non CNS Cancer,CCS 2015 -> ICD-88
+C148,"Malignant neoplasm of overlapping sites of lip, oral cavity and pharynx",cancer,Non CNS Cancer,CCS 2015 -> ICD-89
+C153,Malignant neoplasm of upper third of esophagus,cancer,Non CNS Cancer,CCS 2015 -> ICD-90
+C153,Malignant neoplasm of upper third of esophagus,cancer,Non CNS Cancer,CCS 2015 -> ICD-91
+C154,Malignant neoplasm of middle third of esophagus,cancer,Non CNS Cancer,CCS 2015 -> ICD-92
+C154,Malignant neoplasm of middle third of esophagus,cancer,Non CNS Cancer,CCS 2015 -> ICD-93
+C155,Malignant neoplasm of lower third of esophagus,cancer,Non CNS Cancer,CCS 2015 -> ICD-94
+C155,Malignant neoplasm of lower third of esophagus,cancer,Non CNS Cancer,CCS 2015 -> ICD-95
+C158,Malignant neoplasm of overlapping sites of esophagus,cancer,Non CNS Cancer,CCS 2015 -> ICD-96
+C159,"Malignant neoplasm of esophagus, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-97
+C160,Malignant neoplasm of cardia,cancer,Non CNS Cancer,CCS 2015 -> ICD-98
+C161,Malignant neoplasm of fundus of stomach,cancer,Non CNS Cancer,CCS 2015 -> ICD-99
+C162,Malignant neoplasm of body of stomach,cancer,Non CNS Cancer,CCS 2015 -> ICD-100
+C163,Malignant neoplasm of pyloric antrum,cancer,Non CNS Cancer,CCS 2015 -> ICD-101
+C164,Malignant neoplasm of pylorus,cancer,Non CNS Cancer,CCS 2015 -> ICD-102
+C165,"Malignant neoplasm of lesser curvature of stomach, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-103
+C166,"Malignant neoplasm of greater curvature of stomach, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-104
+C168,Malignant neoplasm of overlapping sites of stomach,cancer,Non CNS Cancer,CCS 2015 -> ICD-105
+C168,Malignant neoplasm of overlapping sites of stomach,cancer,Non CNS Cancer,CCS 2015 -> ICD-106
+C169,"Malignant neoplasm of stomach, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-107
+C169,"Malignant neoplasm of stomach, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-108
+C170,Malignant neoplasm of duodenum,cancer,Non CNS Cancer,CCS 2015 -> ICD-109
+C171,Malignant neoplasm of jejunum,cancer,Non CNS Cancer,CCS 2015 -> ICD-110
+C172,Malignant neoplasm of ileum,cancer,Non CNS Cancer,CCS 2015 -> ICD-111
+C173,"Meckel's diverticulum, malignant",cancer,Non CNS Cancer,CCS 2015 -> ICD-112
+C178,Malignant neoplasm of overlapping sites of small intestine,cancer,Non CNS Cancer,CCS 2015 -> ICD-113
+C179,"Malignant neoplasm of small intestine, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-114
+C180,Malignant neoplasm of cecum,cancer,Non CNS Cancer,CCS 2015 -> ICD-115
+C181,Malignant neoplasm of appendix,cancer,Non CNS Cancer,CCS 2015 -> ICD-116
+C182,Malignant neoplasm of ascending colon,cancer,Non CNS Cancer,CCS 2015 -> ICD-117
+C183,Malignant neoplasm of hepatic flexure,cancer,Non CNS Cancer,CCS 2015 -> ICD-118
+C184,Malignant neoplasm of transverse colon,cancer,Non CNS Cancer,CCS 2015 -> ICD-119
+C185,Malignant neoplasm of splenic flexure,cancer,Non CNS Cancer,CCS 2015 -> ICD-120
+C186,Malignant neoplasm of descending colon,cancer,Non CNS Cancer,CCS 2015 -> ICD-121
+C187,Malignant neoplasm of sigmoid colon,cancer,Non CNS Cancer,CCS 2015 -> ICD-122
+C188,Malignant neoplasm of overlapping sites of colon,cancer,Non CNS Cancer,CCS 2015 -> ICD-123
+C189,"Malignant neoplasm of colon, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-124
+C19,Malignant neoplasm of rectosigmoid junction,cancer,Non CNS Cancer,CCS 2015 -> ICD-125
+C20,Malignant neoplasm of rectum,cancer,Non CNS Cancer,CCS 2015 -> ICD-126
+C210,"Malignant neoplasm of anus, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-127
+C211,Malignant neoplasm of anal canal,cancer,Non CNS Cancer,CCS 2015 -> ICD-128
+C218,"Malignant neoplasm of overlapping sites of rectum, anus and anal canal",cancer,Non CNS Cancer,CCS 2015 -> ICD-129
+C220,Liver cell carcinoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-130
+C221,Intrahepatic bile duct carcinoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-131
+C222,Hepatoblastoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-132
+C227,Other specified carcinomas of liver,cancer,Non CNS Cancer,CCS 2015 -> ICD-133
+C228,"Malignant neoplasm of liver, primary, unspecified as to type",cancer,Non CNS Cancer,CCS 2015 -> ICD-134
+C229,"Malignant neoplasm of liver, not specified as primary or secondary",cancer,Non CNS Cancer,CCS 2015 -> ICD-135
+C23,Malignant neoplasm of gallbladder,cancer,Non CNS Cancer,CCS 2015 -> ICD-136
+C240,Malignant neoplasm of extrahepatic bile duct,cancer,Non CNS Cancer,CCS 2015 -> ICD-137
+C241,Malignant neoplasm of ampulla of Vater,cancer,Non CNS Cancer,CCS 2015 -> ICD-138
+C248,Malignant neoplasm of overlapping sites of biliary tract,cancer,Non CNS Cancer,CCS 2015 -> ICD-139
+C249,"Malignant neoplasm of biliary tract, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-140
+C250,Malignant neoplasm of head of pancreas,cancer,Non CNS Cancer,CCS 2015 -> ICD-141
+C251,Malignant neoplasm of body of pancreas,cancer,Non CNS Cancer,CCS 2015 -> ICD-142
+C252,Malignant neoplasm of tail of pancreas,cancer,Non CNS Cancer,CCS 2015 -> ICD-143
+C253,Malignant neoplasm of pancreatic duct,cancer,Non CNS Cancer,CCS 2015 -> ICD-144
+C254,Malignant neoplasm of endocrine pancreas,cancer,Non CNS Cancer,CCS 2015 -> ICD-145
+C257,Malignant neoplasm of other parts of pancreas,cancer,Non CNS Cancer,CCS 2015 -> ICD-146
+C258,Malignant neoplasm of overlapping sites of pancreas,cancer,Non CNS Cancer,CCS 2015 -> ICD-147
+C259,"Malignant neoplasm of pancreas, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-148
+C260,"Malignant neoplasm of intestinal tract, part unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-149
+C261,Malignant neoplasm of spleen,cancer,Non CNS Cancer,CCS 2015 -> ICD-150
+C269,Malignant neoplasm of ill-defined sites within the digestive system,cancer,Non CNS Cancer,CCS 2015 -> ICD-151
+C269,Malignant neoplasm of ill-defined sites within the digestive system,cancer,Non CNS Cancer,CCS 2015 -> ICD-152
+C300,Malignant neoplasm of nasal cavity,cancer,Non CNS Cancer,CCS 2015 -> ICD-153
+C301,Malignant neoplasm of middle ear,cancer,Non CNS Cancer,CCS 2015 -> ICD-154
+C310,Malignant neoplasm of maxillary sinus,cancer,Non CNS Cancer,CCS 2015 -> ICD-155
+C311,Malignant neoplasm of ethmoidal sinus,cancer,Non CNS Cancer,CCS 2015 -> ICD-156
+C312,Malignant neoplasm of frontal sinus,cancer,Non CNS Cancer,CCS 2015 -> ICD-157
+C313,Malignant neoplasm of sphenoid sinus,cancer,Non CNS Cancer,CCS 2015 -> ICD-158
+C318,Malignant neoplasm of overlapping sites of accessory sinuses,cancer,Non CNS Cancer,CCS 2015 -> ICD-159
+C319,"Malignant neoplasm of accessory sinus, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-160
+C320,Malignant neoplasm of glottis,cancer,Non CNS Cancer,CCS 2015 -> ICD-161
+C321,Malignant neoplasm of supraglottis,cancer,Non CNS Cancer,CCS 2015 -> ICD-162
+C322,Malignant neoplasm of subglottis,cancer,Non CNS Cancer,CCS 2015 -> ICD-163
+C323,Malignant neoplasm of laryngeal cartilage,cancer,Non CNS Cancer,CCS 2015 -> ICD-164
+C328,Malignant neoplasm of overlapping sites of larynx,cancer,Non CNS Cancer,CCS 2015 -> ICD-165
+C329,"Malignant neoplasm of larynx, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-166
+C33,Malignant neoplasm of trachea,cancer,Non CNS Cancer,CCS 2015 -> ICD-167
+C3400,Malignant neoplasm of unspecified main bronchus,cancer,Non CNS Cancer,CCS 2015 -> ICD-168
+C3410,"Malignant neoplasm of upper lobe, unspecified bronchus or lung",cancer,Non CNS Cancer,CCS 2015 -> ICD-169
+C342,"Malignant neoplasm of middle lobe, bronchus or lung",cancer,Non CNS Cancer,CCS 2015 -> ICD-170
+C3430,"Malignant neoplasm of lower lobe, unspecified bronchus or lung",cancer,Non CNS Cancer,CCS 2015 -> ICD-171
+C3480,Malignant neoplasm of overlapping sites of unspecified bronchus and lung,cancer,Non CNS Cancer,CCS 2015 -> ICD-172
+C3490,Malignant neoplasm of unspecified part of unspecified bronchus or lung,cancer,Non CNS Cancer,CCS 2015 -> ICD-173
+C384,Malignant neoplasm of pleura,cancer,Non CNS Cancer,CCS 2015 -> ICD-174
+C384,Malignant neoplasm of pleura,cancer,Non CNS Cancer,CCS 2015 -> ICD-175
+C384,Malignant neoplasm of pleura,cancer,Non CNS Cancer,CCS 2015 -> ICD-176
+C384,Malignant neoplasm of pleura,cancer,Non CNS Cancer,CCS 2015 -> ICD-177
+C390,"Malignant neoplasm of upper respiratory tract, part unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-178
+C399,"Malignant neoplasm of lower respiratory tract, part unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-179
+C399,"Malignant neoplasm of lower respiratory tract, part unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-180
+C4000,Malignant neoplasm of scapula and long bones of unspecified upper limb,cancer,Non CNS Cancer,CCS 2015 -> ICD-181
+C4010,Malignant neoplasm of short bones of unspecified upper limb,cancer,Non CNS Cancer,CCS 2015 -> ICD-182
+C4020,Malignant neoplasm of long bones of unspecified lower limb,cancer,Non CNS Cancer,CCS 2015 -> ICD-183
+C4030,Malignant neoplasm of short bones of unspecified lower limb,cancer,Non CNS Cancer,CCS 2015 -> ICD-184
+C410,Malignant neoplasm of bones of skull and face,cancer,Non CNS Cancer,CCS 2015 -> ICD-185
+C411,Malignant neoplasm of mandible,cancer,Non CNS Cancer,CCS 2015 -> ICD-186
+C412,Malignant neoplasm of vertebral column,cancer,Non CNS Cancer,CCS 2015 -> ICD-187
+C413,"Malignant neoplasm of ribs, sternum and clavicle",cancer,Non CNS Cancer,CCS 2015 -> ICD-188
+C414,"Malignant neoplasm of pelvic bones, sacrum and coccyx",cancer,Non CNS Cancer,CCS 2015 -> ICD-189
+C419,"Malignant neoplasm of bone and articular cartilage, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-190
+C430,Malignant melanoma of lip,cancer,Non CNS Cancer,CCS 2015 -> ICD-191
+C4310,"Malignant melanoma of unspecified eyelid, including canthus",cancer,Non CNS Cancer,CCS 2015 -> ICD-192
+C4320,Malignant melanoma of unspecified ear and external auricular canal,cancer,Non CNS Cancer,CCS 2015 -> ICD-193
+C4330,Malignant melanoma of unspecified part of face,cancer,Non CNS Cancer,CCS 2015 -> ICD-194
+C4331,Malignant melanoma of nose,cancer,Non CNS Cancer,CCS 2015 -> ICD-195
+C4339,Malignant melanoma of other parts of face,cancer,Non CNS Cancer,CCS 2015 -> ICD-196
+C434,Malignant melanoma of scalp and neck,cancer,Non CNS Cancer,CCS 2015 -> ICD-197
+C4359,Malignant melanoma of other part of trunk,cancer,Non CNS Cancer,CCS 2015 -> ICD-198
+C4360,"Malignant melanoma of unspecified upper limb, including shoulder",cancer,Non CNS Cancer,CCS 2015 -> ICD-199
+C4370,"Malignant melanoma of unspecified lower limb, including hip",cancer,Non CNS Cancer,CCS 2015 -> ICD-200
+C438,Malignant melanoma of overlapping sites of skin,cancer,Non CNS Cancer,CCS 2015 -> ICD-201
+C439,"Malignant melanoma of skin, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-202
+C4400,Unspecified malignant neoplasm of skin of lip,cancer,Non CNS Cancer,CCS 2015 -> ICD-203
+C4401,Basal cell carcinoma of skin of lip,cancer,Non CNS Cancer,CCS 2015 -> ICD-204
+C4402,Squamous cell carcinoma of skin of lip,cancer,Non CNS Cancer,CCS 2015 -> ICD-205
+C4409,Other specified malignant neoplasm of skin of lip,cancer,Non CNS Cancer,CCS 2015 -> ICD-206
+C44101,"Unspecified malignant neoplasm of skin of unspecified eyelid, including canthus",cancer,Non CNS Cancer,CCS 2015 -> ICD-207
+C44111,"Basal cell carcinoma of skin of unspecified eyelid, including canthus",cancer,Non CNS Cancer,CCS 2015 -> ICD-208
+C44121,"Squamous cell carcinoma of skin of unspecified eyelid, including canthus",cancer,Non CNS Cancer,CCS 2015 -> ICD-209
+C44191,"Other specified malignant neoplasm of skin of unspecified eyelid, including canthus",cancer,Non CNS Cancer,CCS 2015 -> ICD-210
+C44201,Unspecified malignant neoplasm of skin of unspecified ear and external auricular canal,cancer,Non CNS Cancer,CCS 2015 -> ICD-211
+C44211,Basal cell carcinoma of skin of unspecified ear and external auricular canal,cancer,Non CNS Cancer,CCS 2015 -> ICD-212
+C44221,Squamous cell carcinoma of skin of unspecified ear and external auricular canal,cancer,Non CNS Cancer,CCS 2015 -> ICD-213
+C44291,Other specified malignant neoplasm of skin of unspecified ear and external auricular canal,cancer,Non CNS Cancer,CCS 2015 -> ICD-214
+C44300,Unspecified malignant neoplasm of skin of unspecified part of face,cancer,Non CNS Cancer,CCS 2015 -> ICD-215
+C44301,Unspecified malignant neoplasm of skin of nose,cancer,Non CNS Cancer,CCS 2015 -> ICD-216
+C44309,Unspecified malignant neoplasm of skin of other parts of face,cancer,Non CNS Cancer,CCS 2015 -> ICD-217
+C44310,Basal cell carcinoma of skin of unspecified parts of face,cancer,Non CNS Cancer,CCS 2015 -> ICD-218
+C44311,Basal cell carcinoma of skin of nose,cancer,Non CNS Cancer,CCS 2015 -> ICD-219
+C44319,Basal cell carcinoma of skin of other parts of face,cancer,Non CNS Cancer,CCS 2015 -> ICD-220
+C44320,Squamous cell carcinoma of skin of unspecified parts of face,cancer,Non CNS Cancer,CCS 2015 -> ICD-221
+C44321,Squamous cell carcinoma of skin of nose,cancer,Non CNS Cancer,CCS 2015 -> ICD-222
+C44329,Squamous cell carcinoma of skin of other parts of face,cancer,Non CNS Cancer,CCS 2015 -> ICD-223
+C44390,Other specified malignant neoplasm of skin of unspecified parts of face,cancer,Non CNS Cancer,CCS 2015 -> ICD-224
+C44391,Other specified malignant neoplasm of skin of nose,cancer,Non CNS Cancer,CCS 2015 -> ICD-225
+C44399,Other specified malignant neoplasm of skin of other parts of face,cancer,Non CNS Cancer,CCS 2015 -> ICD-226
+C4440,Unspecified malignant neoplasm of skin of scalp and neck,cancer,Non CNS Cancer,CCS 2015 -> ICD-227
+C4441,Basal cell carcinoma of skin of scalp and neck,cancer,Non CNS Cancer,CCS 2015 -> ICD-228
+C4442,Squamous cell carcinoma of skin of scalp and neck,cancer,Non CNS Cancer,CCS 2015 -> ICD-229
+C4449,Other specified malignant neoplasm of skin of scalp and neck,cancer,Non CNS Cancer,CCS 2015 -> ICD-230
+C44500,Unspecified malignant neoplasm of anal skin,cancer,Non CNS Cancer,CCS 2015 -> ICD-231
+C44501,Unspecified malignant neoplasm of skin of breast,cancer,Non CNS Cancer,CCS 2015 -> ICD-232
+C44509,Unspecified malignant neoplasm of skin of other part of trunk,cancer,Non CNS Cancer,CCS 2015 -> ICD-233
+C44510,Basal cell carcinoma of anal skin,cancer,Non CNS Cancer,CCS 2015 -> ICD-234
+C44511,Basal cell carcinoma of skin of breast,cancer,Non CNS Cancer,CCS 2015 -> ICD-235
+C44519,Basal cell carcinoma of skin of other part of trunk,cancer,Non CNS Cancer,CCS 2015 -> ICD-236
+C44520,Squamous cell carcinoma of anal skin,cancer,Non CNS Cancer,CCS 2015 -> ICD-237
+C44521,Squamous cell carcinoma of skin of breast,cancer,Non CNS Cancer,CCS 2015 -> ICD-238
+C44529,Squamous cell carcinoma of skin of other part of trunk,cancer,Non CNS Cancer,CCS 2015 -> ICD-239
+C44590,Other specified malignant neoplasm of anal skin,cancer,Non CNS Cancer,CCS 2015 -> ICD-240
+C44591,Other specified malignant neoplasm of skin of breast,cancer,Non CNS Cancer,CCS 2015 -> ICD-241
+C44599,Other specified malignant neoplasm of skin of other part of trunk,cancer,Non CNS Cancer,CCS 2015 -> ICD-242
+C44601,"Unspecified malignant neoplasm of skin of unspecified upper limb, including shoulder",cancer,Non CNS Cancer,CCS 2015 -> ICD-243
+C44611,"Basal cell carcinoma of skin of unspecified upper limb, including shoulder",cancer,Non CNS Cancer,CCS 2015 -> ICD-244
+C44621,"Squamous cell carcinoma of skin of unspecified upper limb, including shoulder",cancer,Non CNS Cancer,CCS 2015 -> ICD-245
+C44691,"Other specified malignant neoplasm of skin of unspecified upper limb, including shoulder",cancer,Non CNS Cancer,CCS 2015 -> ICD-246
+C44701,"Unspecified malignant neoplasm of skin of unspecified lower limb, including hip",cancer,Non CNS Cancer,CCS 2015 -> ICD-247
+C44711,"Basal cell carcinoma of skin of unspecified lower limb, including hip",cancer,Non CNS Cancer,CCS 2015 -> ICD-248
+C44721,"Squamous cell carcinoma of skin of unspecified lower limb, including hip",cancer,Non CNS Cancer,CCS 2015 -> ICD-249
+C44791,"Other specified malignant neoplasm of skin of unspecified lower limb, including hip",cancer,Non CNS Cancer,CCS 2015 -> ICD-250
+C4480,Unspecified malignant neoplasm of overlapping sites of skin,cancer,Non CNS Cancer,CCS 2015 -> ICD-251
+C4481,Basal cell carcinoma of overlapping sites of skin,cancer,Non CNS Cancer,CCS 2015 -> ICD-252
+C4482,Squamous cell carcinoma of overlapping sites of skin,cancer,Non CNS Cancer,CCS 2015 -> ICD-253
+C4489,Other specified malignant neoplasm of overlapping sites of skin,cancer,Non CNS Cancer,CCS 2015 -> ICD-254
+C4490,"Unspecified malignant neoplasm of skin, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-255
+C4491,"Basal cell carcinoma of skin, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-256
+C4492,"Squamous cell carcinoma of skin, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-257
+C4499,"Other specified malignant neoplasm of skin, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-258
+C478,Malignant neoplasm of overlapping sites of peripheral nerves and autonomic nervous system,cancer,Non CNS Cancer,CCS 2015 -> ICD-259
+C480,Malignant neoplasm of retroperitoneum,cancer,Non CNS Cancer,CCS 2015 -> ICD-260
+C481,Malignant neoplasm of specified parts of peritoneum,cancer,Non CNS Cancer,CCS 2015 -> ICD-261
+C482,"Malignant neoplasm of peritoneum, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-262
+C488,Malignant neoplasm of overlapping sites of retroperitoneum and peritoneum,cancer,Non CNS Cancer,CCS 2015 -> ICD-263
+C490,"Malignant neoplasm of connective and soft tissue of head, face and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-264
+C4910,"Malignant neoplasm of connective and soft tissue of unspecified upper limb, including shoulder",cancer,Non CNS Cancer,CCS 2015 -> ICD-265
+C4920,"Malignant neoplasm of connective and soft tissue of unspecified lower limb, including hip",cancer,Non CNS Cancer,CCS 2015 -> ICD-266
+C493,Malignant neoplasm of connective and soft tissue of thorax,cancer,Non CNS Cancer,CCS 2015 -> ICD-267
+C494,Malignant neoplasm of connective and soft tissue of abdomen,cancer,Non CNS Cancer,CCS 2015 -> ICD-268
+C495,Malignant neoplasm of connective and soft tissue of pelvis,cancer,Non CNS Cancer,CCS 2015 -> ICD-269
+C496,"Malignant neoplasm of connective and soft tissue of trunk, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-270
+C498,Malignant neoplasm of overlapping sites of connective and soft tissue,cancer,Non CNS Cancer,CCS 2015 -> ICD-271
+C499,"Malignant neoplasm of connective and soft tissue, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-272
+C49A0,"Gastrointestinal stromal tumor, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-273
+C49A1,Gastrointestinal stromal tumor of esophagus,cancer,Non CNS Cancer,CCS 2015 -> ICD-274
+C49A2,Gastrointestinal stromal tumor of stomach,cancer,Non CNS Cancer,CCS 2015 -> ICD-275
+C49A3,Gastrointestinal stromal tumor of small intestine,cancer,Non CNS Cancer,CCS 2015 -> ICD-276
+C49A4,Gastrointestinal stromal tumor of large intestine,cancer,Non CNS Cancer,CCS 2015 -> ICD-277
+C49A5,Gastrointestinal stromal tumor of rectum,cancer,Non CNS Cancer,CCS 2015 -> ICD-278
+C49A9,Gastrointestinal stromal tumor of other sites,cancer,Non CNS Cancer,CCS 2015 -> ICD-279
+C4A0,Merkel cell carcinoma of lip,cancer,Non CNS Cancer,CCS 2015 -> ICD-280
+C4A10,"Merkel cell carcinoma of unspecified eyelid, including canthus",cancer,Non CNS Cancer,CCS 2015 -> ICD-281
+C4A20,Merkel cell carcinoma of unspecified ear and external auricular canal,cancer,Non CNS Cancer,CCS 2015 -> ICD-282
+C4A30,Merkel cell carcinoma of unspecified part of face,cancer,Non CNS Cancer,CCS 2015 -> ICD-283
+C4A39,Merkel cell carcinoma of other parts of face,cancer,Non CNS Cancer,CCS 2015 -> ICD-284
+C4A4,Merkel cell carcinoma of scalp and neck,cancer,Non CNS Cancer,CCS 2015 -> ICD-285
+C4A59,Merkel cell carcinoma of other part of trunk,cancer,Non CNS Cancer,CCS 2015 -> ICD-286
+C4A60,"Merkel cell carcinoma of unspecified upper limb, including shoulder",cancer,Non CNS Cancer,CCS 2015 -> ICD-287
+C4A70,"Merkel cell carcinoma of unspecified lower limb, including hip",cancer,Non CNS Cancer,CCS 2015 -> ICD-288
+C4A8,Merkel cell carcinoma of overlapping sites,cancer,Non CNS Cancer,CCS 2015 -> ICD-289
+C4A9,"Merkel cell carcinoma, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-290
+C50019,"Malignant neoplasm of nipple and areola, unspecified female breast",cancer,Non CNS Cancer,CCS 2015 -> ICD-291
+C50029,"Malignant neoplasm of nipple and areola, unspecified male breast",cancer,Non CNS Cancer,CCS 2015 -> ICD-292
+C50119,Malignant neoplasm of central portion of unspecified female breast,cancer,Non CNS Cancer,CCS 2015 -> ICD-293
+C50219,Malignant neoplasm of upper-inner quadrant of unspecified female breast,cancer,Non CNS Cancer,CCS 2015 -> ICD-294
+C50319,Malignant neoplasm of lower-inner quadrant of unspecified female breast,cancer,Non CNS Cancer,CCS 2015 -> ICD-295
+C50419,Malignant neoplasm of upper-outer quadrant of unspecified female breast,cancer,Non CNS Cancer,CCS 2015 -> ICD-296
+C50519,Malignant neoplasm of lower-outer quadrant of unspecified female breast,cancer,Non CNS Cancer,CCS 2015 -> ICD-297
+C50619,Malignant neoplasm of axillary tail of unspecified female breast,cancer,Non CNS Cancer,CCS 2015 -> ICD-298
+C50819,Malignant neoplasm of overlapping sites of unspecified female breast,cancer,Non CNS Cancer,CCS 2015 -> ICD-299
+C50919,Malignant neoplasm of unspecified site of unspecified female breast,cancer,Non CNS Cancer,CCS 2015 -> ICD-300
+C50929,Malignant neoplasm of unspecified site of unspecified male breast,cancer,Non CNS Cancer,CCS 2015 -> ICD-301
+C530,Malignant neoplasm of endocervix,cancer,Non CNS Cancer,CCS 2015 -> ICD-302
+C531,Malignant neoplasm of exocervix,cancer,Non CNS Cancer,CCS 2015 -> ICD-303
+C538,Malignant neoplasm of overlapping sites of cervix uteri,cancer,Non CNS Cancer,CCS 2015 -> ICD-304
+C539,"Malignant neoplasm of cervix uteri, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-305
+C540,Malignant neoplasm of isthmus uteri,cancer,Non CNS Cancer,CCS 2015 -> ICD-306
+C541,Malignant neoplasm of endometrium,cancer,Non CNS Cancer,CCS 2015 -> ICD-307
+C542,Malignant neoplasm of myometrium,cancer,Non CNS Cancer,CCS 2015 -> ICD-308
+C543,Malignant neoplasm of fundus uteri,cancer,Non CNS Cancer,CCS 2015 -> ICD-309
+C548,Malignant neoplasm of overlapping sites of corpus uteri,cancer,Non CNS Cancer,CCS 2015 -> ICD-310
+C549,"Malignant neoplasm of corpus uteri, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-311
+C700,Malignant neoplasm of cerebral meninges,cancer,Non CNS Cancer,CCS 2015 -> ICD-312
+C701,Malignant neoplasm of spinal meninges,cancer,Non CNS Cancer,CCS 2015 -> ICD-313
+C709,"Malignant neoplasm of meninges, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-314
+C710,"Malignant neoplasm of cerebrum, except lobes and ventricles",cancer,Non CNS Cancer,CCS 2015 -> ICD-315
+C711,Malignant neoplasm of frontal lobe,cancer,Non CNS Cancer,CCS 2015 -> ICD-316
+C712,Malignant neoplasm of temporal lobe,cancer,Non CNS Cancer,CCS 2015 -> ICD-317
+C713,Malignant neoplasm of parietal lobe,cancer,Non CNS Cancer,CCS 2015 -> ICD-318
+C714,Malignant neoplasm of occipital lobe,cancer,Non CNS Cancer,CCS 2015 -> ICD-319
+C715,Malignant neoplasm of cerebral ventricle,cancer,Non CNS Cancer,CCS 2015 -> ICD-320
+C716,Malignant neoplasm of cerebellum,cancer,Non CNS Cancer,CCS 2015 -> ICD-321
+C717,Malignant neoplasm of brain stem,cancer,Non CNS Cancer,CCS 2015 -> ICD-322
+C718,Malignant neoplasm of overlapping sites of brain,cancer,Non CNS Cancer,CCS 2015 -> ICD-323
+C719,"Malignant neoplasm of brain, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-324
+C720,Malignant neoplasm of spinal cord,cancer,Non CNS Cancer,CCS 2015 -> ICD-325
+C721,Malignant neoplasm of cauda equina,cancer,Non CNS Cancer,CCS 2015 -> ICD-326
+C7250,Malignant neoplasm of unspecified cranial nerve,cancer,Non CNS Cancer,CCS 2015 -> ICD-327
+C729,"Malignant neoplasm of central nervous system, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-328
+C729,"Malignant neoplasm of central nervous system, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-329
+C760,"Malignant neoplasm of head, face and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-330
+C7A010,Malignant carcinoid tumor of the duodenum,cancer,Non CNS Cancer,CCS 2015 -> ICD-331
+C7A011,Malignant carcinoid tumor of the jejunum,cancer,Non CNS Cancer,CCS 2015 -> ICD-332
+C7A012,Malignant carcinoid tumor of the ileum,cancer,Non CNS Cancer,CCS 2015 -> ICD-333
+C7A019,"Malignant carcinoid tumor of the small intestine, unspecified portion",cancer,Non CNS Cancer,CCS 2015 -> ICD-334
+C7A020,Malignant carcinoid tumor of the appendix,cancer,Non CNS Cancer,CCS 2015 -> ICD-335
+C7A021,Malignant carcinoid tumor of the cecum,cancer,Non CNS Cancer,CCS 2015 -> ICD-336
+C7A022,Malignant carcinoid tumor of the ascending colon,cancer,Non CNS Cancer,CCS 2015 -> ICD-337
+C7A023,Malignant carcinoid tumor of the transverse colon,cancer,Non CNS Cancer,CCS 2015 -> ICD-338
+C7A024,Malignant carcinoid tumor of the descending colon,cancer,Non CNS Cancer,CCS 2015 -> ICD-339
+C7A025,Malignant carcinoid tumor of the sigmoid colon,cancer,Non CNS Cancer,CCS 2015 -> ICD-340
+C7A026,Malignant carcinoid tumor of the rectum,cancer,Non CNS Cancer,CCS 2015 -> ICD-341
+C7A029,"Malignant carcinoid tumor of the large intestine, unspecified portion",cancer,Non CNS Cancer,CCS 2015 -> ICD-342
+C7A090,Malignant carcinoid tumor of the bronchus and lung,cancer,Non CNS Cancer,CCS 2015 -> ICD-343
+C7A092,Malignant carcinoid tumor of the stomach,cancer,Non CNS Cancer,CCS 2015 -> ICD-344
+D0000,"Carcinoma in situ of oral cavity, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-345
+D0001,Carcinoma in situ of labial mucosa and vermilion border,cancer,Non CNS Cancer,CCS 2015 -> ICD-346
+D0002,Carcinoma in situ of buccal mucosa,cancer,Non CNS Cancer,CCS 2015 -> ICD-347
+D0003,Carcinoma in situ of gingiva and edentulous alveolar ridge,cancer,Non CNS Cancer,CCS 2015 -> ICD-348
+D0004,Carcinoma in situ of soft palate,cancer,Non CNS Cancer,CCS 2015 -> ICD-349
+D0005,Carcinoma in situ of hard palate,cancer,Non CNS Cancer,CCS 2015 -> ICD-350
+D0006,Carcinoma in situ of floor of mouth,cancer,Non CNS Cancer,CCS 2015 -> ICD-351
+D0007,Carcinoma in situ of tongue,cancer,Non CNS Cancer,CCS 2015 -> ICD-352
+D0008,Carcinoma in situ of pharynx,cancer,Non CNS Cancer,CCS 2015 -> ICD-353
+D002,Carcinoma in situ of stomach,cancer,Non CNS Cancer,CCS 2015 -> ICD-354
+D010,Carcinoma in situ of colon,cancer,Non CNS Cancer,CCS 2015 -> ICD-355
+D011,Carcinoma in situ of rectosigmoid junction,cancer,Non CNS Cancer,CCS 2015 -> ICD-356
+D012,Carcinoma in situ of rectum,cancer,Non CNS Cancer,CCS 2015 -> ICD-357
+D013,Carcinoma in situ of anus and anal canal,cancer,Non CNS Cancer,CCS 2015 -> ICD-358
+D013,Carcinoma in situ of anus and anal canal,cancer,Non CNS Cancer,CCS 2015 -> ICD-359
+D0140,Carcinoma in situ of unspecified part of intestine,cancer,Non CNS Cancer,CCS 2015 -> ICD-360
+D0149,Carcinoma in situ of other parts of intestine,cancer,Non CNS Cancer,CCS 2015 -> ICD-361
+D015,"Carcinoma in situ of liver, gallbladder and bile ducts",cancer,Non CNS Cancer,CCS 2015 -> ICD-362
+D017,Carcinoma in situ of other specified digestive organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-363
+D019,"Carcinoma in situ of digestive organ, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-364
+D020,Carcinoma in situ of larynx,cancer,Non CNS Cancer,CCS 2015 -> ICD-365
+D021,Carcinoma in situ of trachea,cancer,Non CNS Cancer,CCS 2015 -> ICD-366
+D0220,Carcinoma in situ of unspecified bronchus and lung,cancer,Non CNS Cancer,CCS 2015 -> ICD-367
+D023,Carcinoma in situ of other parts of respiratory system,cancer,Non CNS Cancer,CCS 2015 -> ICD-368
+D024,"Carcinoma in situ of respiratory system, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-369
+D030,Melanoma in situ of lip,cancer,Non CNS Cancer,CCS 2015 -> ICD-370
+D0310,"Melanoma in situ of unspecified eyelid, including canthus",cancer,Non CNS Cancer,CCS 2015 -> ICD-371
+D0311,Code not found,other,Non CNS Cancer,CCS 2015 -> ICD-372
+D0312,Code not found,other,Non CNS Cancer,CCS 2015 -> ICD-373
+D0320,Melanoma in situ of unspecified ear and external auricular canal,cancer,Non CNS Cancer,CCS 2015 -> ICD-374
+D0321,Melanoma in situ of right ear and external auricular canal,cancer,Non CNS Cancer,CCS 2015 -> ICD-375
+D0322,Melanoma in situ of left ear and external auricular canal,cancer,Non CNS Cancer,CCS 2015 -> ICD-376
+D0330,Melanoma in situ of unspecified part of face,cancer,Non CNS Cancer,CCS 2015 -> ICD-377
+D0339,Melanoma in situ of other parts of face,cancer,Non CNS Cancer,CCS 2015 -> ICD-378
+D034,Melanoma in situ of scalp and neck,cancer,Non CNS Cancer,CCS 2015 -> ICD-379
+D0351,Melanoma in situ of anal skin,cancer,Non CNS Cancer,CCS 2015 -> ICD-380
+D0352,Melanoma in situ of breast (skin) (soft tissue),cancer,Non CNS Cancer,CCS 2015 -> ICD-381
+D0359,Melanoma in situ of other part of trunk,cancer,Non CNS Cancer,CCS 2015 -> ICD-382
+D0360,"Melanoma in situ of unspecified upper limb, including shoulder",cancer,Non CNS Cancer,CCS 2015 -> ICD-383
+D0361,"Melanoma in situ of right upper limb, including shoulder",cancer,Non CNS Cancer,CCS 2015 -> ICD-384
+D0362,"Melanoma in situ of left upper limb, including shoulder",cancer,Non CNS Cancer,CCS 2015 -> ICD-385
+D0370,"Melanoma in situ of unspecified lower limb, including hip",cancer,Non CNS Cancer,CCS 2015 -> ICD-386
+D0371,"Melanoma in situ of right lower limb, including hip",cancer,Non CNS Cancer,CCS 2015 -> ICD-387
+D0372,"Melanoma in situ of left lower limb, including hip",cancer,Non CNS Cancer,CCS 2015 -> ICD-388
+D038,Melanoma in situ of other sites,cancer,Non CNS Cancer,CCS 2015 -> ICD-389
+D039,"Melanoma in situ, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-390
+D040,Carcinoma in situ of skin of lip,cancer,Non CNS Cancer,CCS 2015 -> ICD-391
+D0410,"Carcinoma in situ of skin of unspecified eyelid, including canthus",cancer,Non CNS Cancer,CCS 2015 -> ICD-392
+D0420,Carcinoma in situ of skin of unspecified ear and external auricular canal,cancer,Non CNS Cancer,CCS 2015 -> ICD-393
+D0430,Carcinoma in situ of skin of unspecified part of face,cancer,Non CNS Cancer,CCS 2015 -> ICD-394
+D0439,Carcinoma in situ of skin of other parts of face,cancer,Non CNS Cancer,CCS 2015 -> ICD-395
+D044,Carcinoma in situ of skin of scalp and neck,cancer,Non CNS Cancer,CCS 2015 -> ICD-396
+D045,Carcinoma in situ of skin of trunk,cancer,Non CNS Cancer,CCS 2015 -> ICD-397
+D0460,"Carcinoma in situ of skin of unspecified upper limb, including shoulder",cancer,Non CNS Cancer,CCS 2015 -> ICD-398
+D0470,"Carcinoma in situ of skin of unspecified lower limb, including hip",cancer,Non CNS Cancer,CCS 2015 -> ICD-399
+D048,Carcinoma in situ of skin of other sites,cancer,Non CNS Cancer,CCS 2015 -> ICD-400
+D049,"Carcinoma in situ of skin, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-401
+D0590,Unspecified type of carcinoma in situ of unspecified breast,cancer,Non CNS Cancer,CCS 2015 -> ICD-402
+D069,"Carcinoma in situ of cervix, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-403
+D070,Carcinoma in situ of endometrium,cancer,Non CNS Cancer,CCS 2015 -> ICD-404
+G92,Code not found,other,Non CNS Cancer,CCS 2015 -> ICD-405
+P369,"Bacterial sepsis of newborn, unspecified",sepsis,Non CNS Cancer,CCS 2015 -> ICD-411
+R6520,Severe sepsis without septic shock,sepsis,Non CNS Cancer,CCS 2015 -> ICD-414
+R6521,Severe sepsis with septic shock,sepsis,Non CNS Cancer,CCS 2015 -> ICD-415
+R85610,Atypical squamous cells of undetermined significance on cytologic smear of anus (ASC-US),cancer,Non CNS Cancer,CCS 2015 -> ICD-416
+R85611,Atypical squamous cells cannot exclude high grade squamous intraepithelial lesion on cytologic smear of anus (ASC-H),cancer,Non CNS Cancer,CCS 2015 -> ICD-417
+R85612,Low grade squamous intraepithelial lesion on cytologic smear of anus (LGSIL),cancer,Non CNS Cancer,CCS 2015 -> ICD-418
+R85613,High grade squamous intraepithelial lesion on cytologic smear of anus (HGSIL),cancer,Non CNS Cancer,CCS 2015 -> ICD-419
+R85614,Cytologic evidence of malignancy on smear of anus,cancer,Non CNS Cancer,CCS 2015 -> ICD-420
+R85619,Unspecified abnormal cytological findings in specimens from anus,cancer,Non CNS Cancer,CCS 2015 -> ICD-421
+R8581,Anal high risk human papillomavirus (HPV) DNA test positive,other,Non CNS Cancer,CCS 2015 -> ICD-422
+Z8500,Personal history of malignant neoplasm of unspecified digestive organ,cancer,Non CNS Cancer,CCS 2015 -> ICD-423
+Z85028,Personal history of other malignant neoplasm of stomach,cancer,Non CNS Cancer,CCS 2015 -> ICD-424
+Z85038,Personal history of other malignant neoplasm of large intestine,cancer,Non CNS Cancer,CCS 2015 -> ICD-425
+Z85048,"Personal history of other malignant neoplasm of rectum, rectosigmoid junction, and anus",cancer,Non CNS Cancer,CCS 2015 -> ICD-426
+Z8505,Personal history of malignant neoplasm of liver,cancer,Non CNS Cancer,CCS 2015 -> ICD-427
+Z85068,Personal history of other malignant neoplasm of small intestine,cancer,Non CNS Cancer,CCS 2015 -> ICD-428
+Z8507,Personal history of malignant neoplasm of pancreas,cancer,Non CNS Cancer,CCS 2015 -> ICD-429
+Z8509,Personal history of malignant neoplasm of other digestive organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-430
+Z85118,Personal history of other malignant neoplasm of bronchus and lung,cancer,Non CNS Cancer,CCS 2015 -> ICD-431
+Z8512,Personal history of malignant neoplasm of trachea,cancer,Non CNS Cancer,CCS 2015 -> ICD-432
+Z8520,Personal history of malignant neoplasm of unspecified respiratory organ,cancer,Non CNS Cancer,CCS 2015 -> ICD-433
+Z8521,Personal history of malignant neoplasm of larynx,cancer,Non CNS Cancer,CCS 2015 -> ICD-434
+Z8522,"Personal history of malignant neoplasm of nasal cavities, middle ear, and accessory sinuses",cancer,Non CNS Cancer,CCS 2015 -> ICD-435
+Z853,Personal history of malignant neoplasm of breast,cancer,Non CNS Cancer,CCS 2015 -> ICD-436
+Z8542,Personal history of malignant neoplasm of other parts of uterus,cancer,Non CNS Cancer,CCS 2015 -> ICD-437
+Z85810,Personal history of malignant neoplasm of tongue,cancer,Non CNS Cancer,CCS 2015 -> ICD-438
+Z85818,"Personal history of malignant neoplasm of other sites of lip, oral cavity, and pharynx",cancer,Non CNS Cancer,CCS 2015 -> ICD-439
+Z85819,"Personal history of malignant neoplasm of unspecified site of lip, oral cavity, and pharynx",cancer,Non CNS Cancer,CCS 2015 -> ICD-440
+Z85820,Personal history of malignant melanoma of skin,cancer,Non CNS Cancer,CCS 2015 -> ICD-441
+Z85828,Personal history of other malignant neoplasm of skin,cancer,Non CNS Cancer,CCS 2015 -> ICD-442
+Z85841,Personal history of malignant neoplasm of brain,cancer,Non CNS Cancer,CCS 2015 -> ICD-443
+Z85848,Personal history of malignant neoplasm of other parts of nervous tissue,cancer,Non CNS Cancer,CCS 2015 -> ICD-444
+R87610,Atypical squamous cells of undetermined significance on cytologic smear of cervix (ASC-US),cancer,Non CNS Cancer,CCS 2015 -> ICD-445
+R87611,Atypical squamous cells cannot exclude high grade squamous intraepithelial lesion on cytologic smear of cervix (ASC-H),cancer,Non CNS Cancer,CCS 2015 -> ICD-446
+R87612,Low grade squamous intraepithelial lesion on cytologic smear of cervix (LGSIL),cancer,Non CNS Cancer,CCS 2015 -> ICD-447
+R87613,High grade squamous intraepithelial lesion on cytologic smear of cervix (HGSIL),cancer,Non CNS Cancer,CCS 2015 -> ICD-448
+R87810,Cervical high risk human papillomavirus (HPV) DNA test positive,other,Non CNS Cancer,CCS 2015 -> ICD-449
+R87614,Cytologic evidence of malignancy on smear of cervix,cancer,Non CNS Cancer,CCS 2015 -> ICD-450
+Z8541,Personal history of malignant neoplasm of cervix uteri,cancer,Non CNS Cancer,CCS 2015 -> ICD-451
+C569,Malignant neoplasm of unspecified ovary,cancer,Non CNS Cancer,CCS 2015 -> ICD-452
+Z8543,Personal history of malignant neoplasm of ovary,cancer,Non CNS Cancer,CCS 2015 -> ICD-453
+C5700,Malignant neoplasm of unspecified fallopian tube,cancer,Non CNS Cancer,CCS 2015 -> ICD-454
+C5710,Malignant neoplasm of unspecified broad ligament,cancer,Non CNS Cancer,CCS 2015 -> ICD-455
+C573,Malignant neoplasm of parametrium,cancer,Non CNS Cancer,CCS 2015 -> ICD-456
+C5720,Malignant neoplasm of unspecified round ligament,cancer,Non CNS Cancer,CCS 2015 -> ICD-457
+C574,"Malignant neoplasm of uterine adnexa, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-458
+C574,"Malignant neoplasm of uterine adnexa, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-459
+C52,Malignant neoplasm of vagina,cancer,Non CNS Cancer,CCS 2015 -> ICD-460
+C510,Malignant neoplasm of labium majus,cancer,Non CNS Cancer,CCS 2015 -> ICD-461
+C511,Malignant neoplasm of labium minus,cancer,Non CNS Cancer,CCS 2015 -> ICD-462
+C512,Malignant neoplasm of clitoris,cancer,Non CNS Cancer,CCS 2015 -> ICD-463
+C519,"Malignant neoplasm of vulva, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-464
+C577,Malignant neoplasm of other specified female genital organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-465
+C578,Malignant neoplasm of overlapping sites of female genital organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-466
+C579,"Malignant neoplasm of female genital organ, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-467
+D0730,Carcinoma in situ of unspecified female genital organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-468
+D072,Carcinoma in situ of vagina,cancer,Non CNS Cancer,CCS 2015 -> ICD-469
+D071,Carcinoma in situ of vulva,cancer,Non CNS Cancer,CCS 2015 -> ICD-470
+D0739,Carcinoma in situ of other female genital organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-471
+R87624,Cytologic evidence of malignancy on smear of vagina,cancer,Non CNS Cancer,CCS 2015 -> ICD-472
+Z8540,Personal history of malignant neoplasm of unspecified female genital organ,cancer,Non CNS Cancer,CCS 2015 -> ICD-473
+Z8544,Personal history of malignant neoplasm of other female genital organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-474
+C61,Malignant neoplasm of prostate,cancer,Non CNS Cancer,CCS 2015 -> ICD-475
+D075,Carcinoma in situ of prostate,cancer,Non CNS Cancer,CCS 2015 -> ICD-476
+Z8546,Personal history of malignant neoplasm of prostate,cancer,Non CNS Cancer,CCS 2015 -> ICD-477
+C6200,Malignant neoplasm of unspecified undescended testis,cancer,Non CNS Cancer,CCS 2015 -> ICD-478
+C6210,Malignant neoplasm of unspecified descended testis,cancer,Non CNS Cancer,CCS 2015 -> ICD-479
+C6290,"Malignant neoplasm of unspecified testis, unspecified whether descended or undescended",cancer,Non CNS Cancer,CCS 2015 -> ICD-480
+Z8547,Personal history of malignant neoplasm of testis,cancer,Non CNS Cancer,CCS 2015 -> ICD-481
+C600,Malignant neoplasm of prepuce,cancer,Non CNS Cancer,CCS 2015 -> ICD-482
+C601,Malignant neoplasm of glans penis,cancer,Non CNS Cancer,CCS 2015 -> ICD-483
+C602,Malignant neoplasm of body of penis,cancer,Non CNS Cancer,CCS 2015 -> ICD-484
+C609,"Malignant neoplasm of penis, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-485
+C6300,Malignant neoplasm of unspecified epididymis,cancer,Non CNS Cancer,CCS 2015 -> ICD-486
+C6310,Malignant neoplasm of unspecified spermatic cord,cancer,Non CNS Cancer,CCS 2015 -> ICD-487
+C632,Malignant neoplasm of scrotum,cancer,Non CNS Cancer,CCS 2015 -> ICD-488
+C608,Malignant neoplasm of overlapping sites of penis,cancer,Non CNS Cancer,CCS 2015 -> ICD-489
+C637,Malignant neoplasm of other specified male genital organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-490
+C638,Malignant neoplasm of overlapping sites of male genital organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-491
+C639,"Malignant neoplasm of male genital organ, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-492
+D074,Carcinoma in situ of penis,cancer,Non CNS Cancer,CCS 2015 -> ICD-493
+D0760,Carcinoma in situ of unspecified male genital organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-494
+D0769,Carcinoma in situ of other male genital organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-495
+Z8545,Personal history of malignant neoplasm of unspecified male genital organ,cancer,Non CNS Cancer,CCS 2015 -> ICD-496
+Z8548,Personal history of malignant neoplasm of epididymis,cancer,Non CNS Cancer,CCS 2015 -> ICD-497
+Z8549,Personal history of malignant neoplasm of other male genital organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-498
+C670,Malignant neoplasm of trigone of bladder,cancer,Non CNS Cancer,CCS 2015 -> ICD-499
+C671,Malignant neoplasm of dome of bladder,cancer,Non CNS Cancer,CCS 2015 -> ICD-500
+C672,Malignant neoplasm of lateral wall of bladder,cancer,Non CNS Cancer,CCS 2015 -> ICD-501
+C673,Malignant neoplasm of anterior wall of bladder,cancer,Non CNS Cancer,CCS 2015 -> ICD-502
+C674,Malignant neoplasm of posterior wall of bladder,cancer,Non CNS Cancer,CCS 2015 -> ICD-503
+C675,Malignant neoplasm of bladder neck,cancer,Non CNS Cancer,CCS 2015 -> ICD-504
+C676,Malignant neoplasm of ureteric orifice,cancer,Non CNS Cancer,CCS 2015 -> ICD-505
+C677,Malignant neoplasm of urachus,cancer,Non CNS Cancer,CCS 2015 -> ICD-506
+C678,Malignant neoplasm of overlapping sites of bladder,cancer,Non CNS Cancer,CCS 2015 -> ICD-507
+C679,"Malignant neoplasm of bladder, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-508
+D090,Carcinoma in situ of bladder,cancer,Non CNS Cancer,CCS 2015 -> ICD-509
+Z8551,Personal history of malignant neoplasm of bladder,cancer,Non CNS Cancer,CCS 2015 -> ICD-510
+C649,"Malignant neoplasm of unspecified kidney, except renal pelvis",cancer,Non CNS Cancer,CCS 2015 -> ICD-511
+C659,Malignant neoplasm of unspecified renal pelvis,cancer,Non CNS Cancer,CCS 2015 -> ICD-512
+C7A093,Malignant carcinoid tumor of the kidney,cancer,Non CNS Cancer,CCS 2015 -> ICD-513
+Z85528,Personal history of other malignant neoplasm of kidney,cancer,Non CNS Cancer,CCS 2015 -> ICD-514
+Z8553,Personal history of malignant neoplasm of renal pelvis,cancer,Non CNS Cancer,CCS 2015 -> ICD-515
+C669,Malignant neoplasm of unspecified ureter,cancer,Non CNS Cancer,CCS 2015 -> ICD-516
+C680,Malignant neoplasm of urethra,cancer,Non CNS Cancer,CCS 2015 -> ICD-517
+C681,Malignant neoplasm of paraurethral glands,cancer,Non CNS Cancer,CCS 2015 -> ICD-518
+C688,Malignant neoplasm of overlapping sites of urinary organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-519
+C689,"Malignant neoplasm of urinary organ, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-520
+D0910,Carcinoma in situ of unspecified urinary organ,cancer,Non CNS Cancer,CCS 2015 -> ICD-521
+D0919,Carcinoma in situ of other urinary organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-522
+Z8550,Personal history of malignant neoplasm of unspecified urinary tract organ,cancer,Non CNS Cancer,CCS 2015 -> ICD-523
+Z8554,Personal history of malignant neoplasm of ureter,cancer,Non CNS Cancer,CCS 2015 -> ICD-524
+Z8559,Personal history of malignant neoplasm of other urinary tract organ,cancer,Non CNS Cancer,CCS 2015 -> ICD-525
+C73,Malignant neoplasm of thyroid gland,cancer,Non CNS Cancer,CCS 2015 -> ICD-526
+E3122,Multiple endocrine neoplasia [MEN] type IIA,cancer,Non CNS Cancer,CCS 2015 -> ICD-527
+E3123,Multiple endocrine neoplasia [MEN] type IIB,cancer,Non CNS Cancer,CCS 2015 -> ICD-528
+Z85850,Personal history of malignant neoplasm of thyroid,cancer,Non CNS Cancer,CCS 2015 -> ICD-529
+C8170,"Other Hodgkin lymphoma, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-530
+C8179,"Other Hodgkin lymphoma, extranodal and solid organ sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-531
+C8171,"Other Hodgkin lymphoma, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-532
+C8172,"Other Hodgkin lymphoma, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-533
+C8173,"Other Hodgkin lymphoma, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-534
+C8174,"Other Hodgkin lymphoma, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-535
+C8175,"Other Hodgkin lymphoma, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-536
+C8176,"Other Hodgkin lymphoma, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-537
+C8177,"Other Hodgkin lymphoma, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-538
+C8178,"Other Hodgkin lymphoma, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-539
+C8179,"Other Hodgkin lymphoma, extranodal and solid organ sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-540
+C8171,"Other Hodgkin lymphoma, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-541
+C8172,"Other Hodgkin lymphoma, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-542
+C8173,"Other Hodgkin lymphoma, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-543
+C8174,"Other Hodgkin lymphoma, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-544
+C8175,"Other Hodgkin lymphoma, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-545
+C8176,"Other Hodgkin lymphoma, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-546
+C8177,"Other Hodgkin lymphoma, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-547
+C8178,"Other Hodgkin lymphoma, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-548
+C8179,"Other Hodgkin lymphoma, extranodal and solid organ sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-549
+C8171,"Other Hodgkin lymphoma, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-550
+C8172,"Other Hodgkin lymphoma, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-551
+C8173,"Other Hodgkin lymphoma, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-552
+C8174,"Other Hodgkin lymphoma, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-553
+C8175,"Other Hodgkin lymphoma, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-554
+C8176,"Other Hodgkin lymphoma, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-555
+C8177,"Other Hodgkin lymphoma, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-556
+C8178,"Other Hodgkin lymphoma, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-557
+C8100,"Nodular lymphocyte predominant Hodgkin lymphoma, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-558
+C8109,"Nodular lymphocyte predominant Hodgkin lymphoma, extranodal and solid organ sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-559
+C8140,"Lymphocyte-rich Hodgkin lymphoma, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-560
+C8149,"Lymphocyte-rich Hodgkin lymphoma, extranodal and solid organ sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-561
+C8101,"Nodular lymphocyte predominant Hodgkin lymphoma, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-562
+C8141,"Lymphocyte-rich Hodgkin lymphoma, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-563
+C8102,"Nodular lymphocyte predominant Hodgkin lymphoma, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-564
+C8142,"Lymphocyte-rich Hodgkin lymphoma, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-565
+C8103,"Nodular lymphocyte predominant Hodgkin lymphoma, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-566
+C8143,"Lymphocyte-rich Hodgkin lymphoma, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-567
+C8104,"Nodular lymphocyte predominant Hodgkin lymphoma, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-568
+C8144,"Lymphocyte-rich Hodgkin lymphoma, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-569
+C8105,"Nodular lymphocyte predominant Hodgkin lymphoma, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-570
+C8145,"Lymphocyte-rich Hodgkin lymphoma, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-571
+C8106,"Nodular lymphocyte predominant Hodgkin lymphoma, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-572
+C8146,"Lymphocyte-rich Hodgkin lymphoma, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-573
+C8107,"Nodular lymphocyte predominant Hodgkin lymphoma, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-574
+C8147,"Lymphocyte-rich Hodgkin lymphoma, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-575
+C8108,"Nodular lymphocyte predominant Hodgkin lymphoma, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-576
+C8148,"Lymphocyte-rich Hodgkin lymphoma, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-577
+C8110,"Nodular sclerosis Hodgkin lymphoma, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-578
+C8119,"Nodular sclerosis Hodgkin lymphoma, extranodal and solid organ sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-579
+C8111,"Nodular sclerosis Hodgkin lymphoma, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-580
+C8112,"Nodular sclerosis Hodgkin lymphoma, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-581
+C8113,"Nodular sclerosis Hodgkin lymphoma, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-582
+C8114,"Nodular sclerosis Hodgkin lymphoma, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-583
+C8115,"Nodular sclerosis Hodgkin lymphoma, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-584
+C8116,"Nodular sclerosis Hodgkin lymphoma, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-585
+C8117,"Nodular sclerosis Hodgkin lymphoma, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-586
+C8118,"Nodular sclerosis Hodgkin lymphoma, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-587
+C8120,"Mixed cellularity Hodgkin lymphoma, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-588
+C8129,"Mixed cellularity Hodgkin lymphoma, extranodal and solid organ sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-589
+C8121,"Mixed cellularity Hodgkin lymphoma, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-590
+C8122,"Mixed cellularity Hodgkin lymphoma, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-591
+C8123,"Mixed cellularity Hodgkin lymphoma, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-592
+C8124,"Mixed cellularity Hodgkin lymphoma, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-593
+C8125,"Mixed cellularity Hodgkin lymphoma, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-594
+C8126,"Mixed cellularity Hodgkin lymphoma, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-595
+C8127,"Mixed cellularity Hodgkin lymphoma, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-596
+C8128,"Mixed cellularity Hodgkin lymphoma, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-597
+C8130,"Lymphocyte depleted Hodgkin lymphoma, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-598
+C8139,"Lymphocyte depleted Hodgkin lymphoma, extranodal and solid organ sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-599
+C8131,"Lymphocyte depleted Hodgkin lymphoma, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-600
+C8132,"Lymphocyte depleted Hodgkin lymphoma, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-601
+C8133,"Lymphocyte depleted Hodgkin lymphoma, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-602
+C8134,"Lymphocyte depleted Hodgkin lymphoma, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-603
+C8135,"Lymphocyte depleted Hodgkin lymphoma, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-604
+C8136,"Lymphocyte depleted Hodgkin lymphoma, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-605
+C8137,"Lymphocyte depleted Hodgkin lymphoma, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-606
+C8138,"Lymphocyte depleted Hodgkin lymphoma, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-607
+C8190,"Hodgkin lymphoma, unspecified, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-608
+C8199,"Hodgkin lymphoma, unspecified, extranodal and solid organ sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-609
+C8191,"Hodgkin lymphoma, unspecified, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-610
+C8192,"Hodgkin lymphoma, unspecified, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-611
+C8193,"Hodgkin lymphoma, unspecified, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-612
+C8194,"Hodgkin lymphoma, unspecified, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-613
+C8195,"Hodgkin lymphoma, unspecified, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-614
+C8196,"Hodgkin lymphoma, unspecified, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-615
+C8197,"Hodgkin lymphoma, unspecified, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-616
+C8198,"Hodgkin lymphoma, unspecified, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-617
+Z8571,Personal history of Hodgkin lymphoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-618
+C8330,"Diffuse large B-cell lymphoma, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-619
+C8339,Code not found,other,Non CNS Cancer,CCS 2015 -> ICD-620
+C8331,"Diffuse large B-cell lymphoma, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-621
+C8332,"Diffuse large B-cell lymphoma, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-622
+C8333,"Diffuse large B-cell lymphoma, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-623
+C8334,"Diffuse large B-cell lymphoma, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-624
+C8335,"Diffuse large B-cell lymphoma, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-625
+C8336,"Diffuse large B-cell lymphoma, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-626
+C8337,"Diffuse large B-cell lymphoma, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-627
+C8338,"Diffuse large B-cell lymphoma, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-628
+C8350,"Lymphoblastic (diffuse) lymphoma, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-629
+C8359,"Lymphoblastic (diffuse) lymphoma, extranodal and solid organ sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-630
+C8351,"Lymphoblastic (diffuse) lymphoma, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-631
+C8352,"Lymphoblastic (diffuse) lymphoma, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-632
+C8353,"Lymphoblastic (diffuse) lymphoma, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-633
+C8354,"Lymphoblastic (diffuse) lymphoma, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-634
+C8355,"Lymphoblastic (diffuse) lymphoma, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-635
+C8356,"Lymphoblastic (diffuse) lymphoma, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-636
+C8357,"Lymphoblastic (diffuse) lymphoma, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-637
+C8358,"Lymphoblastic (diffuse) lymphoma, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-638
+C8370,"Burkitt lymphoma, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-639
+C8379,"Burkitt lymphoma, extranodal and solid organ sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-640
+C8371,"Burkitt lymphoma, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-641
+C8372,"Burkitt lymphoma, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-642
+C8373,"Burkitt lymphoma, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-643
+C8374,"Burkitt lymphoma, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-644
+C8375,"Burkitt lymphoma, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-645
+C8376,"Burkitt lymphoma, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-646
+C8377,"Burkitt lymphoma, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-647
+C8378,"Burkitt lymphoma, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-648
+C8380,"Other non-follicular lymphoma, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-649
+C8389,"Other non-follicular lymphoma, extranodal and solid organ sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-650
+C8381,"Other non-follicular lymphoma, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-651
+C8382,"Other non-follicular lymphoma, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-652
+C8383,"Other non-follicular lymphoma, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-653
+C8384,"Other non-follicular lymphoma, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-654
+C8385,"Other non-follicular lymphoma, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-655
+C8386,"Other non-follicular lymphoma, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-656
+C8387,"Other non-follicular lymphoma, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-657
+C8388,"Other non-follicular lymphoma, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-658
+C8310,"Mantle cell lymphoma, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-659
+C8319,"Mantle cell lymphoma, extranodal and solid organ sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-660
+C8311,"Mantle cell lymphoma, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-661
+C8312,"Mantle cell lymphoma, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-662
+C8313,"Mantle cell lymphoma, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-663
+C8314,"Mantle cell lymphoma, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-664
+C8315,"Mantle cell lymphoma, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-665
+C8316,"Mantle cell lymphoma, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-666
+C8317,"Mantle cell lymphoma, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-667
+C8318,"Mantle cell lymphoma, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-668
+C8339,Code not found,other,Non CNS Cancer,CCS 2015 -> ICD-669
+C8380,"Other non-follicular lymphoma, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-670
+C8389,"Other non-follicular lymphoma, extranodal and solid organ sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-671
+C8331,"Diffuse large B-cell lymphoma, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-672
+C8381,"Other non-follicular lymphoma, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-673
+C8332,"Diffuse large B-cell lymphoma, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-674
+C8382,"Other non-follicular lymphoma, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-675
+C8333,"Diffuse large B-cell lymphoma, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-676
+C8383,"Other non-follicular lymphoma, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-677
+C8334,"Diffuse large B-cell lymphoma, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-678
+C8384,"Other non-follicular lymphoma, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-679
+C8335,"Diffuse large B-cell lymphoma, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-680
+C8385,"Other non-follicular lymphoma, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-681
+C8336,"Diffuse large B-cell lymphoma, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-682
+C8386,"Other non-follicular lymphoma, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-683
+C8337,"Diffuse large B-cell lymphoma, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-684
+C8387,"Other non-follicular lymphoma, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-685
+C8338,"Diffuse large B-cell lymphoma, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-686
+C8388,"Other non-follicular lymphoma, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-687
+C8460,"Anaplastic large cell lymphoma, ALK-positive, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-688
+C8469,"Anaplastic large cell lymphoma, ALK-positive, extranodal and solid organ sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-689
+C8470,"Anaplastic large cell lymphoma, ALK-negative, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-690
+C8479,"Anaplastic large cell lymphoma, ALK-negative, extranodal and solid organ sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-691
+C8461,"Anaplastic large cell lymphoma, ALK-positive, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-692
+C8471,"Anaplastic large cell lymphoma, ALK-negative, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-693
+C8462,"Anaplastic large cell lymphoma, ALK-positive, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-694
+C8472,"Anaplastic large cell lymphoma, ALK-negative, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-695
+C8463,"Anaplastic large cell lymphoma, ALK-positive, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-696
+C8473,"Anaplastic large cell lymphoma, ALK-negative, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-697
+C8464,"Anaplastic large cell lymphoma, ALK-positive, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-698
+C8474,"Anaplastic large cell lymphoma, ALK-negative, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-699
+C8465,"Anaplastic large cell lymphoma, ALK-positive, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-700
+C8475,"Anaplastic large cell lymphoma, ALK-negative, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-701
+C8466,"Anaplastic large cell lymphoma, ALK-positive, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-702
+C8476,"Anaplastic large cell lymphoma, ALK-negative, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-703
+C8467,"Anaplastic large cell lymphoma, ALK-positive, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-704
+C8477,"Anaplastic large cell lymphoma, ALK-negative, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-705
+C8468,"Anaplastic large cell lymphoma, ALK-positive, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-706
+C8478,"Anaplastic large cell lymphoma, ALK-negative, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-707
+C8339,Code not found,other,Non CNS Cancer,CCS 2015 -> ICD-708
+C8331,"Diffuse large B-cell lymphoma, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-709
+C8332,"Diffuse large B-cell lymphoma, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-710
+C8333,"Diffuse large B-cell lymphoma, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-711
+C8334,"Diffuse large B-cell lymphoma, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-712
+C8335,"Diffuse large B-cell lymphoma, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-713
+C8336,"Diffuse large B-cell lymphoma, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-714
+C8337,"Diffuse large B-cell lymphoma, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-715
+C8338,"Diffuse large B-cell lymphoma, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-716
+C8380,"Other non-follicular lymphoma, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-717
+C8389,"Other non-follicular lymphoma, extranodal and solid organ sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-718
+C8381,"Other non-follicular lymphoma, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-719
+C8382,"Other non-follicular lymphoma, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-720
+C8383,"Other non-follicular lymphoma, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-721
+C8384,"Other non-follicular lymphoma, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-722
+C8385,"Other non-follicular lymphoma, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-723
+C8386,"Other non-follicular lymphoma, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-724
+C8387,"Other non-follicular lymphoma, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-725
+C8388,"Other non-follicular lymphoma, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-726
+C8290,"Follicular lymphoma, unspecified, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-727
+C8299,"Follicular lymphoma, unspecified, extranodal and solid organ sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-728
+C8291,"Follicular lymphoma, unspecified, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-729
+C8292,"Follicular lymphoma, unspecified, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-730
+C8293,"Follicular lymphoma, unspecified, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-731
+C8294,"Follicular lymphoma, unspecified, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-732
+C8295,"Follicular lymphoma, unspecified, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-733
+C8296,"Follicular lymphoma, unspecified, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-734
+C8297,"Follicular lymphoma, unspecified, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-735
+C8298,"Follicular lymphoma, unspecified, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-736
+C8400,"Mycosis fungoides, unspecified site",other,Non CNS Cancer,CCS 2015 -> ICD-737
+C8409,"Mycosis fungoides, extranodal and solid organ sites",other,Non CNS Cancer,CCS 2015 -> ICD-738
+C8401,"Mycosis fungoides, lymph nodes of head, face, and neck",other,Non CNS Cancer,CCS 2015 -> ICD-739
+C8402,"Mycosis fungoides, intrathoracic lymph nodes",other,Non CNS Cancer,CCS 2015 -> ICD-740
+C8403,"Mycosis fungoides, intra-abdominal lymph nodes",other,Non CNS Cancer,CCS 2015 -> ICD-741
+C8404,"Mycosis fungoides, lymph nodes of axilla and upper limb",other,Non CNS Cancer,CCS 2015 -> ICD-742
+C8405,"Mycosis fungoides, lymph nodes of inguinal region and lower limb",other,Non CNS Cancer,CCS 2015 -> ICD-743
+C8406,"Mycosis fungoides, intrapelvic lymph nodes",other,Non CNS Cancer,CCS 2015 -> ICD-744
+C8407,"Mycosis fungoides, spleen",other,Non CNS Cancer,CCS 2015 -> ICD-745
+C8408,"Mycosis fungoides, lymph nodes of multiple sites",other,Non CNS Cancer,CCS 2015 -> ICD-746
+C8410,"Sezary disease, unspecified site",other,Non CNS Cancer,CCS 2015 -> ICD-747
+C8419,"Sezary disease, extranodal and solid organ sites",other,Non CNS Cancer,CCS 2015 -> ICD-748
+C8411,"Sezary disease, lymph nodes of head, face, and neck",other,Non CNS Cancer,CCS 2015 -> ICD-749
+C8412,"Sezary disease, intrathoracic lymph nodes",other,Non CNS Cancer,CCS 2015 -> ICD-750
+C8413,"Sezary disease, intra-abdominal lymph nodes",other,Non CNS Cancer,CCS 2015 -> ICD-751
+C8414,"Sezary disease, lymph nodes of axilla and upper limb",other,Non CNS Cancer,CCS 2015 -> ICD-752
+C8415,"Sezary disease, lymph nodes of inguinal region and lower limb",other,Non CNS Cancer,CCS 2015 -> ICD-753
+C8416,"Sezary disease, intrapelvic lymph nodes",other,Non CNS Cancer,CCS 2015 -> ICD-754
+C8417,"Sezary disease, spleen",other,Non CNS Cancer,CCS 2015 -> ICD-755
+C8418,"Sezary disease, lymph nodes of multiple sites",other,Non CNS Cancer,CCS 2015 -> ICD-756
+C8440,"Peripheral T-cell lymphoma, not elsewhere classified, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-757
+C8449,"Peripheral T-cell lymphoma, not elsewhere classified, extranodal and solid organ sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-758
+C8441,"Peripheral T-cell lymphoma, not elsewhere classified, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-759
+C8442,"Peripheral T-cell lymphoma, not elsewhere classified, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-760
+C8443,"Peripheral T-cell lymphoma, not elsewhere classified, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-761
+C8444,"Peripheral T-cell lymphoma, not elsewhere classified, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-762
+C8445,"Peripheral T-cell lymphoma, not elsewhere classified, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-763
+C8446,"Peripheral T-cell lymphoma, not elsewhere classified, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-764
+C8447,"Peripheral T-cell lymphoma, not elsewhere classified, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-765
+C8448,"Peripheral T-cell lymphoma, not elsewhere classified, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-766
+C8580,"Other specified types of non-Hodgkin lymphoma, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-767
+C8589,"Other specified types of non-Hodgkin lymphoma, extranodal and solid organ sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-768
+C8581,"Other specified types of non-Hodgkin lymphoma, lymph nodes of head, face, and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-769
+C8582,"Other specified types of non-Hodgkin lymphoma, intrathoracic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-770
+C8493,"Mature T/NK-cell lymphomas, unspecified, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-771
+C8583,"Other specified types of non-Hodgkin lymphoma, intra-abdominal lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-772
+C8584,"Other specified types of non-Hodgkin lymphoma, lymph nodes of axilla and upper limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-773
+C8585,"Other specified types of non-Hodgkin lymphoma, lymph nodes of inguinal region and lower limb",cancer,Non CNS Cancer,CCS 2015 -> ICD-774
+C8586,"Other specified types of non-Hodgkin lymphoma, intrapelvic lymph nodes",cancer,Non CNS Cancer,CCS 2015 -> ICD-775
+C8587,"Other specified types of non-Hodgkin lymphoma, spleen",cancer,Non CNS Cancer,CCS 2015 -> ICD-776
+C8588,"Other specified types of non-Hodgkin lymphoma, lymph nodes of multiple sites",cancer,Non CNS Cancer,CCS 2015 -> ICD-777
+C964,Sarcoma of dendritic cells (accessory cells),cancer,Non CNS Cancer,CCS 2015 -> ICD-778
+C969,"Malignant neoplasm of lymphoid, hematopoietic and related tissue, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-779
+C96Z,"Other specified malignant neoplasms of lymphoid, hematopoietic and related tissue",cancer,Non CNS Cancer,CCS 2015 -> ICD-780
+C969,"Malignant neoplasm of lymphoid, hematopoietic and related tissue, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-781
+C96Z,"Other specified malignant neoplasms of lymphoid, hematopoietic and related tissue",cancer,Non CNS Cancer,CCS 2015 -> ICD-782
+C969,"Malignant neoplasm of lymphoid, hematopoietic and related tissue, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-783
+C96Z,"Other specified malignant neoplasms of lymphoid, hematopoietic and related tissue",cancer,Non CNS Cancer,CCS 2015 -> ICD-784
+C969,"Malignant neoplasm of lymphoid, hematopoietic and related tissue, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-785
+C96Z,"Other specified malignant neoplasms of lymphoid, hematopoietic and related tissue",cancer,Non CNS Cancer,CCS 2015 -> ICD-786
+C969,"Malignant neoplasm of lymphoid, hematopoietic and related tissue, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-787
+C96Z,"Other specified malignant neoplasms of lymphoid, hematopoietic and related tissue",cancer,Non CNS Cancer,CCS 2015 -> ICD-788
+C969,"Malignant neoplasm of lymphoid, hematopoietic and related tissue, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-789
+C96Z,"Other specified malignant neoplasms of lymphoid, hematopoietic and related tissue",cancer,Non CNS Cancer,CCS 2015 -> ICD-790
+C969,"Malignant neoplasm of lymphoid, hematopoietic and related tissue, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-791
+C96Z,"Other specified malignant neoplasms of lymphoid, hematopoietic and related tissue",cancer,Non CNS Cancer,CCS 2015 -> ICD-792
+C969,"Malignant neoplasm of lymphoid, hematopoietic and related tissue, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-793
+C96Z,"Other specified malignant neoplasms of lymphoid, hematopoietic and related tissue",cancer,Non CNS Cancer,CCS 2015 -> ICD-794
+C969,"Malignant neoplasm of lymphoid, hematopoietic and related tissue, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-795
+C96Z,"Other specified malignant neoplasms of lymphoid, hematopoietic and related tissue",cancer,Non CNS Cancer,CCS 2015 -> ICD-796
+Z8579,"Personal history of other malignant neoplasms of lymphoid, hematopoietic and related tissues",cancer,Non CNS Cancer,CCS 2015 -> ICD-797
+Z85831,Personal history of malignant neoplasm of soft tissue,cancer,Non CNS Cancer,CCS 2015 -> ICD-798
+Z8579,"Personal history of other malignant neoplasms of lymphoid, hematopoietic and related tissues",cancer,Non CNS Cancer,CCS 2015 -> ICD-799
+C9140,Hairy cell leukemia not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-800
+C9141,"Hairy cell leukemia, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-801
+C9140,Hairy cell leukemia not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-802
+C9140,Hairy cell leukemia not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-803
+C9140,Hairy cell leukemia not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-804
+C9140,Hairy cell leukemia not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-805
+C9140,Hairy cell leukemia not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-806
+C9140,Hairy cell leukemia not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-807
+C9140,Hairy cell leukemia not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-808
+C9140,Hairy cell leukemia not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-809
+C9010,Plasma cell leukemia not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-810
+C9011,Plasma cell leukemia in remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-811
+C9012,Plasma cell leukemia in relapse,cancer,Non CNS Cancer,CCS 2015 -> ICD-812
+C9100,Acute lymphoblastic leukemia not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-813
+C9101,"Acute lymphoblastic leukemia, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-814
+C9102,"Acute lymphoblastic leukemia, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-815
+C9110,Chronic lymphocytic leukemia of B-cell type not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-816
+C9111,Chronic lymphocytic leukemia of B-cell type in remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-817
+C9112,Chronic lymphocytic leukemia of B-cell type in relapse,cancer,Non CNS Cancer,CCS 2015 -> ICD-818
+C91Z0,Other lymphoid leukemia not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-819
+C91Z1,"Other lymphoid leukemia, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-820
+C91Z2,"Other lymphoid leukemia, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-821
+C91Z0,Other lymphoid leukemia not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-822
+C91Z1,"Other lymphoid leukemia, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-823
+C91Z2,"Other lymphoid leukemia, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-824
+C9190,"Lymphoid leukemia, unspecified not having achieved remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-825
+C9191,"Lymphoid leukemia, unspecified, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-826
+C9192,"Lymphoid leukemia, unspecified, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-827
+C9200,"Acute myeloblastic leukemia, not having achieved remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-828
+C9240,"Acute promyelocytic leukemia, not having achieved remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-829
+C9250,"Acute myelomonocytic leukemia, not having achieved remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-830
+C9201,"Acute myeloblastic leukemia, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-831
+C9241,"Acute promyelocytic leukemia, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-832
+C9251,"Acute myelomonocytic leukemia, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-833
+C9202,"Acute myeloblastic leukemia, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-834
+C9242,"Acute promyelocytic leukemia, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-835
+C9252,"Acute myelomonocytic leukemia, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-836
+C9210,"Chronic myeloid leukemia, BCR/ABL-positive, not having achieved remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-837
+C9211,"Chronic myeloid leukemia, BCR/ABL-positive, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-838
+C9212,"Chronic myeloid leukemia, BCR/ABL-positive, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-839
+C9220,"Atypical chronic myeloid leukemia, BCR/ABL-negative, not having achieved remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-840
+C9221,"Atypical chronic myeloid leukemia, BCR/ABL-negative, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-841
+C9222,"Atypical chronic myeloid leukemia, BCR/ABL-negative, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-842
+C9230,"Myeloid sarcoma, not having achieved remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-843
+C9231,"Myeloid sarcoma, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-844
+C9232,"Myeloid sarcoma, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-845
+C92Z0,Other myeloid leukemia not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-846
+C92Z1,"Other myeloid leukemia, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-847
+C92Z2,"Other myeloid leukemia, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-848
+C9290,"Myeloid leukemia, unspecified, not having achieved remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-849
+C9291,"Myeloid leukemia, unspecified in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-850
+C9292,"Myeloid leukemia, unspecified in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-851
+C9300,"Acute monoblastic/monocytic leukemia, not having achieved remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-852
+C9301,"Acute monoblastic/monocytic leukemia, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-853
+C9302,"Acute monoblastic/monocytic leukemia, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-854
+C9310,Chronic myelomonocytic leukemia not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-855
+C9311,"Chronic myelomonocytic leukemia, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-856
+C9312,"Chronic myelomonocytic leukemia, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-857
+C9390,"Monocytic leukemia, unspecified, not having achieved remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-858
+C9391,"Monocytic leukemia, unspecified in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-859
+C9392,"Monocytic leukemia, unspecified in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-860
+C93Z0,"Other monocytic leukemia, not having achieved remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-861
+C93Z1,"Other monocytic leukemia, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-862
+C93Z2,"Other monocytic leukemia, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-863
+C9390,"Monocytic leukemia, unspecified, not having achieved remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-864
+C9391,"Monocytic leukemia, unspecified in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-865
+C9392,"Monocytic leukemia, unspecified in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-866
+C9400,"Acute erythroid leukemia, not having achieved remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-867
+C9401,"Acute erythroid leukemia, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-868
+C9402,"Acute erythroid leukemia, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-869
+C9420,Acute megakaryoblastic leukemia not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-873
+C9421,"Acute megakaryoblastic leukemia, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-874
+C9422,"Acute megakaryoblastic leukemia, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-875
+C9430,Mast cell leukemia not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-876
+C9480,Other specified leukemias not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-877
+C9431,"Mast cell leukemia, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-878
+C9481,"Other specified leukemias, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-879
+C9432,"Mast cell leukemia, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-880
+C9482,"Other specified leukemias, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-881
+C9500,Acute leukemia of unspecified cell type not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-882
+C9501,"Acute leukemia of unspecified cell type, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-883
+C9502,"Acute leukemia of unspecified cell type, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-884
+C9510,Chronic leukemia of unspecified cell type not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-885
+C9511,"Chronic leukemia of unspecified cell type, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-886
+C9512,"Chronic leukemia of unspecified cell type, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-887
+C9590,"Leukemia, unspecified not having achieved remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-888
+C9591,"Leukemia, unspecified, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-889
+C9592,"Leukemia, unspecified, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-890
+C9590,"Leukemia, unspecified not having achieved remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-891
+C9591,"Leukemia, unspecified, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-892
+C9592,"Leukemia, unspecified, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-893
+C9590,"Leukemia, unspecified not having achieved remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-894
+C9591,"Leukemia, unspecified, in remission",cancer,Non CNS Cancer,CCS 2015 -> ICD-895
+C9592,"Leukemia, unspecified, in relapse",cancer,Non CNS Cancer,CCS 2015 -> ICD-896
+Z856,Personal history of leukemia,cancer,Non CNS Cancer,CCS 2015 -> ICD-897
+Z856,Personal history of leukemia,cancer,Non CNS Cancer,CCS 2015 -> ICD-898
+Z856,Personal history of leukemia,cancer,Non CNS Cancer,CCS 2015 -> ICD-899
+Z856,Personal history of leukemia,cancer,Non CNS Cancer,CCS 2015 -> ICD-900
+Z856,Personal history of leukemia,cancer,Non CNS Cancer,CCS 2015 -> ICD-901
+C9000,Multiple myeloma not having achieved remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-902
+C9001,Multiple myeloma in remission,cancer,Non CNS Cancer,CCS 2015 -> ICD-903
+C9002,Multiple myeloma in relapse,cancer,Non CNS Cancer,CCS 2015 -> ICD-904
+C888,Code not found,other,Non CNS Cancer,CCS 2015 -> ICD-905
+C9020,Extramedullary plasmacytoma not having achieved remission,other,Non CNS Cancer,CCS 2015 -> ICD-906
+C9030,Solitary plasmacytoma not having achieved remission,other,Non CNS Cancer,CCS 2015 -> ICD-907
+C9021,Extramedullary plasmacytoma in remission,other,Non CNS Cancer,CCS 2015 -> ICD-908
+C9031,Solitary plasmacytoma in remission,other,Non CNS Cancer,CCS 2015 -> ICD-909
+C888,Code not found,other,Non CNS Cancer,CCS 2015 -> ICD-910
+C9022,Extramedullary plasmacytoma in relapse,other,Non CNS Cancer,CCS 2015 -> ICD-911
+C9032,Solitary plasmacytoma in relapse,other,Non CNS Cancer,CCS 2015 -> ICD-912
+Z856,Personal history of leukemia,cancer,Non CNS Cancer,CCS 2015 -> ICD-913
+Z856,Personal history of leukemia,cancer,Non CNS Cancer,CCS 2015 -> ICD-914
+Z856,Personal history of leukemia,cancer,Non CNS Cancer,CCS 2015 -> ICD-915
+Z856,Personal history of leukemia,cancer,Non CNS Cancer,CCS 2015 -> ICD-916
+Z856,Personal history of leukemia,cancer,Non CNS Cancer,CCS 2015 -> ICD-917
+C37,Malignant neoplasm of thymus,cancer,Non CNS Cancer,CCS 2015 -> ICD-918
+C380,Malignant neoplasm of heart,cancer,Non CNS Cancer,CCS 2015 -> ICD-919
+C381,Malignant neoplasm of anterior mediastinum,cancer,Non CNS Cancer,CCS 2015 -> ICD-920
+C382,Malignant neoplasm of posterior mediastinum,cancer,Non CNS Cancer,CCS 2015 -> ICD-921
+C388,"Malignant neoplasm of overlapping sites of heart, mediastinum and pleura",cancer,Non CNS Cancer,CCS 2015 -> ICD-922
+C383,"Malignant neoplasm of mediastinum, part unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-923
+C460,Kaposi's sarcoma of skin,cancer,Non CNS Cancer,CCS 2015 -> ICD-924
+C461,Kaposi's sarcoma of soft tissue,cancer,Non CNS Cancer,CCS 2015 -> ICD-925
+C462,Kaposi's sarcoma of palate,cancer,Non CNS Cancer,CCS 2015 -> ICD-926
+C464,Kaposi's sarcoma of gastrointestinal sites,cancer,Non CNS Cancer,CCS 2015 -> ICD-927
+C4650,Kaposi's sarcoma of unspecified lung,cancer,Non CNS Cancer,CCS 2015 -> ICD-928
+C463,Kaposi's sarcoma of lymph nodes,cancer,Non CNS Cancer,CCS 2015 -> ICD-929
+C467,Kaposi's sarcoma of other sites,cancer,Non CNS Cancer,CCS 2015 -> ICD-930
+C469,"Kaposi's sarcoma, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-931
+C6940,Malignant neoplasm of unspecified ciliary body,cancer,Non CNS Cancer,CCS 2015 -> ICD-932
+C6960,Malignant neoplasm of unspecified orbit,cancer,Non CNS Cancer,CCS 2015 -> ICD-933
+C6950,Malignant neoplasm of unspecified lacrimal gland and duct,cancer,Non CNS Cancer,CCS 2015 -> ICD-934
+C6900,Malignant neoplasm of unspecified conjunctiva,cancer,Non CNS Cancer,CCS 2015 -> ICD-935
+C6910,Malignant neoplasm of unspecified cornea,cancer,Non CNS Cancer,CCS 2015 -> ICD-936
+C6920,Malignant neoplasm of unspecified retina,cancer,Non CNS Cancer,CCS 2015 -> ICD-937
+C6930,Malignant neoplasm of unspecified choroid,cancer,Non CNS Cancer,CCS 2015 -> ICD-938
+C6950,Malignant neoplasm of unspecified lacrimal gland and duct,cancer,Non CNS Cancer,CCS 2015 -> ICD-939
+C6980,Malignant neoplasm of overlapping sites of unspecified eye and adnexa,cancer,Non CNS Cancer,CCS 2015 -> ICD-940
+C6990,Malignant neoplasm of unspecified site of unspecified eye,cancer,Non CNS Cancer,CCS 2015 -> ICD-941
+C7490,Malignant neoplasm of unspecified part of unspecified adrenal gland,cancer,Non CNS Cancer,CCS 2015 -> ICD-942
+C750,Malignant neoplasm of parathyroid gland,cancer,Non CNS Cancer,CCS 2015 -> ICD-943
+C751,Malignant neoplasm of pituitary gland,cancer,Non CNS Cancer,CCS 2015 -> ICD-944
+C752,Malignant neoplasm of craniopharyngeal duct,cancer,Non CNS Cancer,CCS 2015 -> ICD-945
+C753,Malignant neoplasm of pineal gland,cancer,Non CNS Cancer,CCS 2015 -> ICD-946
+C754,Malignant neoplasm of carotid body,cancer,Non CNS Cancer,CCS 2015 -> ICD-947
+C755,Malignant neoplasm of aortic body and other paraganglia,cancer,Non CNS Cancer,CCS 2015 -> ICD-948
+C758,"Malignant neoplasm with pluriglandular involvement, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-949
+C759,"Malignant neoplasm of endocrine gland, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-950
+C760,"Malignant neoplasm of head, face and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-951
+C761,Malignant neoplasm of thorax,cancer,Non CNS Cancer,CCS 2015 -> ICD-952
+C762,Malignant neoplasm of abdomen,cancer,Non CNS Cancer,CCS 2015 -> ICD-953
+C763,Malignant neoplasm of pelvis,cancer,Non CNS Cancer,CCS 2015 -> ICD-954
+C7640,Malignant neoplasm of unspecified upper limb,cancer,Non CNS Cancer,CCS 2015 -> ICD-955
+C7650,Malignant neoplasm of unspecified lower limb,cancer,Non CNS Cancer,CCS 2015 -> ICD-956
+C768,Malignant neoplasm of other specified ill-defined sites,cancer,Non CNS Cancer,CCS 2015 -> ICD-957
+C96A,Histiocytic sarcoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-958
+C96A,Histiocytic sarcoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-959
+C96A,Histiocytic sarcoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-960
+C96A,Histiocytic sarcoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-961
+C96A,Histiocytic sarcoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-962
+C96A,Histiocytic sarcoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-963
+C96A,Histiocytic sarcoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-964
+C96A,Histiocytic sarcoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-965
+C96A,Histiocytic sarcoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-966
+C960,Multifocal and multisystemic (disseminated) Langerhans-cell histiocytosis,other,Non CNS Cancer,CCS 2015 -> ICD-967
+C960,Multifocal and multisystemic (disseminated) Langerhans-cell histiocytosis,other,Non CNS Cancer,CCS 2015 -> ICD-968
+C960,Multifocal and multisystemic (disseminated) Langerhans-cell histiocytosis,other,Non CNS Cancer,CCS 2015 -> ICD-969
+C960,Multifocal and multisystemic (disseminated) Langerhans-cell histiocytosis,other,Non CNS Cancer,CCS 2015 -> ICD-970
+C960,Multifocal and multisystemic (disseminated) Langerhans-cell histiocytosis,other,Non CNS Cancer,CCS 2015 -> ICD-971
+C960,Multifocal and multisystemic (disseminated) Langerhans-cell histiocytosis,other,Non CNS Cancer,CCS 2015 -> ICD-972
+C960,Multifocal and multisystemic (disseminated) Langerhans-cell histiocytosis,other,Non CNS Cancer,CCS 2015 -> ICD-973
+C960,Multifocal and multisystemic (disseminated) Langerhans-cell histiocytosis,other,Non CNS Cancer,CCS 2015 -> ICD-974
+C960,Multifocal and multisystemic (disseminated) Langerhans-cell histiocytosis,other,Non CNS Cancer,CCS 2015 -> ICD-975
+C9620,"Malignant mast cell neoplasm, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-976
+C9621,Aggressive systemic mastocytosis,other,Non CNS Cancer,CCS 2015 -> ICD-977
+C9622,Mast cell sarcoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-978
+C9629,Other malignant mast cell neoplasm,cancer,Non CNS Cancer,CCS 2015 -> ICD-979
+C9620,"Malignant mast cell neoplasm, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-980
+C9621,Aggressive systemic mastocytosis,other,Non CNS Cancer,CCS 2015 -> ICD-981
+C9622,Mast cell sarcoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-982
+C9629,Other malignant mast cell neoplasm,cancer,Non CNS Cancer,CCS 2015 -> ICD-983
+C9620,"Malignant mast cell neoplasm, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-984
+C9621,Aggressive systemic mastocytosis,other,Non CNS Cancer,CCS 2015 -> ICD-985
+C9622,Mast cell sarcoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-986
+C9629,Other malignant mast cell neoplasm,cancer,Non CNS Cancer,CCS 2015 -> ICD-987
+C9620,"Malignant mast cell neoplasm, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-988
+C9621,Aggressive systemic mastocytosis,other,Non CNS Cancer,CCS 2015 -> ICD-989
+C9622,Mast cell sarcoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-990
+C9629,Other malignant mast cell neoplasm,cancer,Non CNS Cancer,CCS 2015 -> ICD-991
+C9620,"Malignant mast cell neoplasm, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-992
+C9621,Aggressive systemic mastocytosis,other,Non CNS Cancer,CCS 2015 -> ICD-993
+C9622,Mast cell sarcoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-994
+C9629,Other malignant mast cell neoplasm,cancer,Non CNS Cancer,CCS 2015 -> ICD-995
+C9620,"Malignant mast cell neoplasm, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-996
+C9621,Aggressive systemic mastocytosis,other,Non CNS Cancer,CCS 2015 -> ICD-997
+C9622,Mast cell sarcoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-998
+C9629,Other malignant mast cell neoplasm,cancer,Non CNS Cancer,CCS 2015 -> ICD-999
+C9620,"Malignant mast cell neoplasm, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-1000
+C9621,Aggressive systemic mastocytosis,other,Non CNS Cancer,CCS 2015 -> ICD-1001
+C9622,Mast cell sarcoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-1002
+C9629,Other malignant mast cell neoplasm,cancer,Non CNS Cancer,CCS 2015 -> ICD-1003
+C9620,"Malignant mast cell neoplasm, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-1004
+C9621,Aggressive systemic mastocytosis,other,Non CNS Cancer,CCS 2015 -> ICD-1005
+C9622,Mast cell sarcoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-1006
+C9629,Other malignant mast cell neoplasm,cancer,Non CNS Cancer,CCS 2015 -> ICD-1007
+C9620,"Malignant mast cell neoplasm, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-1008
+C9621,Aggressive systemic mastocytosis,other,Non CNS Cancer,CCS 2015 -> ICD-1009
+C9622,Mast cell sarcoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-1010
+C9629,Other malignant mast cell neoplasm,cancer,Non CNS Cancer,CCS 2015 -> ICD-1011
+C7A091,Malignant carcinoid tumor of the thymus,cancer,Non CNS Cancer,CCS 2015 -> ICD-1012
+C7A094,"Malignant carcinoid tumor of the foregut, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-1013
+C7A095,"Malignant carcinoid tumor of the midgut, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-1014
+C7A096,"Malignant carcinoid tumor of the hindgut, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-1015
+D0920,Carcinoma in situ of unspecified eye,cancer,Non CNS Cancer,CCS 2015 -> ICD-1016
+D093,Carcinoma in situ of thyroid and other endocrine glands,cancer,Non CNS Cancer,CCS 2015 -> ICD-1017
+D098,Carcinoma in situ of other specified sites,cancer,Non CNS Cancer,CCS 2015 -> ICD-1018
+D099,"Carcinoma in situ, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-1019
+R87628,Other abnormal cytological findings on specimens from vagina,cancer,Non CNS Cancer,CCS 2015 -> ICD-1020
+R87620,Atypical squamous cells of undetermined significance on cytologic smear of vagina (ASC-US),cancer,Non CNS Cancer,CCS 2015 -> ICD-1021
+R87621,Atypical squamous cells cannot exclude high grade squamous intraepithelial lesion on cytologic smear of vagina (ASC-H),cancer,Non CNS Cancer,CCS 2015 -> ICD-1022
+R87622,Low grade squamous intraepithelial lesion on cytologic smear of vagina (LGSIL),cancer,Non CNS Cancer,CCS 2015 -> ICD-1023
+R87623,High grade squamous intraepithelial lesion on cytologic smear of vagina (HGSIL),cancer,Non CNS Cancer,CCS 2015 -> ICD-1024
+Z85238,Personal history of other malignant neoplasm of thymus,cancer,Non CNS Cancer,CCS 2015 -> ICD-1025
+Z8529,Personal history of malignant neoplasm of other respiratory and intrathoracic organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-1026
+Z85830,Personal history of malignant neoplasm of bone,cancer,Non CNS Cancer,CCS 2015 -> ICD-1027
+Z85840,Personal history of malignant neoplasm of eye,cancer,Non CNS Cancer,CCS 2015 -> ICD-1028
+Z85858,Personal history of malignant neoplasm of other endocrine glands,cancer,Non CNS Cancer,CCS 2015 -> ICD-1029
+Z85831,Personal history of malignant neoplasm of soft tissue,cancer,Non CNS Cancer,CCS 2015 -> ICD-1030
+Z8589,Personal history of malignant neoplasm of other organs and systems,cancer,Non CNS Cancer,CCS 2015 -> ICD-1031
+Z859,"Personal history of malignant neoplasm, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-1032
+Z85020,Personal history of malignant carcinoid tumor of stomach,cancer,Non CNS Cancer,CCS 2015 -> ICD-1033
+Z85030,Personal history of malignant carcinoid tumor of large intestine,cancer,Non CNS Cancer,CCS 2015 -> ICD-1034
+Z85040,Personal history of malignant carcinoid tumor of rectum,cancer,Non CNS Cancer,CCS 2015 -> ICD-1035
+Z85060,Personal history of malignant carcinoid tumor of small intestine,cancer,Non CNS Cancer,CCS 2015 -> ICD-1036
+Z85110,Personal history of malignant carcinoid tumor of bronchus and lung,cancer,Non CNS Cancer,CCS 2015 -> ICD-1037
+Z85230,Personal history of malignant carcinoid tumor of thymus,cancer,Non CNS Cancer,CCS 2015 -> ICD-1038
+Z85520,Personal history of malignant carcinoid tumor of kidney,cancer,Non CNS Cancer,CCS 2015 -> ICD-1039
+Z85821,Personal history of Merkel cell carcinoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-1040
+Z0389,Encounter for observation for other suspected diseases and conditions ruled out,other,Non CNS Cancer,CCS 2015 -> ICD-1041
+C770,"Secondary and unspecified malignant neoplasm of lymph nodes of head, face and neck",cancer,Non CNS Cancer,CCS 2015 -> ICD-1042
+C771,Secondary and unspecified malignant neoplasm of intrathoracic lymph nodes,cancer,Non CNS Cancer,CCS 2015 -> ICD-1043
+C772,Secondary and unspecified malignant neoplasm of intra-abdominal lymph nodes,cancer,Non CNS Cancer,CCS 2015 -> ICD-1044
+C773,Secondary and unspecified malignant neoplasm of axilla and upper limb lymph nodes,cancer,Non CNS Cancer,CCS 2015 -> ICD-1045
+C774,Secondary and unspecified malignant neoplasm of inguinal and lower limb lymph nodes,cancer,Non CNS Cancer,CCS 2015 -> ICD-1046
+C775,Secondary and unspecified malignant neoplasm of intrapelvic lymph nodes,cancer,Non CNS Cancer,CCS 2015 -> ICD-1047
+C778,Secondary and unspecified malignant neoplasm of lymph nodes of multiple regions,cancer,Non CNS Cancer,CCS 2015 -> ICD-1048
+C779,"Secondary and unspecified malignant neoplasm of lymph node, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-1049
+C7800,Secondary malignant neoplasm of unspecified lung,cancer,Non CNS Cancer,CCS 2015 -> ICD-1050
+C781,Secondary malignant neoplasm of mediastinum,cancer,Non CNS Cancer,CCS 2015 -> ICD-1051
+C782,Secondary malignant neoplasm of pleura,cancer,Non CNS Cancer,CCS 2015 -> ICD-1052
+C7839,Secondary malignant neoplasm of other respiratory organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-1053
+C784,Secondary malignant neoplasm of small intestine,cancer,Non CNS Cancer,CCS 2015 -> ICD-1054
+C785,Secondary malignant neoplasm of large intestine and rectum,cancer,Non CNS Cancer,CCS 2015 -> ICD-1055
+C786,Secondary malignant neoplasm of retroperitoneum and peritoneum,cancer,Non CNS Cancer,CCS 2015 -> ICD-1056
+C787,Secondary malignant neoplasm of liver and intrahepatic bile duct,cancer,Non CNS Cancer,CCS 2015 -> ICD-1057
+C787,Secondary malignant neoplasm of liver and intrahepatic bile duct,cancer,Non CNS Cancer,CCS 2015 -> ICD-1058
+C7889,Secondary malignant neoplasm of other digestive organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-1059
+C7900,Secondary malignant neoplasm of unspecified kidney and renal pelvis,cancer,Non CNS Cancer,CCS 2015 -> ICD-1060
+C7911,Secondary malignant neoplasm of bladder,cancer,Non CNS Cancer,CCS 2015 -> ICD-1061
+C7919,Secondary malignant neoplasm of other urinary organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-1062
+C792,Secondary malignant neoplasm of skin,cancer,Non CNS Cancer,CCS 2015 -> ICD-1063
+C7931,Secondary malignant neoplasm of brain,cancer,Non CNS Cancer,CCS 2015 -> ICD-1064
+C7932,Secondary malignant neoplasm of cerebral meninges,cancer,Non CNS Cancer,CCS 2015 -> ICD-1065
+C7949,Secondary malignant neoplasm of other parts of nervous system,cancer,Non CNS Cancer,CCS 2015 -> ICD-1066
+C7951,Secondary malignant neoplasm of bone,cancer,Non CNS Cancer,CCS 2015 -> ICD-1067
+C7952,Secondary malignant neoplasm of bone marrow,cancer,Non CNS Cancer,CCS 2015 -> ICD-1068
+C7960,Secondary malignant neoplasm of unspecified ovary,cancer,Non CNS Cancer,CCS 2015 -> ICD-1069
+C7970,Secondary malignant neoplasm of unspecified adrenal gland,cancer,Non CNS Cancer,CCS 2015 -> ICD-1070
+C7981,Secondary malignant neoplasm of breast,cancer,Non CNS Cancer,CCS 2015 -> ICD-1071
+C7982,Secondary malignant neoplasm of genital organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-1072
+C7989,Secondary malignant neoplasm of other specified sites,cancer,Non CNS Cancer,CCS 2015 -> ICD-1073
+C7B01,Secondary carcinoid tumors of distant lymph nodes,cancer,Non CNS Cancer,CCS 2015 -> ICD-1074
+C7B02,Secondary carcinoid tumors of liver,cancer,Non CNS Cancer,CCS 2015 -> ICD-1075
+C7B03,Secondary carcinoid tumors of bone,cancer,Non CNS Cancer,CCS 2015 -> ICD-1076
+C7B04,Secondary carcinoid tumors of peritoneum,cancer,Non CNS Cancer,CCS 2015 -> ICD-1077
+J910,Malignant pleural effusion,cancer,Non CNS Cancer,CCS 2015 -> ICD-1078
+R180,Malignant ascites,cancer,Non CNS Cancer,CCS 2015 -> ICD-1079
+C800,"Disseminated malignant neoplasm, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-1080
+C801,"Malignant (primary) neoplasm, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-1081
+C802,Malignant neoplasm associated with transplanted organ,cancer,Non CNS Cancer,CCS 2015 -> ICD-1082
+C7A00,Malignant carcinoid tumor of unspecified site,cancer,Non CNS Cancer,CCS 2015 -> ICD-1083
+C7A098,Malignant carcinoid tumors of other sites,cancer,Non CNS Cancer,CCS 2015 -> ICD-1084
+C7A1,Malignant poorly differentiated neuroendocrine tumors,cancer,Non CNS Cancer,CCS 2015 -> ICD-1085
+C7B00,"Secondary carcinoid tumors, unspecified site",cancer,Non CNS Cancer,CCS 2015 -> ICD-1086
+C7B1,Secondary Merkel cell carcinoma,cancer,Non CNS Cancer,CCS 2015 -> ICD-1087
+C7B09,Secondary carcinoid tumors of other sites,cancer,Non CNS Cancer,CCS 2015 -> ICD-1088
+C7B8,Other secondary neuroendocrine tumors,cancer,Non CNS Cancer,CCS 2015 -> ICD-1089
+D37030,Neoplasm of uncertain behavior of the parotid salivary glands,cancer,Non CNS Cancer,CCS 2015 -> ICD-1090
+D37031,Neoplasm of uncertain behavior of the sublingual salivary glands,cancer,Non CNS Cancer,CCS 2015 -> ICD-1091
+D37032,Neoplasm of uncertain behavior of the submandibular salivary glands,cancer,Non CNS Cancer,CCS 2015 -> ICD-1092
+D37039,"Neoplasm of uncertain behavior of the major salivary glands, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-1093
+D3701,Neoplasm of uncertain behavior of lip,cancer,Non CNS Cancer,CCS 2015 -> ICD-1094
+D3702,Neoplasm of uncertain behavior of tongue,cancer,Non CNS Cancer,CCS 2015 -> ICD-1095
+D3704,Neoplasm of uncertain behavior of the minor salivary glands,cancer,Non CNS Cancer,CCS 2015 -> ICD-1096
+D3705,Neoplasm of uncertain behavior of pharynx,cancer,Non CNS Cancer,CCS 2015 -> ICD-1097
+D371,Neoplasm of uncertain behavior of stomach,cancer,Non CNS Cancer,CCS 2015 -> ICD-1098
+D372,Neoplasm of uncertain behavior of small intestine,cancer,Non CNS Cancer,CCS 2015 -> ICD-1099
+D374,Neoplasm of uncertain behavior of colon,cancer,Non CNS Cancer,CCS 2015 -> ICD-1100
+D375,Neoplasm of uncertain behavior of rectum,cancer,Non CNS Cancer,CCS 2015 -> ICD-1101
+D376,"Neoplasm of uncertain behavior of liver, gallbladder and bile ducts",cancer,Non CNS Cancer,CCS 2015 -> ICD-1102
+D483,Neoplasm of uncertain behavior of retroperitoneum,cancer,Non CNS Cancer,CCS 2015 -> ICD-1103
+D484,Neoplasm of uncertain behavior of peritoneum,cancer,Non CNS Cancer,CCS 2015 -> ICD-1104
+D378,Neoplasm of uncertain behavior of other specified digestive organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-1105
+D379,"Neoplasm of uncertain behavior of digestive organ, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-1106
+D380,Neoplasm of uncertain behavior of larynx,cancer,Non CNS Cancer,CCS 2015 -> ICD-1107
+D381,"Neoplasm of uncertain behavior of trachea, bronchus and lung",cancer,Non CNS Cancer,CCS 2015 -> ICD-1108
+D382,Neoplasm of uncertain behavior of pleura,cancer,Non CNS Cancer,CCS 2015 -> ICD-1109
+D383,Neoplasm of uncertain behavior of mediastinum,cancer,Non CNS Cancer,CCS 2015 -> ICD-1110
+D384,Neoplasm of uncertain behavior of thymus,cancer,Non CNS Cancer,CCS 2015 -> ICD-1111
+D385,Neoplasm of uncertain behavior of other respiratory organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-1112
+D386,"Neoplasm of uncertain behavior of respiratory organ, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-1113
+D390,Neoplasm of uncertain behavior of uterus,cancer,Non CNS Cancer,CCS 2015 -> ICD-1114
+D392,Neoplasm of uncertain behavior of placenta,cancer,Non CNS Cancer,CCS 2015 -> ICD-1115
+D3910,Neoplasm of uncertain behavior of unspecified ovary,cancer,Non CNS Cancer,CCS 2015 -> ICD-1116
+D398,Neoplasm of uncertain behavior of other specified female genital organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-1117
+D399,"Neoplasm of uncertain behavior of female genital organ, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-1118
+D4010,Neoplasm of uncertain behavior of unspecified testis,cancer,Non CNS Cancer,CCS 2015 -> ICD-1119
+D400,Neoplasm of uncertain behavior of prostate,cancer,Non CNS Cancer,CCS 2015 -> ICD-1120
+D408,Neoplasm of uncertain behavior of other specified male genital organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-1121
+D409,"Neoplasm of uncertain behavior of male genital organ, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-1122
+D414,Neoplasm of uncertain behavior of bladder,cancer,Non CNS Cancer,CCS 2015 -> ICD-1123
+D419,Neoplasm of uncertain behavior of unspecified urinary organ,cancer,Non CNS Cancer,CCS 2015 -> ICD-1124
+D4100,Neoplasm of uncertain behavior of unspecified kidney,cancer,Non CNS Cancer,CCS 2015 -> ICD-1125
+D4120,Neoplasm of uncertain behavior of unspecified ureter,cancer,Non CNS Cancer,CCS 2015 -> ICD-1126
+D418,Neoplasm of uncertain behavior of other specified urinary organs,cancer,Non CNS Cancer,CCS 2015 -> ICD-1127
+D443,Neoplasm of uncertain behavior of pituitary gland,cancer,Non CNS Cancer,CCS 2015 -> ICD-1128
+D444,Neoplasm of uncertain behavior of craniopharyngeal duct,cancer,Non CNS Cancer,CCS 2015 -> ICD-1129
+D445,Neoplasm of uncertain behavior of pineal gland,cancer,Non CNS Cancer,CCS 2015 -> ICD-1130
+D4410,Neoplasm of uncertain behavior of unspecified adrenal gland,cancer,Non CNS Cancer,CCS 2015 -> ICD-1131
+D446,Neoplasm of uncertain behavior of carotid body,cancer,Non CNS Cancer,CCS 2015 -> ICD-1132
+D447,Neoplasm of uncertain behavior of aortic body and other paraganglia,cancer,Non CNS Cancer,CCS 2015 -> ICD-1133
+D440,Neoplasm of uncertain behavior of thyroid gland,cancer,Non CNS Cancer,CCS 2015 -> ICD-1134
+D442,Neoplasm of uncertain behavior of parathyroid gland,cancer,Non CNS Cancer,CCS 2015 -> ICD-1135
+D449,Neoplasm of uncertain behavior of unspecified endocrine gland,cancer,Non CNS Cancer,CCS 2015 -> ICD-1136
+D432,"Neoplasm of uncertain behavior of brain, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-1137
+D434,Neoplasm of uncertain behavior of spinal cord,cancer,Non CNS Cancer,CCS 2015 -> ICD-1138
+D420,Neoplasm of uncertain behavior of cerebral meninges,cancer,Non CNS Cancer,CCS 2015 -> ICD-1139
+D421,Neoplasm of uncertain behavior of spinal meninges,cancer,Non CNS Cancer,CCS 2015 -> ICD-1140
+D429,"Neoplasm of uncertain behavior of meninges, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-1141
+Q8503,Schwannomatosis,other,Non CNS Cancer,CCS 2015 -> ICD-1145
+Q8509,Other neurofibromatosis,other,Non CNS Cancer,CCS 2015 -> ICD-1146
+D433,Neoplasm of uncertain behavior of cranial nerves,cancer,Non CNS Cancer,CCS 2015 -> ICD-1147
+D438,Neoplasm of uncertain behavior of other specified parts of central nervous system,cancer,Non CNS Cancer,CCS 2015 -> ICD-1148
+D439,"Neoplasm of uncertain behavior of central nervous system, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-1149
+D480,Neoplasm of uncertain behavior of bone and articular cartilage,cancer,Non CNS Cancer,CCS 2015 -> ICD-1150
+D481,Code not found,other,Non CNS Cancer,CCS 2015 -> ICD-1151
+D485,Neoplasm of uncertain behavior of skin,cancer,Non CNS Cancer,CCS 2015 -> ICD-1152
+D4860,Neoplasm of uncertain behavior of unspecified breast,cancer,Non CNS Cancer,CCS 2015 -> ICD-1153
+D4701,Cutaneous mastocytosis,other,Non CNS Cancer,CCS 2015 -> ICD-1155
+D4702,Systemic mastocytosis,other,Non CNS Cancer,CCS 2015 -> ICD-1156
+D4709,Other mast cell neoplasms of uncertain behavior,cancer,Non CNS Cancer,CCS 2015 -> ICD-1157
+D47Z9,"Other specified neoplasms of uncertain behavior of lymphoid, hematopoietic and related tissue",cancer,Non CNS Cancer,CCS 2015 -> ICD-1158
+D473,Essential (hemorrhagic) thrombocythemia,other,Non CNS Cancer,CCS 2015 -> ICD-1159
+D460,"Refractory anemia without ring sideroblasts, so stated",other,Non CNS Cancer,CCS 2015 -> ICD-1160
+D461,Refractory anemia with ring sideroblasts,other,Non CNS Cancer,CCS 2015 -> ICD-1161
+D4620,"Refractory anemia with excess of blasts, unspecified",other,Non CNS Cancer,CCS 2015 -> ICD-1162
+D4621,Refractory anemia with excess of blasts 1,other,Non CNS Cancer,CCS 2015 -> ICD-1163
+D46A,Refractory cytopenia with multilineage dysplasia,other,Non CNS Cancer,CCS 2015 -> ICD-1164
+D46B,Refractory cytopenia with multilineage dysplasia and ring sideroblasts,other,Non CNS Cancer,CCS 2015 -> ICD-1165
+D4622,Refractory anemia with excess of blasts 2,other,Non CNS Cancer,CCS 2015 -> ICD-1166
+D46C,Myelodysplastic syndrome with isolated del(5q) chromosomal abnormality,other,Non CNS Cancer,CCS 2015 -> ICD-1167
+D469,"Myelodysplastic syndrome, unspecified",other,Non CNS Cancer,CCS 2015 -> ICD-1168
+D471,Chronic myeloproliferative disease,other,Non CNS Cancer,CCS 2015 -> ICD-1169
+D47Z1,Post-transplant lymphoproliferative disorder (PTLD),other,Non CNS Cancer,CCS 2015 -> ICD-1170
+C9440,Acute panmyelosis with myelofibrosis not having achieved remission,other,Non CNS Cancer,CCS 2015 -> ICD-1171
+C9441,"Acute panmyelosis with myelofibrosis, in remission",other,Non CNS Cancer,CCS 2015 -> ICD-1172
+C9442,"Acute panmyelosis with myelofibrosis, in relapse",other,Non CNS Cancer,CCS 2015 -> ICD-1173
+D471,Chronic myeloproliferative disease,other,Non CNS Cancer,CCS 2015 -> ICD-1174
+D479,"Neoplasm of uncertain behavior of lymphoid, hematopoietic and related tissue, unspecified",cancer,Non CNS Cancer,CCS 2015 -> ICD-1175
+D47Z9,"Other specified neoplasms of uncertain behavior of lymphoid, hematopoietic and related tissue",cancer,Non CNS Cancer,CCS 2015 -> ICD-1177
+D487,Neoplasm of uncertain behavior of other specified sites,cancer,Non CNS Cancer,CCS 2015 -> ICD-1178
+D489,"Neoplasm of uncertain behavior, unspecified",cancer,"Sepsis + MSOF, AKI",ICD-9 -> ICD-10
+D490,Neoplasm of unspecified behavior of digestive system,cancer,"Sepsis + MSOF, AKI",ICD-9 -> ICD-11
+D491,Neoplasm of unspecified behavior of respiratory system,cancer,"Sepsis + MSOF, ALI",ICD-9 -> ICD-12
+D492,"Neoplasm of unspecified behavior of bone, soft tissue, and skin",cancer,"Sepsis + MSOF, Encephalopathy",ICD-9 -> ICD-13
+D493,Neoplasm of unspecified behavior of breast,cancer,"Sepsis + MSOF, Encephalopathy",ICD-9 -> ICD-14
+D494,Neoplasm of unspecified behavior of bladder,cancer,"Sepsis + MSOF, Encephalopathy",ICD-9 -> ICD-15
+D49511,Neoplasm of unspecified behavior of right kidney,cancer,Septic Shock,ICD-9 -> ICD-16
+D49512,Neoplasm of unspecified behavior of left kidney,cancer,Sepsis + MSOF,ICD-9 -> ICD-17
+D49519,Neoplasm of unspecified behavior of unspecified kidney,cancer,Sepsis + MSOF,ICD-9 -> ICD-18
+D4959,Neoplasm of unspecified behavior of other genitourinary organ,cancer,Sepsis + MSOF,ICD-9 -> ICD-19
+D496,Neoplasm of unspecified behavior of brain,cancer,Sepsis + MSOF,ICD-9 -> ICD-20
+D497,Neoplasm of unspecified behavior of endocrine glands and other parts of nervous system,cancer,Sepsis + MSOF,ICD-9 -> ICD-21
+D4981,Neoplasm of unspecified behavior of retina and choroid,cancer,Sepsis + MSOF,ICD-9 -> ICD-22
+D4989,Neoplasm of unspecified behavior of other specified sites,cancer,Sepsis + MSOF,ICD-9 -> ICD-23
+D499,Neoplasm of unspecified behavior of unspecified site,cancer,Sepsis + MSOF,ICD-9 -> ICD-24
+Z510,Encounter for antineoplastic radiation therapy,other,Sepsis + MSOF,ICD-9 -> ICD-25
+Z5111,Encounter for antineoplastic chemotherapy,other,Sepsis + MSOF,ICD-9 -> ICD-26
+Z5112,Encounter for antineoplastic immunotherapy,other,Sepsis + MSOF,ICD-9 -> ICD-27
+Z08,Encounter for follow-up examination after completed treatment for malignant neoplasm,cancer,Sepsis + MSOF,ICD-9 -> ICD-30
+Z09,Encounter for follow-up examination after completed treatment for conditions other than malignant neoplasm,cancer,Sepsis + MSOF,ICD-9 -> ICD-31

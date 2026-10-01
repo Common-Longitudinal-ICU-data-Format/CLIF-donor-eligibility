@@ -1,0 +1,113 @@
+# ── config/donor_criteria.yaml ───────────────────────────────────────────────
+# Single source of truth for every threshold and code set in this study.
+# Nothing in code/ may hard-code a clinical value; it is read from here so the
+# definitions stay auditable and reviewable without reading Python.
+#
+# Provenance is recorded per block. Where a criterion deviates from its source,
+# the deviation is stated rather than quietly implemented.
+# ─────────────────────────────────────────────────────────────────────────────
+
+study:
+  window_start_year: 2020
+  window_end_year: 2025
+  # A hospitalization is kept only if BOTH admission and discharge fall inside
+  # the window, matching the calendar boundaries of the SRTR donor pull.
+  require_admission_and_discharge_in_window: true
+  death_discharge_category: expired      # 'hospice' is NOT a death
+
+  # A death enters the cohort if the stay touched any of these ADT locations.
+  # The original four are the inpatient definition; hospice was added 2026-09-25
+  # after Emily and Joel agreed, because RUSH admits patients directly to an
+  # inpatient hospice unit (2,318 decedents) while NU and UCMC have no hospice
+  # location at all and their comfort-care patients die on a ward and were
+  # already counted. Deaths at other locations (procedural, l&d, other, or with
+  # no ADT record) stay OUT. Decedent counts by location are reported every run,
+  # so the with/without-hospice comparison needs no re-run. DECISIONS D-48.
+  cohort_locations: [ed, ward, stepdown, icu, hospice]
+  suppress_small_cells: false
+  small_cell_suppression_n: 11
+
+# ── CLIF-donor (definition of interest) ──────────────────────────────────────
+clif_donor:
+  age_at_death_max: 75
+  age_operator: "<="                     
+  imv_hours_before_death: 48
+  bmi_max: 50
+  sepsis_window_hours: 48                # only used for the reporting flag
+  # NO sepsis exclusion. Settled 2026-09-19: sepsis codes are reported (Table 1)
+  # but never exclude a patient from any definition. The former
+  # apply_sepsis_exclusion switch has been removed rather than set to false, so
+  # nobody can turn it back on by accident.
+  kidney:
+    creatinine_max: 4.0                  # mg/dL, strict <
+    exclude_if_crrt_within_hours: 48
+  liver:
+    total_bilirubin_max: 4.0             # mg/dL, strict <
+    ast_max: 700                         # U/L, strict <
+    alt_max: 700                         # U/L, strict <
+  # Missing is ineligible: every organ-quality criterion requires the value to
+  # be present. Absence of a CRRT record is read as "not on dialysis".
+  missing_is_ineligible: true
+  contraindications:
+    icd10_file: utils/icd10_contraindications.csv
+    use_poa: true                        
+    positive_blood_culture_hours: 48
+
+# ── CALC — secondary administrative comparator ───────────────────────────────
+calc:
+  age_at_death_max: 75
+  cause_icd10_prefixes:
+    ischemic_heart_disease: ["I20", "I25"]
+    cerebrovascular_disease: ["I60", "I69"]
+    external_causes: ["V01", "Y89"]      # the rule prints "V-1-Y89", a typo for V01
+
+  # No contraindication codes. 42 CFR 486.302 defines CALC by INCLUSION codes
+  # only; CMS tested adding contraindication exclusions and declined, finding
+  # "no additive value" (CMS-3380-F pp. 45, 51). The contraindication-based
+  # definition in that document belongs to the December 2019 PROPOSED rule,
+  # which was not adopted. See DECISIONS D-43.
+  apply_contraindications: false
+
+  # Which diagnosis position counts as the cause of death.
+  #   any          every diagnosis position           <- PRIMARY ANALYSIS
+  #   primary      principal discharge diagnosis only  <- sensitivity B
+  #   primary_poa  principal AND present on admission  <- sensitivity C
+  #
+  # CMS specifies the PRIMARY cause of death, but that is the underlying cause
+  # from a death certificate, which no EHR field reproduces. All three counts
+  # are reported at every run; this sets which one becomes calc_flag.
+  # Agreed with Joel and Emily 2026-09-20: A primary, B and C as sensitivity.
+  diagnosis_position: any
+
+# ── Ventilated Patient — HRSA form comparator ────────────────────────────────
+ventilated_patient:
+  imv_hours_before_death: 48
+  apply_age_limit: false                 
+
+# ── Clinical care and contraindications (Table 3) ────────────────────────────
+clinical_care:
+  medications:
+    # mCIDE med_category values, verified present in CLIF 2.1 at UCMC.
+    corticosteroid_bolus: [dexamethasone, methylprednisolone, hydrocortisone]
+    vasopressin:          [vasopressin]
+    levothyroxine:        [levothyroxine]
+    sedative:             [propofol, midazolam]
+    analgesic:            [fentanyl]
+    antiepileptic:        [valproate]
+    # NOT AVAILABLE in CLIF 2.1: mannitol, hypertonic_saline (both arrive in 3.0);
+    # levetiracetam, phenytoin, fosphenytoin (absent from 2.1 AND 3.0).
+  fungemia:
+    fluid_category: blood_buffy
+    organism_regex: "candida|aspergill|cryptococc|fungus|yeast"
+  contraindications_not_in_clif:
+    # Recorded so the manuscript can state this rather than leave blank rows.
+    # Absent from the mCIDE in BOTH 2.1 and 3.0.
+    - strongyloides
+    - chagas
+    # Present in microbiology_culture's organism vocabulary but not in
+    # microbiology_nonculture, where serologies live -> not capturable as a
+    # donor screen. 
+    - toxoplasma
+    - treponema_syphilis
+    - hiv_serology
+    - hepatitis_serology
