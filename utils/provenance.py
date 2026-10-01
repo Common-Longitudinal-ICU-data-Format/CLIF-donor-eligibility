@@ -134,6 +134,18 @@ def render(final_dir: Path, problems: list[str] | None = None) -> Path:
                 "`strobe_counts.csv` and the Table 2 denominators are consistent."]
     out += [""]
 
+    flags = _read(d, "data_quality_flags.csv")
+    if flags is not None:
+        out += ["## Data-quality flags", ""]
+        if flags.height:
+            out += ["These do not stop the run, but they change what a number means at this site.",
+                    "", "| flag | severity | what it means |", "|---|---|---|"]
+            out += [f"| `{r['flag']}` | {r['severity']} | {r['detail']} |"
+                    for r in flags.iter_rows(named=True)]
+        else:
+            out += ["None raised by this run."]
+        out += [""]
+
     strobe = _read(d, "strobe_counts.csv")
     if strobe is not None:
         out += ["## Cohort cascade (step 01)", "", "| count | n |", "|---|---:|"]

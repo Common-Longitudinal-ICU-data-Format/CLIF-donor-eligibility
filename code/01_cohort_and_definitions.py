@@ -185,6 +185,7 @@ if not _tp.is_dir():
 else:
     _impact = REQ.get("optional_table_impact", {})
     _dttm_types: dict[str, str] = {}
+    OPTIONAL_UNUSABLE: set[str] = set()      # optional tables absent or missing columns
     for _kind in ("required", "optional"):
         for _tbl, _cols in REQ["tables"][_kind].items():
             _f = _tp / f"clif_{_tbl}.{file_type}"
@@ -204,10 +205,27 @@ else:
                 except Exception as e:
                     _msg = f"clif_{_tbl} is unreadable — {type(e).__name__}: {e}"
             if _msg:
+                if _kind == "optional":
+                    OPTIONAL_UNUSABLE.add(_tbl)
                 (_problems if _kind == "required" else _warnings).append(
                     _msg + (f" ({_impact[_tbl]})" if _tbl in _impact else ""))
     # 3. every 48-hour window subtracts one of these columns from another
     _problems += mixed_tz_awareness(_dttm_types)
+
+# 4. the hospital crosswalk must know this site and every hospital it declares.
+#    A hospital without a crosswalk row cannot be linked to SRTR; its decedents
+#    would leave every hospital-level output without any error.
+_XWALK = yaml.safe_load(
+    (PROJECT_ROOT / "config/hospital_crosswalk.yaml").read_text())["hospitals"]
+_xw_ids = {str(r["hospital_id"]).lower().strip() for r in _XWALK if r["site"] == site_name}
+if not _xw_ids:
+    _problems.append(f"config/hospital_crosswalk.yaml has no rows for site '{site_name}'. "
+                     f"Check site_name, or ask the coordinating centre to add your hospitals")
+for _h in (DECLARED_HOSPITAL_IDS if _xw_ids else []):
+    if _h not in _xw_ids:
+        _problems.append(f"hospital_id '{_h}' is in config.json hospital_ids but has no row for "
+                         f"site '{site_name}' in config/hospital_crosswalk.yaml. Ask the "
+                         f"coordinating centre to add it")
 
 for _w in _warnings:
     print(f"  warn  {_w}")
@@ -300,6 +318,9 @@ for _k, _why in DECLARED_NOT_APPLIED.items():
 print("-" * 80)
 
 strobe_counts = {}
+# Conditions that do not stop the run but change what a number means at this
+# site. Written to data_quality_flags.csv and shown in provenance.md.
+dq_flags: list[dict] = []
 
 ################################################################################
 # Load data
@@ -1052,6 +1073,9 @@ hospital_dx_flags AS (
         CASE WHEN sys IN ('icd10','icd10cm') AND {_ISCHEMIC_SQL} THEN true ELSE false END AS icd10_ischemic,
         CASE WHEN sys IN ('icd10','icd10cm') AND {_CEREBRO_SQL} THEN true ELSE false END AS icd10_cerebro,
         CASE WHEN sys IN ('icd10','icd10cm') AND {_EXTERNAL_SQL} THEN true ELSE false END AS icd10_external,
+        -- Injury codes (S00-T88). Not a criterion: used only to detect an extract
+        -- that carries injuries but has dropped the external-cause codes.
+        CASE WHEN sys IN ('icd10','icd10cm') AND REGEXP_MATCHES(dx_norm, '^[st][0-9]{{2}}') THEN true ELSE false END AS icd10_injury,
         CASE WHEN sys IN ('icd10','icd10cm') AND dx_norm IN (SELECT code FROM contraindication_codes_df) THEN true ELSE false END AS icd10_contraindication,
         -- CALC cause of death, in three diagnosis-position variants. All three
         -- are computed every run; calc.diagnosis_position picks which becomes
@@ -1082,6 +1106,7 @@ SELECT
     BOOL_OR(icd10_ischemic) AS icd10_ischemic,
     BOOL_OR(icd10_cerebro) AS icd10_cerebro,
     BOOL_OR(icd10_external) AS icd10_external,
+    BOOL_OR(icd10_injury) AS icd10_injury,
     BOOL_OR(icd10_contraindication) AS icd10_contraindication,
     BOOL_OR(calc_cause_any) AS calc_cause_any,
     BOOL_OR(calc_cause_primary) AS calc_cause_primary,
@@ -1103,6 +1128,28 @@ for col in ("icd10_ischemic", "icd10_cerebro", "icd10_external", "icd10_contrain
             "icd10_brain_death", "icd10_sepsis", "icd10_contraindication_clif",
             *[f"icd10_{k}" for k in comorbidity_prefixes]):
     print(f"  {col}: {patient_cause_flags[col].sum()}")
+
+# An extract can carry injury diagnoses and still hold no external-cause codes:
+# V, W, X and Y codes often sit in a separate claims field that the ETL drops.
+# CALC then loses its external-cause arm with no error, and the site's CALC
+# count is not comparable with a site that kept those codes. The site cannot
+# fix this in config, so the run continues and the flag ships with the results.
+_n_external = int(patient_cause_flags["icd10_external"].sum())
+_n_injury = int(patient_cause_flags["icd10_injury"].sum())
+patient_cause_flags = patient_cause_flags.drop("icd10_injury")
+if _n_external == 0 and _n_injury > 0:
+    _lo, _hi = CALC_CAUSE_RANGES["external_causes"]
+    dq_flags.append({
+        "site": site_name, "flag": "calc_external_cause_codes_absent", "severity": "high",
+        "detail": (f"No decedent carries an external-cause code ({_lo}-{_hi}) although injury "
+                   f"codes (S00-T88) are present, so clif_hospital_diagnosis appears to omit "
+                   f"external-cause codes. CALC at this site reflects ischemic heart disease "
+                   f"and cerebrovascular disease only and is not comparable with sites that "
+                   f"record external causes.")})
+    print(f"  WARNING  no external-cause codes ({_lo}-{_hi}) although injury codes are present: "
+          f"CALC lacks its external-cause arm at this site (see data_quality_flags.csv)")
+_n_without_dx = len(all_decedent_inpatient_hosp_ids) - n_present
+strobe_counts["5b_decedents_without_any_diagnosis"] = _n_without_dx
 
 # Join flags to final_df on patient_id; fill null flags to False ----
 _comorbidity_fill = [pl.col(f"icd10_{k}").fill_null(False) for k in comorbidity_prefixes]
@@ -1764,8 +1811,17 @@ WHERE rn = 1
 GROUP BY hospitalization_id
 """
 
-patient_gcs_rass = pl.from_pandas(duckdb.sql(assessments_query).df())
-print(f"✓ Processed assessments for {len(patient_gcs_rass)} hospitalizations")
+if "patient_assessments" in OPTIONAL_UNUSABLE:
+    # Optional table. Without it GCS and RASS are null for everyone and their
+    # Table 2 rows report as unavailable; no definition depends on them.
+    patient_gcs_rass = pl.DataFrame(schema={
+        "hospitalization_id": final_cohort_df.schema["hospitalization_id"],
+        "gcs_total_value": pl.Float64, "rass_value": pl.Float64})
+    print("  patient assessments SKIPPED (clif_patient_assessments absent or incomplete): "
+          "GCS and RASS unavailable")
+else:
+    patient_gcs_rass = pl.from_pandas(duckdb.sql(assessments_query).df())
+    print(f"✓ Processed assessments for {len(patient_gcs_rass)} hospitalizations")
 
 final_cohort_df = final_cohort_df.join(
     patient_gcs_rass, on='hospitalization_id', how='left'
@@ -1860,8 +1916,7 @@ _audit.record("21_ventilated_age_le75", final_cohort_df,
 # ── hospital identity ────────────────────────────────────────────────────────
 # The TERMINAL ADT record is the hospital where the patient died, which is the
 # unit CMS and SRTR attribute a donor to.
-_XWALK = yaml.safe_load(
-    (PROJECT_ROOT / "config/hospital_crosswalk.yaml").read_text())["hospitals"]
+# _XWALK was loaded and checked in the setup checks at the top of this file.
 _hid_col = ("terminal_hospitalization_id" if "terminal_hospitalization_id"
             in final_cohort_df.columns else "hospitalization_id")
 _ids = pd.DataFrame({"hospitalization_id":
@@ -1932,6 +1987,14 @@ for _h in _absent:
 if _n_null_hosp:
     print(f"  warn  {_n_null_hosp:,} decedents have no hospital_id in clif_adt")
 
+# No decedent attributable to any hospital means adt.hospital_id is empty. The
+# declared-hospital check below would pass on that empty set and every
+# hospital-level output would be written with no rows.
+if not _observed:
+    raise SystemExit(
+        "No decedent has a hospital_id in clif_adt, so no death can be attributed to a "
+        "hospital. Populate adt.hospital_id in the extract and rerun.")
+
 # An UNDECLARED hospital contributing decedents is an error: it silently changes
 # the denominator, and the site has not said it should be in the study.
 if _undeclared:
@@ -1947,6 +2010,14 @@ if _undeclared:
 print(f"Declared-hospital check passed: {len(_observed)} hospital_ids contribute "
       f"decedents, all declared"
       + (f"; {len(_absent)} declared id(s) contributed none" if _absent else ""))
+
+_unmapped = sorted(final_cohort_df.filter(
+    pl.col("analytic_hospital_id").is_null() & pl.col("hospital_id_key").is_not_null()
+)["hospital_id_key"].unique().to_list())
+if _unmapped:
+    raise SystemExit(
+        f"hospital_id value(s) {_unmapped} contribute decedents but have no row for site "
+        f"'{site_name}' in config/hospital_crosswalk.yaml. Ask the coordinating centre to add them.")
 
 _audit.record("10_hospital_identity", final_cohort_df, final_cohort_df, key="patient_id",
               rule="terminal ADT hospital_id -> analytic_hospital_id via crosswalk",
@@ -1980,8 +2051,18 @@ _counts = {
     "ventilated_age_le75": int(final_cohort_df.filter(
         pl.col("ventilated_patient_age_le75"))["patient_id"].n_unique()),
     "n_analytic_hospitals": int(_analytic["analytic_hospital_id"].n_unique()),
+    # The arms of the CALC cause criterion (any age, any diagnosis position) and
+    # the diagnosis coverage behind them, so a site whose extract lacks an arm
+    # is visible in the pooled table rather than hidden inside its CALC count.
+    "icd10_ischemic": int(final_cohort_df.filter(pl.col("icd10_ischemic"))["patient_id"].n_unique()),
+    "icd10_cerebro": int(final_cohort_df.filter(pl.col("icd10_cerebro"))["patient_id"].n_unique()),
+    "icd10_external": int(final_cohort_df.filter(pl.col("icd10_external"))["patient_id"].n_unique()),
+    "n_decedents_without_dx": int(_n_without_dx),
 }
 pl.DataFrame([_counts]).write_csv(OUTPUT_FINAL_DIR / "definition_counts.csv")
+pl.DataFrame(dq_flags, schema={"site": pl.Utf8, "flag": pl.Utf8, "severity": pl.Utf8,
+                               "detail": pl.Utf8}).write_csv(
+    OUTPUT_FINAL_DIR / "data_quality_flags.csv")
 _audit.write()
 print("\n" + _audit.summary())
 for _k, _v in _counts.items():

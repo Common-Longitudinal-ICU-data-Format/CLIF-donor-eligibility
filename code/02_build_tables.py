@@ -43,6 +43,14 @@ SUPPRESS_ON = CRIT["study"].get("suppress_small_cells", True)
 if not SUPPRESS_ON:
     print("NOTE: small-cell masking is OFF (config study.suppress_small_cells=false)")
 
+# Values named in the CONSORT labels come from the YAML that step 01 applied,
+# so a label cannot state a threshold the counts did not use.
+_CD = CRIT["clif_donor"]
+_AGE, _IMV_H = f'{_CD["age_at_death_max"]:g}', f'{_CD["imv_hours_before_death"]:g}'
+_CX_H = f'{_CD["contraindications"]["positive_blood_culture_hours"]:g}'
+_AGE_IN, _AGE_OUT = ("\u2264", ">") if _CD["age_operator"] == "<=" else ("<", "\u2265")
+_CAUSES = ", ".join(f"{lo}-{hi}" for lo, hi in CRIT["calc"]["cause_icd10_prefixes"].values())
+
 audit = StageAudit(SITE, FINAL, label="tables")
 con = duckdb.connect()
 
@@ -467,13 +475,13 @@ cohort = cohort.with_columns(
 CASCADES = {
     "CLIF-donor": [
         ("All in-hospital deaths", None, None),
-        ("Received IMV within 48 h of death\n(= Ventilated Patient)", "imv_48hr_expire",
-         "No IMV within 48 h of death"),
-        ("Age \u2264 75 at death", "age_75_less", "Age > 75 at death"),
+        (f"Received IMV within {_IMV_H} h of death\n(= Ventilated Patient)", "imv_48hr_expire",
+         f"No IMV within {_IMV_H} h of death"),
+        (f"Age {_AGE_IN} {_AGE} at death", "age_75_less", f"Age {_AGE_OUT} {_AGE} at death"),
         ("No cancer diagnosis", "no_icd10_contraindication_clif",
          "Cancer diagnosis"),
-        ("No positive blood culture within 48 h", "no_positive_culture_48hrs",
-         "Positive blood culture within 48 h"),
+        (f"No positive blood culture within {_CX_H} h", "no_positive_culture_48hrs",
+         f"Positive blood culture within {_CX_H} h"),
         ("Passed organ quality assessment\n(CLIF-donor eligible)", "organ_check_pass",
          "Failed kidney, liver, and BMI assessment"),
     ],
@@ -481,16 +489,16 @@ CASCADES = {
     # prefix above; the SAS step numbers are unchanged in DECISIONS.
     "CALC": [
         ("All in-hospital deaths", None, None),
-        ("Age \u2264 75 at death", "age_75_less", "Age > 75 at death"),
+        (f"Age {_AGE_IN} {_AGE} at death", "age_75_less", f"Age {_AGE_OUT} {_AGE} at death"),
         # CALC applies no contraindication codes (42 CFR 486.302; D-43), so the
         # cascade ends here.
-        ("Cause of death consistent with donation\n(I20-I25, I60-I69, V01-Y89)\n(CALC qualified)",
+        (f"Cause of death consistent with donation\n({_CAUSES})\n(CALC qualified)",
          "calc_cause", "No qualifying cause of death"),
     ],
     "Ventilated Patient": [
         ("All in-hospital deaths", None, None),
-        ("Received IMV within 48 h of death\n(Ventilated Patient)", "imv_48hr_expire",
-         "No IMV within 48 h of death"),
+        (f"Received IMV within {_IMV_H} h of death\n(Ventilated Patient)", "imv_48hr_expire",
+         f"No IMV within {_IMV_H} h of death"),
     ],
 }
 
@@ -536,14 +544,20 @@ print("hospital_type: " + ", ".join(
 #             There is no code to name, so report the count only, alongside the
 #             codes the SURVIVORS had, which is the useful diagnostic there.
 _CODE_STEPS = {
-    ("CLIF-donor", "no_icd10_contraindication"):
-        ("presence", "contraindication", None),
+    # Keyed on the flag the CLIF-donor cascade actually uses. It was keyed on
+    # no_icd10_contraindication, which no cascade step carries, so the cancer
+    # step was reported as "non-ICD" and no code was ever attributed.
+    ("CLIF-donor", "no_icd10_contraindication_clif"):
+        ("presence", "contraindication_clif", None),
     ("CALC", "calc_cause"):
         ("absence", "calc_cause", None),
 }
 
-_contra_codes = (pl.read_csv(REPO / "utils/icd10_contraindications.csv", infer_schema_length=0)
+_contra_codes = (pl.read_csv(REPO / _CD["contraindications"]["icd10_file"], infer_schema_length=0)
                  .rename({"ICD-10-CM": "code"}))
+# CLIF-donor excludes on the cancer and "other" arms only, as in step 01. The
+# sepsis arm is reporting only and must not be named as a reason for exclusion.
+_clif_arm_codes = _contra_codes.filter(pl.col("dx_broad").is_in(["cancer", "other"]))
 _norm = lambda s: sorted({str(x).upper().replace(".", "").strip() for x in s})
 
 
@@ -560,7 +574,7 @@ def _desc_map(df, code_col, desc_col) -> dict[str, str]:
 _contra_desc = _desc_map(_contra_codes, "code", "description")
 
 _SETS = {
-    "contraindication": (_norm(_contra_codes["code"]), _contra_desc),
+    "contraindication_clif": (_norm(_clif_arm_codes["code"]), _contra_desc),
     "calc_cause": ([], {}),
 }
 
@@ -609,7 +623,7 @@ for _defn, _steps in CASCADES.items():
                    count(DISTINCT CASE WHEN NOT EXISTS
                         (SELECT 1 FROM h y WHERE y.patient_id = h.patient_id AND y.code <> h.code)
                         THEN patient_id END) n_sole
-            FROM h GROUP BY 1 ORDER BY n DESC""").pl()
+            FROM h GROUP BY 1 ORDER BY n DESC, code""").pl()   # code breaks ties: stable across runs
         for r in hit.iter_rows(named=True):
             _excl.append({**base, "criterion_type": "presence",
                           "code": r["code"], "description": desc.get(r["code"], ""),
