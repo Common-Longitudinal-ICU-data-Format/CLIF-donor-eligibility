@@ -26,7 +26,15 @@ from utils.config import config
 from utils.io import read_data
 from clifpy.utils.stitching_encounters import stitch_encounters
 from utils.outlier_handler import outlier_range
+from utils.checks import mixed_tz_awareness
 import gc
+
+# Timestamp arithmetic must not depend on the machine this runs on. DuckDB's
+# session timezone defaults to the operating system's; pin it so a subtraction
+# gives the same answer everywhere. The setup check below additionally refuses
+# an extract that mixes timezone-aware and naive timestamps, which is the case
+# where the session timezone would silently change a 48-hour window.
+duckdb.sql("SET TimeZone='UTC'")
 
 # Fix Windows encoding issue for Unicode characters
 sys.stdout.reconfigure(encoding='utf-8')
@@ -101,6 +109,7 @@ if not _tp.is_dir():
     _problems.append(f"config.json: tables_path does not exist: {_tp}")
 else:
     _impact = REQ.get("optional_table_impact", {})
+    _dttm_types: dict[str, str] = {}
     for _kind in ("required", "optional"):
         for _tbl, _cols in REQ["tables"][_kind].items():
             _f = _tp / f"clif_{_tbl}.{file_type}"
@@ -109,8 +118,11 @@ else:
                 _msg = f"clif_{_tbl} is absent"
             else:
                 try:
-                    _have = {d[0] for d in duckdb.sql(
-                        f"SELECT * FROM read_parquet('{_f}') LIMIT 0").description}
+                    _types = {r[0]: r[1] for r in duckdb.sql(
+                        f"DESCRIBE SELECT * FROM read_parquet('{_f}')").fetchall()}
+                    _have = set(_types)
+                    _dttm_types.update({f"clif_{_tbl}.{c}": _types[c] for c in _cols
+                                        if c.endswith("_dttm") and c in _types})
                     _missing = [c for c in _cols if c not in _have]
                     if _missing:
                         _msg = f"clif_{_tbl} is missing columns: {', '.join(_missing)}"
@@ -119,6 +131,8 @@ else:
             if _msg:
                 (_problems if _kind == "required" else _warnings).append(
                     _msg + (f" ({_impact[_tbl]})" if _tbl in _impact else ""))
+    # 3. every 48-hour window subtracts one of these columns from another
+    _problems += mixed_tz_awareness(_dttm_types)
 
 for _w in _warnings:
     print(f"  warn  {_w}")
@@ -129,6 +143,42 @@ if _problems:
     raise SystemExit(1)
 print(f"Setup check passed: config valid, {len(REQ['tables']['required'])} required tables present"
       + (f", {len(_warnings)} warning(s)" if _warnings else ""))
+
+SITE_TZ = config["timezone"]
+
+
+def _year_local(df: pl.DataFrame, col: str) -> pl.Expr:
+    """Calendar year of `col` on the site's wall clock.
+
+    CLIF timestamps are stored in UTC. The study window and SRTR's recovery
+    years are calendar years where the hospital is, so a death at 21:00 on
+    31 December local time belongs to that year, not to the next one that UTC
+    has already entered. A timezone-naive column is taken to be local already.
+    """
+    e = pl.col(col)
+    if getattr(df.schema[col], "time_zone", None):
+        e = e.dt.convert_time_zone(SITE_TZ)
+    return e.dt.year()
+
+
+def _require_matches(n: int, table: str, column: str, wanted: str) -> None:
+    """Stop when a category filter matched nothing for the whole cohort.
+
+    That is almost always a spelling difference in the site's extract, and the
+    silent consequence is a plausible-looking wrong answer: no labs makes every
+    patient organ-ineligible, no cultures makes nobody culture-positive. The
+    values listed are vocabulary strings, not patient data.
+    """
+    if n > 0:
+        return
+    _seen = duckdb.sql(
+        f"SELECT DISTINCT CAST({column} AS VARCHAR) FROM read_parquet("
+        f"'{tables_path}/clif_{table}.{file_type}') LIMIT 30").fetchall()
+    raise SystemExit(
+        f"clif_{table}: no usable rows with {column} = '{wanted}' for this cohort. "
+        f"Values present in {column}: {sorted(str(v[0]) for v in _seen)}. "
+        f"The CLIF mCIDE spelling is expected; case and surrounding spaces are ignored.")
+
 
 OUTLIER_CONFIG = PROJECT_ROOT / "config/outlier_config.yaml"
 # Bounds are read from the config rather than written into the SQL below, so
@@ -200,24 +250,16 @@ WINDOW_START_YEAR = int(STUDY["window_start_year"])
 WINDOW_END_YEAR = int(STUDY["window_end_year"])
 STRICT_WINDOW = bool(STUDY.get("require_admission_and_discharge_in_window", True))
 
-# Compare on year() to avoid timezone/precision mismatches between the
-# stored datetime[ns, UTC] columns and naive datetime literals.
-_admitted_in_window = (
-    (pl.col('admission_dttm').dt.year() >= WINDOW_START_YEAR)
-    & (pl.col('admission_dttm').dt.year() <= WINDOW_END_YEAR)
-)
-_discharged_in_window = (
-    (pl.col('discharge_dttm').dt.year() >= WINDOW_START_YEAR)
-    & (pl.col('discharge_dttm').dt.year() <= WINDOW_END_YEAR)
-)
+# Compare on the calendar year in the site's timezone (see _year_local).
+_adm_year = _year_local(hospitalization_df, 'admission_dttm')
+_dis_year = _year_local(hospitalization_df, 'discharge_dttm')
+_admitted_in_window = (_adm_year >= WINDOW_START_YEAR) & (_adm_year <= WINDOW_END_YEAR)
+_discharged_in_window = (_dis_year >= WINDOW_START_YEAR) & (_dis_year <= WINDOW_END_YEAR)
 # STRICT keeps only hospitalizations wholly inside the window. Otherwise keep
 # any that OVERLAP it, and require the DEATH itself to fall in the window at the
 # decedent step below — which is what the Methods describe: "patients ... who
 # died during admission, 2020 - 2025".
-_overlaps_window = (
-    (pl.col('admission_dttm').dt.year() <= WINDOW_END_YEAR)
-    & (pl.col('discharge_dttm').dt.year() >= WINDOW_START_YEAR)
-)
+_overlaps_window = (_adm_year <= WINDOW_END_YEAR) & (_dis_year >= WINDOW_START_YEAR)
 _n_before = hospitalization_df.height
 hospitalization_df = hospitalization_df.filter(
     (_admitted_in_window & _discharged_in_window) if STRICT_WINDOW else _overlaps_window)
@@ -430,15 +472,16 @@ vitals_filepath = f"{tables_path}/clif_vitals.{file_type}"
 # inside the polars `with_columns` outlier-handler chain. We only consume
 # four fields downstream (first/last vital timestamps + last weight_kg +
 # last height_cm), so a streamed SQL query is both faster and bounded in RAM.
-# Outlier ranges are applied inline via CASE WHEN, using the bounds read from
-# config/outlier_config.yaml at the top of this file.
+# Outlier ranges are applied in the WHERE of each ranked subquery, using the
+# bounds read from config/outlier_config.yaml at the top of this file.
 all_decedent_hosp_ids_df = pd.DataFrame(
     {"hospitalization_id": list(all_decedent_hosp_ids)}
 )
 
 vitals_query = f"""
 WITH vitals_cohort AS (
-    SELECT hospitalization_id, recorded_dttm, vital_category, vital_value
+    SELECT hospitalization_id, recorded_dttm,
+           LOWER(TRIM(vital_category)) AS vital_category, vital_value
     FROM read_parquet('{vitals_filepath}')
     WHERE hospitalization_id IN (
         SELECT hospitalization_id FROM all_decedent_hosp_ids_df
@@ -453,24 +496,30 @@ time_bounds AS (
     GROUP BY hospitalization_id
 ),
 weight_ranked AS (
+    -- The plausibility range is applied BEFORE ranking, so rn = 1 is the most
+    -- recent PLAUSIBLE value. Applied after ranking, a zeroed bed scale at the
+    -- latest timestamp won rn = 1, nulled the value, and made the patient
+    -- BMI-ineligible although a valid weight was charted an hour earlier.
     SELECT
         hospitalization_id,
-        CASE WHEN vital_value BETWEEN {WEIGHT_MIN} AND {WEIGHT_MAX} THEN vital_value END AS vital_value,
+        vital_value,
         ROW_NUMBER() OVER (
             PARTITION BY hospitalization_id ORDER BY recorded_dttm DESC, vital_value DESC
         ) AS rn
     FROM vitals_cohort
     WHERE vital_category = 'weight_kg'
+      AND vital_value BETWEEN {WEIGHT_MIN} AND {WEIGHT_MAX}
 ),
 height_ranked AS (
     SELECT
         hospitalization_id,
-        CASE WHEN vital_value BETWEEN {HEIGHT_MIN} AND {HEIGHT_MAX} THEN vital_value END AS vital_value,
+        vital_value,
         ROW_NUMBER() OVER (
             PARTITION BY hospitalization_id ORDER BY recorded_dttm DESC, vital_value DESC
         ) AS rn
     FROM vitals_cohort
     WHERE vital_category = 'height_cm'
+      AND vital_value BETWEEN {HEIGHT_MIN} AND {HEIGHT_MAX}
 )
 SELECT
     t.hospitalization_id,
@@ -503,6 +552,9 @@ if _dt_dtype is not None:
         pl.col('last_recorded_vital_dttm').dt.convert_time_zone(_site_tz),
     ])
 print(f"✓ Processed vitals for {len(vitals_first_last)} hospitalizations")
+for _cat, _c in (("weight_kg", "last_weight_kg"), ("height_cm", "last_height_cm")):
+    _require_matches(int(vitals_first_last[_c].is_not_null().sum()),
+                     "vitals", "vital_category", _cat)
 
 # Calculate BMI
 vitals_first_last = vitals_first_last.with_columns(
@@ -1076,7 +1128,7 @@ WITH imv_data AS (
         recorded_dttm,
         device_category
     FROM read_parquet('{resp_filepath}')
-    WHERE LOWER(device_category) = 'imv'
+    WHERE LOWER(TRIM(device_category)) = 'imv'
         AND hospitalization_id IN (SELECT hospitalization_id FROM final_cohort_for_imv)
 ),
 imv_with_death AS (
@@ -1119,6 +1171,7 @@ WHERE rn = 1
 """
 
 resp_expired_cohort = pl.from_pandas(duckdb.sql(imv_query).df())
+_require_matches(resp_expired_cohort.height, "respiratory_support", "device_category", "imv")
 
 # Add imv_48hr_expire flag to final_cohort_df first (so we can apply the age
 # filter when counting). True if patient_id appears in resp_expired_cohort.
@@ -1209,7 +1262,7 @@ WITH labs_data AS (
     SELECT
         hospitalization_id,
         lab_collect_dttm,
-        lab_category,
+        LOWER(TRIM(lab_category)) AS lab_category,
         lab_value_numeric
     FROM read_parquet('{labs_filepath}')
     WHERE hospitalization_id IN (SELECT hospitalization_id FROM final_cohort_for_labs)
@@ -1225,6 +1278,11 @@ labs_with_death AS (
     FROM labs_data l
     INNER JOIN final_cohort_for_labs f ON l.hospitalization_id = f.hospitalization_id
     WHERE l.lab_collect_dttm <= f.final_death_dttm
+      -- Only results that carry a number can be the "last value". A text-only
+      -- result (haemolysed, see note) at the latest timestamp otherwise won the
+      -- ranking below and nulled the value, which reads as missing, which is
+      -- ineligible.
+      AND l.lab_value_numeric IS NOT NULL
 ),
 latest_creatinine AS (
     -- Every "last value before death" selection breaks ties deterministically.
@@ -1297,6 +1355,9 @@ LEFT JOIN latest_liver l ON f.hospitalization_id = l.hospitalization_id
 
 organ_labs = pl.from_pandas(duckdb.sql(labs_query).df())
 print(f"✓ Organ labs loaded: {len(organ_labs)} patients")
+for _cat in ("creatinine", "bilirubin_total", "ast", "alt"):
+    _require_matches(int(organ_labs[f"{_cat}_value"].is_not_null().sum()),
+                     "labs", "lab_category", _cat)
 print(f"  Patients with creatinine: {organ_labs.filter(pl.col('creatinine_value').is_not_null())['patient_id'].n_unique()}")
 print(f"  Patients with bilirubin: {organ_labs.filter(pl.col('bilirubin_total_value').is_not_null())['patient_id'].n_unique()}")
 print(f"  Patients with AST: {organ_labs.filter(pl.col('ast_value').is_not_null())['patient_id'].n_unique()}")
@@ -1383,8 +1444,8 @@ WITH blood_cultures AS (
         collect_dttm,
         organism_category
     FROM read_parquet('{tables_path}/clif_microbiology_culture.{file_type}')
-    WHERE fluid_category = 'blood_buffy'
-        AND method_category = 'culture'
+    WHERE LOWER(TRIM(fluid_category)) = 'blood_buffy'
+        AND LOWER(TRIM(method_category)) = 'culture'
         AND hospitalization_id IN (SELECT hospitalization_id FROM final_cohort_for_micro)
 ),
 cultures_with_death AS (
@@ -1422,6 +1483,16 @@ FROM final_cohort_for_micro f
 LEFT JOIN positive_cultures p ON f.hospitalization_id = p.hospitalization_id
 """
 
+# A cohort of in-hospital deaths with no blood culture at all means the filter
+# matched nothing, and then every patient would pass as "no positive culture".
+_n_blood_cx = duckdb.sql(f"""
+    SELECT COUNT(*) FROM read_parquet('{tables_path}/clif_microbiology_culture.{file_type}')
+    WHERE LOWER(TRIM(fluid_category)) = 'blood_buffy'
+      AND LOWER(TRIM(method_category)) = 'culture'
+      AND hospitalization_id IN (SELECT hospitalization_id FROM final_cohort_for_micro)
+""").fetchone()[0]
+_require_matches(_n_blood_cx, "microbiology_culture", "fluid_category",
+                 "blood_buffy' with method_category = 'culture")
 no_positive_culture_flag = pl.from_pandas(duckdb.sql(micro_query).df())
 final_cohort_df = final_cohort_df.join(
     no_positive_culture_flag, on='hospitalization_id', how='left'
@@ -1586,10 +1657,10 @@ WITH assessments_filtered AS (
     SELECT
         hospitalization_id,
         recorded_dttm,
-        LOWER(assessment_category) AS assessment_category,
+        LOWER(TRIM(assessment_category)) AS assessment_category,
         numerical_value
     FROM read_parquet('{tables_path}/clif_patient_assessments.{file_type}')
-    WHERE LOWER(assessment_category) IN ('gcs_total', 'rass')
+    WHERE LOWER(TRIM(assessment_category)) IN ('gcs_total', 'rass')
         AND numerical_value IS NOT NULL
         AND hospitalization_id IN (SELECT hospitalization_id FROM final_cohort_for_assessments)
 ),
@@ -1859,7 +1930,7 @@ _cov = final_cohort_df.select(
 # Year of death only. The earliest and latest death timestamps are dates tied to
 # two individual patients, which may not leave the site; SRTR linkage needs the
 # calendar years covered and nothing finer.
-_cov = _cov.with_columns(pl.col("final_death_dttm").dt.year().alias("death_year"))
+_cov = _cov.with_columns(_year_local(_cov, "final_death_dttm").alias("death_year"))
 
 (_cov.rename({"death_year": "year"})
  .group_by(["hospital_id_key", "hospital_label", "srtr_ccn_id", "year"])
