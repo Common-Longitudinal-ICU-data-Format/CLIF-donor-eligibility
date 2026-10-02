@@ -48,12 +48,13 @@ exactly as the [project README](../README.md) instructs:
   cryptic stack trace.
 
 ### 4. End-to-end execution
-- Scripts run in order (cohort identification → quality checks → outlier handling → analysis; see
+- Scripts run in order (`01_cohort_and_definitions` → `02_build_tables` → `03_diagnostics`; see
   [`code/README.md`](../code/README.md)) **without manual edits** between steps.
 - Note total runtime and any memory pressure.
 
 ### 5. Outputs land correctly
-- Final results are written to [`output/final_no_phi/`](../output/README.md).
+- Final results are written to `<site>_upload_to_box/` at the repository root
+  (see [`output/README.md`](../output/README.md)).
 - File naming follows the project's convention (e.g. `RESULT_SITE_TIME`).
 - Output files are the expected type (aggregate tables / figures), not raw data dumps.
 
@@ -62,7 +63,7 @@ Inspect **every** file the project would have you share:
 - **No** `patient_id` or any row-level / individual patient records.
 - **Every** reported statistic has cell size **n ≥ 10**.
 - **No** raw `.csv` / `.parquet` patient data among the shareable outputs.
-- Nothing in `output/final_no_phi/` would be unsafe to upload to Box / send to the PI.
+- Nothing in `<site>_upload_to_box/` would be unsafe to upload to Box / send to the PI.
 
 Any failure here is an automatic **Fail** regardless of how well everything else ran. See
 [`primer.md`](primer.md) for the full data-security rules.

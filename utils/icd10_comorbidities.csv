@@ -1,0 +1,27 @@
+code_prefix,description,comorbidity
+b171,Acute hepatitis C,hcv
+b182,Chronic viral hepatitis C,hcv
+b192,Unspecified viral hepatitis C,hcv
+z2251,Carrier of viral hepatitis C,hcv
+i10,Essential (primary) hypertension,htn
+i11,Hypertensive heart disease,htn
+i12,Hypertensive chronic kidney disease,htn
+i13,Hypertensive heart and chronic kidney disease,htn
+i15,Secondary hypertension,htn
+i16,Hypertensive crisis,htn
+e08,Diabetes mellitus due to underlying condition,dm
+e09,Drug or chemical induced diabetes mellitus,dm
+e10,Type 1 diabetes mellitus,dm
+e11,Type 2 diabetes mellitus,dm
+e13,Other specified diabetes mellitus,dm
+i60,Nontraumatic subarachnoid hemorrhage,cva
+i61,Nontraumatic intracerebral hemorrhage,cva
+i62,Other and unspecified nontraumatic intracranial hemorrhage,cva
+i63,Cerebral infarction,cva
+i64,Stroke not specified as hemorrhage or infarction,cva
+i65,Occlusion/stenosis of precerebral arteries without infarction,cva
+i66,Occlusion/stenosis of cerebral arteries without infarction,cva
+i67,Other cerebrovascular diseases,cva
+i68,Cerebrovascular disorders in diseases classified elsewhere,cva
+i69,Sequelae of cerebrovascular disease,cva
+z8673,Personal history of TIA/cerebral infarction without residual deficit,cva

@@ -1,0 +1,124 @@
+# ── config/hospital_crosswalk.yaml ───────────────────────────────────────────
+#
+# Maps every raw adt.hospital_id to (a) its CMS Certification Number and (b) the
+# analytic hospital used for reporting. Adapted for CLIF-donor from the shared
+# CLIF hospital crosswalk, with two additions:
+#
+#   srtr_ccn_id   the CCN SRTR actually attributes donors to. Normally identical
+#                 to hospital_ccn_id; differs when CMS has re-certified a
+#                 facility but SRTR still files it under the old number.
+#   ccn_in_srtr   verified against SRTR donorhospital2506 at build time.
+#
+# DENOMINATOR RULE. A hospital enters the analysis only when include_flag is
+# true AND srtr_ccn_id resolves in SRTR. Anything else would put decedents in
+# the denominator that can never have a donor in the numerator, deflating that
+# site's donation rate. Rows failing either test are dropped as a recorded
+# cohort-flow step, never silently.
+#
+# CCN structure: final four digits encode facility type —
+#   0001-0879 short-term acute · 1300-1399 critical access · 2000-2299 long-term care
+#
+# analytic_hospital_id = <site>_<srtr_ccn_id>. Rows sharing a CCN coalesce into
+# one analytic hospital by construction (NU McHenry+Huntley; Penn HUP+HUPME;
+# UCSF Parnassus+Mission Bay+Mt Zion; UMN UMMC+Riverside).
+#
+# hospital_ccn_id and srtr_ccn_id are QUOTED — leading zeros (090005, 050454)
+# are load-bearing.
+# ─────────────────────────────────────────────────────────────────────────────
+
+hospitals:
+
+  # ── emory ───────────────────────────────────────────────────────────────
+  - {site: emory, hospital_id: "euh", hospital_ccn_id: "110010", srtr_ccn_id: "110010", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: emory_110010, hospital_full_name: "Emory University Hospital"}
+  - {site: emory, hospital_id: "eclh", hospital_ccn_id: "110078", srtr_ccn_id: "110078", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: emory_110078, hospital_full_name: "Emory Crawford Long Hospital (now Emory University Hospital Midtown)"}
+  - {site: emory, hospital_id: "esjh", hospital_ccn_id: "110082", srtr_ccn_id: "110082", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: emory_110082, hospital_full_name: "Emory St Joseph Hospital"}
+  - {site: emory, hospital_id: "ejch", hospital_ccn_id: "110230", srtr_ccn_id: "110230", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: emory_110230, hospital_full_name: "Emory Johns Creek Hospital"}
+
+  # ── hopkins ─────────────────────────────────────────────────────────────
+  - {site: hopkins, hospital_id: "jhh", hospital_ccn_id: "210009", srtr_ccn_id: "210009", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: hopkins_210009, hospital_full_name: "Johns Hopkins Hospital"}
+  - {site: hopkins, hospital_id: "bmc", hospital_ccn_id: "210029", srtr_ccn_id: "210029", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: hopkins_210029, hospital_full_name: "Johns Hopkins Bayview Medical Center"}
+  - {site: hopkins, hospital_id: "hcg", hospital_ccn_id: "210048", srtr_ccn_id: "210048", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: hopkins_210048, hospital_full_name: "Johns Hopkins Howard County Medical Center"}
+  - {site: hopkins, hospital_id: "sub", hospital_ccn_id: "210022", srtr_ccn_id: "210022", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: hopkins_210022, hospital_full_name: "Suburban Hospital (Johns Hopkins Medicine)"}
+  - {site: hopkins, hospital_id: "smh", hospital_ccn_id: "090005", srtr_ccn_id: "090005", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: hopkins_090005, hospital_full_name: "Sibley Memorial Hospital"}
+
+  # ── mgb ─────────────────────────────────────────────────────────────────
+  - {site: mgb, hospital_id: "1011001", hospital_ccn_id: "221300", srtr_ccn_id: "221300", ccn_facility_type: critical_access, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: mgb_221300, hospital_full_name: "Martha's Vineyard Hospital"}
+  - {site: mgb, hospital_id: "1002001", hospital_ccn_id: "220071", srtr_ccn_id: "220071", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: mgb_220071, hospital_full_name: "Massachusetts General Hospital"}
+  - {site: mgb, hospital_id: "1019001", hospital_ccn_id: "300018", srtr_ccn_id: "300018", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: mgb_300018, hospital_full_name: "Wentworth-Douglass Hospital"}
+  - {site: mgb, hospital_id: "1005002", hospital_ccn_id: "220035", srtr_ccn_id: "220035", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: mgb_220035, hospital_full_name: "Salem Hospital"}
+  - {site: mgb, hospital_id: "1004001", hospital_ccn_id: "220119", srtr_ccn_id: "220119", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: mgb_220119, hospital_full_name: "Brigham and Women's Faulkner Hospital"}
+  - {site: mgb, hospital_id: "1003001", hospital_ccn_id: "220110", srtr_ccn_id: "220110", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: mgb_220110, hospital_full_name: "Brigham and Women's Hospital"}
+  - {site: mgb, hospital_id: "1001001", hospital_ccn_id: "220101", srtr_ccn_id: "220101", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: mgb_220101, hospital_full_name: "Newton-Wellesley Hospital"}
+  - {site: mgb, hospital_id: "1012001", hospital_ccn_id: "220177", srtr_ccn_id: "220177", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: mgb_220177, hospital_full_name: "Nantucket Cottage Hospital"}
+  - {site: mgb, hospital_id: "1015001", hospital_ccn_id: "220015", srtr_ccn_id: "220015", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: mgb_220015, hospital_full_name: "Cooley Dickinson Hospital"}
+
+  # ── mich ────────────────────────────────────────────────────────────────
+  - {site: mich, hospital_id: "michigan", hospital_ccn_id: "230046", srtr_ccn_id: "230046", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: mich_230046, hospital_full_name: "University of Michigan Health"}
+
+  # ── mimic ───────────────────────────────────────────────────────────────
+  - {site: mimic, hospital_id: "mimic", hospital_ccn_id: "220086", srtr_ccn_id: "220086", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: mimic_220086, hospital_full_name: "Beth Israel Deaconess Medical Center"}
+
+  # ── nu ──────────────────────────────────────────────────────────────────
+  - {site: nu, hospital_id: "nu_nmh", hospital_ccn_id: "140281", srtr_ccn_id: "140281", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140281, hospital_full_name: "Northwestern Memorial Hospital"}
+  - {site: nu, hospital_id: "nu_cdh", hospital_ccn_id: "140242", srtr_ccn_id: "140242", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140242, hospital_full_name: "Northwestern Medicine Central DuPage Hospital"}
+  - {site: nu, hospital_id: "nu_dh", hospital_ccn_id: "140154", srtr_ccn_id: "140154", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140154, hospital_full_name: "Northwestern Medicine Delnor Community Hospital"}
+    # CCN corrected 2026-08-24. The shared crosswalk carried 140211, which SRTR shows as
+    # "COMMUNITY HOSPITAL, Geneva" — INACTIVE, 0 donors 2020-2025. 140154 is the active
+    # record, "Northwestern Medicine Delnor Hospital, Geneva", same ZIP 60134, 20 donors.
+  - {site: nu, hospital_id: "nu_lfh", hospital_ccn_id: "140130", srtr_ccn_id: "140130", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140130, hospital_full_name: "Northwestern Medicine Lake Forest Hospital"}
+  - {site: nu, hospital_id: "nu_kh", hospital_ccn_id: "140286", srtr_ccn_id: "140286", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140286, hospital_full_name: "Northwestern Medicine Kishwaukee Hospital"}
+  - {site: nu, hospital_id: "nu_hh", hospital_ccn_id: "140116", srtr_ccn_id: "140116", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140116, hospital_full_name: "Northwestern Medicine Huntley Hospital"}
+  - {site: nu, hospital_id: "nu_mh", hospital_ccn_id: "140116", srtr_ccn_id: "140116", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140116, hospital_full_name: "Northwestern Medicine McHenry Hospital"}
+  - {site: nu, hospital_id: "nu_ph", hospital_ccn_id: "140062", srtr_ccn_id: "140062", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140062, hospital_full_name: "Northwestern Medicine Palos Hospital"}
+  - {site: nu, hospital_id: "nu_vwh", hospital_ccn_id: "141340", srtr_ccn_id: "140203", ccn_facility_type: critical_access, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140203, hospital_full_name: "Northwestern Medicine Valley West Hospital"}
+  - {site: nu, hospital_id: "nu_wh", hospital_ccn_id: "140176", srtr_ccn_id: "140176", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140176, hospital_full_name: "Northwestern Medicine Woodstock Hospital"}
+    # Added 2026-08-24: nu_wh appears in NU's ADT (888 hospitalizations) but was absent from
+    # the shared crosswalk. SRTR: active, ZIP 60098, 0 donors 2020-2025 (12 all years).
+    # CMS-current CCN 141340 (critical access) is absent from SRTR donorhospital2506; SRTR attributes this facility to 140203.
+
+  # ── ohsu ────────────────────────────────────────────────────────────────
+  - {site: ohsu, hospital_id: "ohsu", hospital_ccn_id: "380009", srtr_ccn_id: "380009", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: ohsu_380009, hospital_full_name: "Oregon Health & Science University Hospital"}
+  - {site: ohsu, hospital_id: "hmc", hospital_ccn_id: "380021", srtr_ccn_id: "380021", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: ohsu_380021, hospital_full_name: "Hillsboro Medical Center"}
+  - {site: ohsu, hospital_id: "adventist portland", hospital_ccn_id: ~, srtr_ccn_id: ~, ccn_facility_type: ~, ccn_in_srtr: false, include_flag: false, exclusion_reason: not_a_system_facility, analytic_hospital_id: ohsu_adventist_portland, hospital_full_name: "Adventist Health Portland (not CLIF-eligible)"}
+  - {site: ohsu, hospital_id: "adventist columbia gorge", hospital_ccn_id: ~, srtr_ccn_id: ~, ccn_facility_type: ~, ccn_in_srtr: false, include_flag: false, exclusion_reason: not_a_system_facility, analytic_hospital_id: ohsu_adventist_columbia_gorge, hospital_full_name: "Adventist Health Columbia Gorge (not CLIF-eligible)"}
+
+  # ── penn ────────────────────────────────────────────────────────────────
+  - {site: penn, hospital_id: "penn_hup", hospital_ccn_id: "390111", srtr_ccn_id: "390111", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: penn_390111, hospital_full_name: "Hospital of the University of Pennsylvania"}
+  - {site: penn, hospital_id: "penn_pah", hospital_ccn_id: "390226", srtr_ccn_id: "390226", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: penn_390226, hospital_full_name: "Pennsylvania Hospital"}
+  - {site: penn, hospital_id: "penn_ppmc", hospital_ccn_id: "390223", srtr_ccn_id: "390223", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: penn_390223, hospital_full_name: "Penn Presbyterian Medical Center"}
+  - {site: penn, hospital_id: "penn_cch", hospital_ccn_id: "390179", srtr_ccn_id: "390179", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: penn_390179, hospital_full_name: "Chester County Hospital"}
+  - {site: penn, hospital_id: "penn_hupme", hospital_ccn_id: "390111", srtr_ccn_id: "390111", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: penn_390111, hospital_full_name: "Hospital of the University of Pennsylvania - Cedar Avenue"}
+  - {site: penn, hospital_id: "penn_umcop", hospital_ccn_id: "310010", srtr_ccn_id: "310010", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: penn_310010, hospital_full_name: "Penn Medicine Princeton Medical Center"}
+  - {site: penn, hospital_id: "penn_pcam", hospital_ccn_id: "390111", srtr_ccn_id: "390111", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: penn_390111, hospital_full_name: "Perelman Center for Advanced Medicine (provider-based under HUP)"}
+  - {site: penn, hospital_id: "penn_phpbr", hospital_ccn_id: "390111", srtr_ccn_id: "390111", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: penn_390111, hospital_full_name: "Medical Arts Pavilion (provider-based under HUP)"}
+  - {site: penn, hospital_id: "penn_pasyc", hospital_ccn_id: "390226", srtr_ccn_id: "390226", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: penn_390226, hospital_full_name: "Pennsylvania Hospital psychiatric unit (provider-based under PAH)"}
+  - {site: penn, hospital_id: "penn_hmipp", hospital_ccn_id: ~, srtr_ccn_id: ~, ccn_facility_type: ~, ccn_in_srtr: false, include_flag: false, exclusion_reason: not_a_system_facility, analytic_hospital_id: penn_hmipp, hospital_full_name: "Unknown facility; reported by Penn as not a system hospital"}
+
+  # ── rush ────────────────────────────────────────────────────────────────
+  - {site: rush, hospital_id: "rumc", hospital_ccn_id: "140119", srtr_ccn_id: "140119", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: rush_140119, hospital_full_name: "Rush University Medical Center"}
+  - {site: rush, hospital_id: "0ef9a308eadb4a18b8af3e3c8259ed86", hospital_ccn_id: "140119", srtr_ccn_id: "140119", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: rush_140119, hospital_full_name: "Rush University Medical Center (de-identified hospital_id)"}
+    # RUSH distributes a de-identified extract whose adt.hospital_id is a hash. RUSH is a
+    # single-hospital site, so the hash resolves unambiguously to RUMC. If RUSH re-hashes on a
+    # future extract this row must be updated — 01_cohort_and_definitions.py will halt until it is.
+
+  # ── ucmc ────────────────────────────────────────────────────────────────
+  - {site: ucmc, hospital_id: "ucmc", hospital_ccn_id: "140088", srtr_ccn_id: "140088", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: ucmc_140088, hospital_full_name: "University of Chicago Medical Center"}
+
+  # ── ucsf ────────────────────────────────────────────────────────────────
+  - {site: ucsf, hospital_id: "1000", hospital_ccn_id: "050454", srtr_ccn_id: "050454", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: ucsf_050454, hospital_full_name: "UCSF Helen Diller Medical Center at Parnassus Heights"}
+  - {site: ucsf, hospital_id: "5102", hospital_ccn_id: "050454", srtr_ccn_id: "050454", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: ucsf_050454, hospital_full_name: "UCSF Medical Center at Mission Bay"}
+  - {site: ucsf, hospital_id: "2010", hospital_ccn_id: "050454", srtr_ccn_id: "050454", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: ucsf_050454, hospital_full_name: "UCSF Medical Center at Mount Zion"}
+
+  # ── umn ─────────────────────────────────────────────────────────────────
+  - {site: umn, hospital_id: "ummc", hospital_ccn_id: "240080", srtr_ccn_id: "240080", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: umn_240080, hospital_full_name: "M Health Fairview University of Minnesota Medical Center"}
+  - {site: umn, hospital_id: "ranges/hibbing", hospital_ccn_id: "240040", srtr_ccn_id: "240040", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: umn_240040, hospital_full_name: "Fairview Range (University Medical Center Mesabi)"}
+  - {site: umn, hospital_id: "northland", hospital_ccn_id: "240141", srtr_ccn_id: "240141", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: umn_240141, hospital_full_name: "M Health Fairview Northland Medical Center"}
+  - {site: umn, hospital_id: "grand itasca", hospital_ccn_id: "240064", srtr_ccn_id: "240064", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: umn_240064, hospital_full_name: "Grand Itasca Clinic and Hospital"}
+  - {site: umn, hospital_id: "lakes", hospital_ccn_id: "240050", srtr_ccn_id: "240050", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: umn_240050, hospital_full_name: "M Health Fairview Lakes Medical Center"}
+  - {site: umn, hospital_id: "woodwinds", hospital_ccn_id: "240213", srtr_ccn_id: "240213", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: umn_240213, hospital_full_name: "M Health Fairview Woodwinds Hospital"}
+  - {site: umn, hospital_id: "riverside", hospital_ccn_id: "240080", srtr_ccn_id: "240080", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: umn_240080, hospital_full_name: "Fairview-Riverside"}
+  - {site: umn, hospital_id: "ridges", hospital_ccn_id: "240207", srtr_ccn_id: "240207", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: umn_240207, hospital_full_name: "M Health Fairview Ridges Hospital"}
+  - {site: umn, hospital_id: "st. joes", hospital_ccn_id: "240063", srtr_ccn_id: "240063", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: umn_240063, hospital_full_name: "St. Joseph's Hospital"}
+  - {site: umn, hospital_id: "st. johns", hospital_ccn_id: "240210", srtr_ccn_id: "240210", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: umn_240210, hospital_full_name: "M Health Fairview St John's Hospital"}
+  - {site: umn, hospital_id: "southdale", hospital_ccn_id: "240078", srtr_ccn_id: "240078", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: umn_240078, hospital_full_name: "M Health Fairview Southdale Hospital"}
+  - {site: umn, hospital_id: "bethesda", hospital_ccn_id: "242004", srtr_ccn_id: "242004", ccn_facility_type: long_term_care, ccn_in_srtr: true, include_flag: false, exclusion_reason: long_term_care, analytic_hospital_id: umn_242004, hospital_full_name: "Bethesda Hospital"}
