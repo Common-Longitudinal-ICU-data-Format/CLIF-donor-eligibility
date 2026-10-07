@@ -20,14 +20,9 @@ OPERATORS = {"<=": operator.le, "<": operator.lt}
 # Keys that are in the YAML but that the code knowingly does NOT apply. Listed
 # here, and printed on every run, so the gap is visible instead of silent.
 # Removing an entry requires implementing it.
-DECLARED_NOT_APPLIED = {
-    "clif_donor.contraindications.use_poa":
-        "contraindication codes count at any diagnosis position regardless of "
-        "present-on-admission; whether POA should be required is an open PI decision",
-    "clif_donor.sepsis_window_hours":
-        "no time-windowed sepsis flag exists; icd10_sepsis is diagnosis-code based "
-        "and is reporting only",
-}
+# Keys in the YAML that the code knowingly does not apply, with the reason. Each
+# is printed on every run. Empty since use_poa was settled on 2026-10-07.
+DECLARED_NOT_APPLIED: dict[str, str] = {}
 
 _ICD3 = re.compile(r"^[A-Za-z][0-9]{2}$")
 
@@ -89,3 +84,62 @@ def icd_range_sql(col: str, lo: str, hi: str) -> str:
         raise SystemExit(f"config/donor_criteria.yaml: ICD-10 range {lo}-{hi} is reversed")
     return (f"(REGEXP_MATCHES({col}, '^[a-z][0-9]{{2}}') "
             f"AND SUBSTR({col}, 1, 3) BETWEEN '{lo}' AND '{hi}')")
+
+
+# ── contraindication list (utils/icd10_contraindications.csv) ────────────────
+# One row per code range. A diagnosis code matches a row when its first
+# len(code_start) characters fall in code_start..code_end, so 'C30'-'C39' covers
+# C34.11 without listing it. Only rows with exclude = yes are applied; the
+# 'no' rows record what was deliberately left out, and why, so a decision can
+# be reversed by changing one cell.
+CONTRA_COLUMNS = ["code_start", "code_end", "description", "category",
+                  "exclude", "source", "note"]
+_CODE = re.compile(r"^[a-z][0-9a-z]{2,6}$")
+
+
+def norm_code(code) -> str:
+    """Lower-case, punctuation and whitespace stripped: 'C34.11' -> 'c3411'."""
+    return re.sub(r"[^0-9a-z]", "", str(code).lower())
+
+
+def load_contraindications(path: Path | str) -> list[dict]:
+    """Rows of the contraindication list, validated. Bad file stops the run."""
+    import csv
+    path = Path(path)
+    with path.open(newline="", encoding="utf-8-sig") as f:
+        reader = csv.DictReader(f)
+        if reader.fieldnames != CONTRA_COLUMNS:
+            raise SystemExit(f"{path.name}: columns must be {CONTRA_COLUMNS}, "
+                             f"got {reader.fieldnames}")
+        rows = list(reader)
+    for i, r in enumerate(rows, start=2):
+        lo, hi = norm_code(r["code_start"]), norm_code(r["code_end"])
+        if not (_CODE.match(lo) and _CODE.match(hi)) or len(lo) != len(hi) or lo > hi:
+            raise SystemExit(f"{path.name}:{i}: bad code range "
+                             f"{r['code_start']}-{r['code_end']}")
+        if r["exclude"] not in ("yes", "no"):
+            raise SystemExit(f"{path.name}:{i}: exclude must be yes or no")
+        if not r["source"].strip():
+            raise SystemExit(f"{path.name}:{i}: source is empty")
+        r["lo"], r["hi"] = lo, hi
+    return rows
+
+
+def code_range_sql(col: str, lo: str, hi: str) -> str:
+    """SQL predicate: the first len(lo) characters of `col` fall in lo..hi."""
+    return f"(SUBSTR({col}, 1, {len(lo)}) BETWEEN '{lo}' AND '{hi}')"
+
+
+def contraindication_sql(col: str, rows: list[dict]) -> str:
+    """SQL predicate over a normalised code column: matches any exclude = yes row."""
+    parts = [code_range_sql(col, r["lo"], r["hi"]) for r in rows if r["exclude"] == "yes"]
+    return "(" + " OR ".join(parts) + ")" if parts else "FALSE"
+
+
+def contraindication_row(code, rows: list[dict]) -> dict | None:
+    """The exclude = yes row a code matches, or None. Python twin of the SQL."""
+    c = norm_code(code)
+    for r in rows:
+        if r["exclude"] == "yes" and r["lo"] <= c[:len(r["lo"])] <= r["hi"]:
+            return r
+    return None
