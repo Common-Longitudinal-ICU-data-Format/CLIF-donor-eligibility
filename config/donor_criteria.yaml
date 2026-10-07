@@ -1,10 +1,5 @@
 # ── config/donor_criteria.yaml ───────────────────────────────────────────────
 # Single source of truth for every threshold and code set in this study.
-# Nothing in code/ may hard-code a clinical value; it is read from here so the
-# definitions stay auditable and reviewable without reading Python.
-#
-# Provenance is recorded per block. Where a criterion deviates from its source,
-# the deviation is stated rather than quietly implemented.
 # ─────────────────────────────────────────────────────────────────────────────
 
 study:
@@ -16,13 +11,6 @@ study:
   death_discharge_category: expired      # 'hospice' is NOT a death
 
   # A death enters the cohort if the stay touched any of these ADT locations.
-  # The original four are the inpatient definition; hospice was added 2026-09-25
-  # after Emily and Joel agreed, because RUSH admits patients directly to an
-  # inpatient hospice unit (2,318 decedents) while NU and UCMC have no hospice
-  # location at all and their comfort-care patients die on a ward and were
-  # already counted. Deaths at other locations (procedural, l&d, other, or with
-  # no ADT record) stay OUT. Decedent counts by location are reported every run,
-  # so the with/without-hospice comparison needs no re-run. DECISIONS D-48.
   cohort_locations: [ed, ward, stepdown, icu, hospice]
   suppress_small_cells: false
   small_cell_suppression_n: 11
@@ -34,24 +22,27 @@ study:
   # the study allows it.
   ship_exclusion_code_detail: false
 
+  # Time of death: the anchor for every "within N hours of death" window.
+  # utils/death_time.py:
+  #   death_dttm has a time of day  -> death_dttm
+  #   death_dttm is only a date     -> discharge_dttm, kept inside that date
+  #   death_dttm is missing         -> discharge_dttm
+  # The last recorded vital is no longer a fallback.
+  death_time:
+    # A death recorded more than this many hours AFTER discharge is not the
+    # in-hospital death (a registry date, or an error); discharge_dttm is used.
+    max_hours_after_discharge: 24
+
 # ── CLIF-donor (definition of interest) ──────────────────────────────────────
 clif_donor:
   age_at_death_max: 75
   age_operator: "<="                     
+  # At least one IMV row in this many hours BEFORE the time of death. Rows after
+  # death do not count.
   imv_hours_before_death: 48
-  # IMV charted up to this many hours AFTER the recorded death time still counts.
-  # This was a literal in the code until 2026-10-01; the value is unchanged. It
-  # matters where death_dttm is date-only (stored as midnight), because the last
-  # ventilator row then falls after the recorded death time. Whether to keep it
-  # is an open question for the PI.
-  imv_post_death_tolerance_hours: 24
   bmi_max: 50
-  sepsis_window_hours: 48                # NOT APPLIED: no time-windowed sepsis flag exists.
-                                         # Listed in utils/criteria.py DECLARED_NOT_APPLIED.
-  # NO sepsis exclusion. Settled 2026-09-19: sepsis codes are reported (Table 1)
-  # but never exclude a patient from any definition. The former
-  # apply_sepsis_exclusion switch has been removed rather than set to false, so
-  # nobody can turn it back on by accident.
+  # NO sepsis exclusion. Settled 2026-09-19; the sepsis codes and Table 2 row
+  # were removed 2026-10-05.
   kidney:
     creatinine_max: 4.0                  # mg/dL, strict <
     exclude_if_crrt_within_hours: 48
@@ -63,10 +54,13 @@ clif_donor:
   # be present. Absence of a CRRT record is read as "not on dialysis".
   missing_is_ineligible: true
   contraindications:
+    # Code ranges matched by prefix; the exclude = yes rows apply. Follows the
+    # OPTN eligible-death cancer exclusions. See guides/contraindications.md.
     icd10_file: utils/icd10_contraindications.csv
-    use_poa: true                        # NOT APPLIED: a contraindication code counts at any
-                                         # position whether or not it was present on admission.
-                                         # Open PI decision; see DECLARED_NOT_APPLIED.
+    # false: a contraindication code counts at any diagnosis position, whether
+    # or not it was present on admission. Decided 2026-10-07. true is refused,
+    # because requiring present-on-admission is not implemented.
+    use_poa: false
     positive_blood_culture_hours: 48
 
 # ── CALC — secondary administrative comparator ───────────────────────────────
@@ -116,14 +110,16 @@ clinical_care:
     fluid_category: blood_buffy
     organism_regex: "candida|aspergill|cryptococc|fungus|yeast"
   contraindications_not_in_clif:
-    # Recorded so the manuscript can state this rather than leave blank rows.
     # Absent from the mCIDE in BOTH 2.1 and 3.0.
     - strongyloides
     - chagas
     # Present in microbiology_culture's organism vocabulary but not in
     # microbiology_nonculture, where serologies live -> not capturable as a
-    # donor screen. 
+    # donor screen.
     - toxoplasma
     - treponema_syphilis
-    - hiv_serology
     - hepatitis_serology
+    # HIV serology is not capturable either, but HIV disease is: ICD-10 B20 has
+    # a row in utils/icd10_contraindications.csv, currently exclude = no
+    # (open question for Emily; see guides/questions_for_emily.md).
+    - hiv_serology
