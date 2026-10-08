@@ -2,18 +2,16 @@
     "_instructions": "Copy this file to config/config.json and replace every value below. Then run: python code/01_cohort_and_definitions.py",
     "site_name": "your_site_name",
     "tables_path": "/absolute/path/to/your/clif/parquet/tables",
-    "file_type": "parquet",
-    "timezone": "Area/City",
+    "timezone": "US/Central",
     "project_root": "/absolute/path/to/CLIF-donor-eligibility",
-    "clif_version": "2.1",
     "hospital_ids": [
         "your_hospital_id_1",
         "your_hospital_id_2"
     ],
     "_notes": {
         "site_name": "lowercase, e.g. ucmc, nu, rush",
-        "timezone": "the IANA timezone your hospital is in, e.g. US/Central. Not UTC, even though CLIF stores timestamps in UTC: this decides which calendar year an admission or a death falls in",
+        "timezone": "The timezone your hospital is in. One of: US/Eastern, US/Central, US/Mountain, US/Arizona, US/Pacific, US/Alaska, US/Hawaii. Not UTC",
         "project_root": "the folder this repository is in",
-        "hospital_ids": "every hospital_id that appears in clif_adt for your decedents, written exactly as it appears there. 01_cohort_and_definitions.py stops if the cohort contains an id not listed here, or if a listed id has no row in config/hospital_crosswalk.yaml. A listed id that contributes no decedents is a warning."
+        "hospital_ids": "Every hospital_id in clif_adt"
     }
 }

@@ -1,47 +1,94 @@
-code_start,code_end,description,category,exclude,source,note
-C00,C14,"Malignant neoplasms of lip, oral cavity and pharynx",solid malignancy,yes,OPTN 1.2,
-C15,C26,Malignant neoplasms of digestive organs,solid malignancy,yes,OPTN 1.2,
-C30,C39,Malignant neoplasms of respiratory and intrathoracic organs,solid malignancy,yes,OPTN 1.2,
-C40,C41,Malignant neoplasms of bone and articular cartilage,solid malignancy,yes,OPTN 1.2,
-C43,C43,Malignant melanoma of skin,melanoma,yes,OPTN 1.2,"OPTN: ""a history of melanoma"""
-C44,C44,Other malignant neoplasm of skin (basal and squamous cell),non-melanoma skin,no,OPTN 1.2,"OPTN exception: ""non-melanoma skin cancers such as basal cell and squamous cell"""
-C4A,C4A,Merkel cell carcinoma,skin (Merkel cell),yes,none,"OPEN, ask Emily: not basal/squamous cell, so outside the OPTN skin exception as written"
-C45,C49,Malignant neoplasms of mesothelial and soft tissue,solid malignancy,yes,OPTN 1.2,
-C50,C50,Malignant neoplasm of breast,solid malignancy,yes,OPTN 1.2,
-C51,C58,Malignant neoplasms of female genital organs,solid malignancy,yes,OPTN 1.2,
-C60,C63,Malignant neoplasms of male genital organs,solid malignancy,yes,OPTN 1.2,
-C64,C68,Malignant neoplasms of urinary tract,solid malignancy,yes,OPTN 1.2,
-C69,C69,Malignant neoplasm of eye and adnexa,solid malignancy,yes,OPTN 1.2,Eye is not CNS
-C70,C72,"Malignant neoplasms of meninges, brain, spinal cord and other CNS",primary CNS,no,OPTN 1.2,"OPTN exception: ""primary CNS tumors without evident metastatic disease"". Metastatic disease is caught by C77-C79"
-C73,C74,Malignant neoplasms of thyroid and adrenal gland,solid malignancy,yes,OPTN 1.2,
-C75,C75,Malignant neoplasm of other endocrine glands,solid malignancy,yes,OPTN 1.2,"OPEN, ask Emily: C75.1-C75.3 (pituitary, craniopharyngeal duct, pineal) are intracranial and arguably within the CNS exception"
-C7A,C7A,Malignant neuroendocrine tumors,solid malignancy,yes,OPTN 1.2,
-C7B,C7B,Secondary neuroendocrine tumors,metastatic,yes,OPTN 1.2,
-C76,C76,Malignant neoplasm of other and ill-defined sites,solid malignancy,yes,OPTN 1.2,
-C77,C79,Secondary malignant neoplasms,metastatic,yes,OPTN 1.2,"OPTN: ""previous malignant neoplasms with current evident metastatic disease"""
-C80,C80,Malignant neoplasm without specification of site,solid malignancy,yes,OPTN 1.2,
-C81,C81,Hodgkin lymphoma,hematologic malignancy,yes,OPTN 1.2,
-C82,C88,Non-Hodgkin lymphoma and other lymphoid malignancies,hematologic malignancy,yes,OPTN 1.2,
-C90,C90,Multiple myeloma and malignant plasma cell neoplasms,hematologic malignancy,yes,OPTN 1.2,
-C91,C95,Leukemias,hematologic malignancy,yes,OPTN 1.2,
-C96,C96,"Other malignant neoplasms of lymphoid, hematopoietic and related tissue",hematologic malignancy,yes,CMS-3380-P,Not named by OPTN; malignant code block
-D00,D02,Carcinoma in situ,in situ,no,OPTN 1.2,Not a current malignant neoplasm in the OPTN sense
-D03,D03,Melanoma in situ,melanoma in situ,yes,none,"OPEN, ask Emily: arguably ""a history of melanoma"""
-D04,D09,Carcinoma in situ,in situ,no,OPTN 1.2,Not a current malignant neoplasm in the OPTN sense
-D32,D33,Benign neoplasms of meninges and CNS,benign or uncertain,no,OPTN 1.2,
-D37,D44,Neoplasms of uncertain behavior,benign or uncertain,no,OPTN 1.2,CMS-3380-P (not adopted) listed D44
-D45,D45,Polycythemia vera,benign or uncertain,no,OPTN 1.2,
-D46,D46,Myelodysplastic syndromes,hematologic malignancy,yes,CMS-3380-P,Not named by OPTN; WHO classifies MDS as malignant. Agreed 2026-10-05
-D47,D47,"Other neoplasms of uncertain behavior of lymphoid, hematopoietic and related tissue",benign or uncertain,no,OPTN 1.2,"Except D47.Z1 (PTLD), excluded on its own row. CMS-3380-P listed all of D47"
-D47Z1,D47Z1,Post-transplant lymphoproliferative disorder (PTLD),hematologic malignancy,yes,CMS-3380-P,Lymphoma-like. Agreed 2026-10-05
-D48,D49,Neoplasms of uncertain or unspecified behavior,benign or uncertain,no,OPTN 1.2,CMS-3380-P (not adopted) listed D48
-J910,J910,Malignant pleural effusion,metastatic,yes,OPTN 1.2,Marker of metastatic disease
-R180,R180,Malignant ascites,metastatic,yes,OPTN 1.2,Marker of metastatic disease
-Z85,Z85,Personal history of malignant neoplasm,history,no,OPTN 1.2,"Except Z85.820, excluded on its own row"
-Z85820,Z85820,Personal history of malignant melanoma of skin,melanoma,yes,OPTN 1.2,"OPTN: ""a history of melanoma"""
-A15,A19,Tuberculosis,non-cancer (OPTN),no,OPTN 1.2,"OPEN, ask Emily: OPTN excludes it; out of scope for now (cancer only)"
-A810,A810,Creutzfeldt-Jakob disease,non-cancer (OPTN),no,OPTN 1.2,"OPEN, ask Emily: OPTN excludes it; out of scope for now (cancer only)"
-A82,A82,Rabies,non-cancer (OPTN),no,OPTN 1.2,"OPEN, ask Emily: OPTN excludes it; out of scope for now (cancer only)"
-B20,B20,HIV disease,non-cancer (OPTN),no,OPTN 1.2,"OPEN, ask Emily: OPTN excludes it, except HIV-to-HIV transplant (HOPE Act); out of scope for now (cancer only)"
-D60,D61,Aplastic anemia,non-cancer (OPTN),no,OPTN 1.2,"OPEN, ask Emily: OPTN excludes it; out of scope for now (cancer only)"
-D70,D70,Agranulocytosis and neutropenia,non-cancer (OPTN),no,OPTN 1.2,"OPEN, ask Emily: OPTN excludes agranulocytosis; D70 also covers drug-induced neutropenia, so this range is broader than OPTN"
+code_prefix,description,source
+C00,Malignant neoplasm of lip,OPTN 1.2
+C01,Malignant neoplasm of base of tongue,OPTN 1.2
+C02,Malignant neoplasm of other and unspecified parts of tongue,OPTN 1.2
+C03,Malignant neoplasm of gum,OPTN 1.2
+C04,Malignant neoplasm of floor of mouth,OPTN 1.2
+C05,Malignant neoplasm of palate,OPTN 1.2
+C06,Malignant neoplasm of other and unspecified parts of mouth,OPTN 1.2
+C07,Malignant neoplasm of parotid gland,OPTN 1.2
+C08,Malignant neoplasm of other and unspecified major salivary glands,OPTN 1.2
+C09,Malignant neoplasm of tonsil,OPTN 1.2
+C10,Malignant neoplasm of oropharynx,OPTN 1.2
+C11,Malignant neoplasm of nasopharynx,OPTN 1.2
+C12,Malignant neoplasm of pyriform sinus,OPTN 1.2
+C13,Malignant neoplasm of hypopharynx,OPTN 1.2
+C14,"Malignant neoplasm of other and ill-defined sites in the lip, oral cavity and pharynx",OPTN 1.2
+C15,Malignant neoplasm of esophagus,OPTN 1.2
+C16,Malignant neoplasm of stomach,OPTN 1.2
+C17,Malignant neoplasm of small intestine,OPTN 1.2
+C18,Malignant neoplasm of colon,OPTN 1.2
+C19,Malignant neoplasm of rectosigmoid junction,OPTN 1.2
+C20,Malignant neoplasm of rectum,OPTN 1.2
+C21,Malignant neoplasm of anus and anal canal,OPTN 1.2
+C22,Malignant neoplasm of liver and intrahepatic bile ducts,OPTN 1.2
+C23,Malignant neoplasm of gallbladder,OPTN 1.2
+C24,Malignant neoplasm of other and unspecified parts of biliary tract,OPTN 1.2
+C25,Malignant neoplasm of pancreas,OPTN 1.2
+C26,Malignant neoplasm of other and ill-defined digestive organs,OPTN 1.2
+C30,Malignant neoplasm of nasal cavity and middle ear,OPTN 1.2
+C31,Malignant neoplasm of accessory sinuses,OPTN 1.2
+C32,Malignant neoplasm of larynx,OPTN 1.2
+C33,Malignant neoplasm of trachea,OPTN 1.2
+C34,Malignant neoplasm of bronchus and lung,OPTN 1.2
+C37,Malignant neoplasm of thymus,OPTN 1.2
+C38,"Malignant neoplasm of heart, mediastinum and pleura",OPTN 1.2
+C39,Malignant neoplasm of other and ill-defined sites in the respiratory system and intrathoracic organs,OPTN 1.2
+C40,Malignant neoplasm of bone and articular cartilage of limbs,OPTN 1.2
+C41,Malignant neoplasm of bone and articular cartilage of other and unspecified sites,OPTN 1.2
+C43,Malignant melanoma of skin,OPTN 1.2
+C45,Mesothelioma,OPTN 1.2
+C46,Kaposi's sarcoma,OPTN 1.2
+C47,Malignant neoplasm of peripheral nerves and autonomic nervous system,OPTN 1.2
+C48,Malignant neoplasm of retroperitoneum and peritoneum,OPTN 1.2
+C49,Malignant neoplasm of other connective and soft tissue,OPTN 1.2
+C4A,Merkel cell carcinoma,study decision
+C50,Malignant neoplasm of breast,OPTN 1.2
+C51,Malignant neoplasm of vulva,OPTN 1.2
+C52,Malignant neoplasm of vagina,OPTN 1.2
+C53,Malignant neoplasm of cervix uteri,OPTN 1.2
+C54,Malignant neoplasm of corpus uteri,OPTN 1.2
+C55,"Malignant neoplasm of uterus, part unspecified",OPTN 1.2
+C56,Malignant neoplasm of ovary,OPTN 1.2
+C57,Malignant neoplasm of other and unspecified female genital organs,OPTN 1.2
+C58,Malignant neoplasm of placenta,OPTN 1.2
+C60,Malignant neoplasm of penis,OPTN 1.2
+C61,Malignant neoplasm of prostate,OPTN 1.2
+C62,Malignant neoplasm of testis,OPTN 1.2
+C63,Malignant neoplasm of other and unspecified male genital organs,OPTN 1.2
+C64,"Malignant neoplasm of kidney, except renal pelvis",OPTN 1.2
+C65,Malignant neoplasm of renal pelvis,OPTN 1.2
+C66,Malignant neoplasm of ureter,OPTN 1.2
+C67,Malignant neoplasm of bladder,OPTN 1.2
+C68,Malignant neoplasm of other and unspecified urinary organs,OPTN 1.2
+C69,Malignant neoplasm of eye and adnexa,OPTN 1.2
+C73,Malignant neoplasm of thyroid gland,OPTN 1.2
+C74,Malignant neoplasm of adrenal gland,OPTN 1.2
+C75,Malignant neoplasm of other endocrine glands and related structures,OPTN 1.2
+C76,Malignant neoplasm of other and ill-defined sites,OPTN 1.2
+C77,Secondary and unspecified malignant neoplasm of lymph nodes,OPTN 1.2
+C78,Secondary malignant neoplasm of respiratory and digestive organs,OPTN 1.2
+C79,Secondary malignant neoplasm of other and unspecified sites,OPTN 1.2
+C7A,Malignant neuroendocrine tumors,OPTN 1.2
+C7B,Secondary neuroendocrine tumors,OPTN 1.2
+C80,Malignant neoplasm without specification of site,OPTN 1.2
+C81,Hodgkin lymphoma,OPTN 1.2
+C82,Follicular lymphoma,OPTN 1.2
+C83,Non-follicular lymphoma,OPTN 1.2
+C84,Mature T/NK-cell lymphomas,OPTN 1.2
+C85,Other specified and unspecified types of non-Hodgkin lymphoma,OPTN 1.2
+C86,Other specified types of T/NK-cell lymphoma,OPTN 1.2
+C88,Malignant immunoproliferative diseases and certain other B-cell lymphomas,OPTN 1.2
+C90,Multiple myeloma and malignant plasma cell neoplasms,OPTN 1.2
+C91,Lymphoid leukemia,OPTN 1.2
+C92,Myeloid leukemia,OPTN 1.2
+C93,Monocytic leukemia,OPTN 1.2
+C94,Other leukemias of specified cell type,OPTN 1.2
+C95,Leukemia of unspecified cell type,OPTN 1.2
+C96,"Other and unspecified malignant neoplasms of lymphoid, hematopoietic and related tissue",CMS-3380-P
+D03,Melanoma in situ,study decision
+D46,Myelodysplastic syndromes,CMS-3380-P
+D47.Z1,Post-transplant lymphoproliferative disorder (PTLD),CMS-3380-P
+J91.0,Malignant pleural effusion,OPTN 1.2
+R18.0,Malignant ascites,OPTN 1.2
+Z85.820,Personal history of malignant melanoma of skin,OPTN 1.2

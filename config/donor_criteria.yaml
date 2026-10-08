@@ -22,6 +22,12 @@ study:
   # the study allows it.
   ship_exclusion_code_detail: false
 
+  # Hospitalizations of the same patient are linked into one encounter when the
+  # next admission starts within this many hours of the previous discharge
+  # (clifpy stitch_encounters; 6 is its default and the CLIF convention). Every
+  # criterion is evaluated over the linked encounter.
+  encounter_stitch_hours: 6
+
   # Time of death: the anchor for every "within N hours of death" window.
   # utils/death_time.py:
   #   death_dttm has a time of day  -> death_dttm
@@ -35,12 +41,11 @@ study:
 
 # ── CLIF-donor (definition of interest) ──────────────────────────────────────
 clif_donor:
-  age_at_death_max: 75
-  age_operator: "<="                     
+  age_at_death_max: 75                   # inclusive: 75 or under
   # At least one IMV row in this many hours BEFORE the time of death. Rows after
   # death do not count.
   imv_hours_before_death: 48
-  bmi_max: 50
+  bmi_max: 50                            # inclusive: 50 or under
   # NO sepsis exclusion. Settled 2026-09-19; the sepsis codes and Table 2 row
   # were removed 2026-10-05.
   kidney:
@@ -50,22 +55,19 @@ clif_donor:
     total_bilirubin_max: 4.0             # mg/dL, strict <
     ast_max: 700                         # U/L, strict <
     alt_max: 700                         # U/L, strict <
-  # Missing is ineligible: every organ-quality criterion requires the value to
-  # be present. Absence of a CRRT record is read as "not on dialysis".
-  missing_is_ineligible: true
+  # A missing organ-quality value is ineligible. Absence of a CRRT record is
+  # read as "not on dialysis".
   contraindications:
-    # Code ranges matched by prefix; the exclude = yes rows apply. Follows the
-    # OPTN eligible-death cancer exclusions. See guides/contraindications.md.
+    # The excluding ICD-10-CM codes, one prefix per row (C34 covers C34.11).
+    # Follows the OPTN eligible-death cancer exclusions; what is not excluded,
+    # and why, is in guides/contraindications.md.
     icd10_file: utils/icd10_contraindications.csv
-    # false: a contraindication code counts at any diagnosis position, whether
-    # or not it was present on admission. Decided 2026-10-07. true is refused,
-    # because requiring present-on-admission is not implemented.
-    use_poa: false
+    # A code counts at any diagnosis position, present on admission or not.
     positive_blood_culture_hours: 48
 
 # ── CALC — secondary administrative comparator ───────────────────────────────
 calc:
-  age_at_death_max: 75
+  # Age limit: the same as CLIF-donor (clif_donor.age_at_death_max).
   cause_icd10_prefixes:
     ischemic_heart_disease: ["I20", "I25"]
     cerebrovascular_disease: ["I60", "I69"]
@@ -76,7 +78,6 @@ calc:
   # "no additive value" (CMS-3380-F pp. 45, 51). The contraindication-based
   # definition in that document belongs to the December 2019 PROPOSED rule,
   # which was not adopted. See DECISIONS D-43.
-  apply_contraindications: false
 
   # Which diagnosis position counts as the cause of death.
   #   any          every diagnosis position           <- PRIMARY ANALYSIS
@@ -90,9 +91,8 @@ calc:
   diagnosis_position: any
 
 # ── Ventilated Patient — HRSA form comparator ────────────────────────────────
-ventilated_patient:
-  imv_hours_before_death: 48
-  apply_age_limit: false                 
+# IMV within clif_donor.imv_hours_before_death of death, no age limit. The
+# count with the age limit is reported beside it (ventilated_age_le75).
 
 # ── Clinical care and contraindications (Table 3) ────────────────────────────
 clinical_care:
@@ -119,7 +119,7 @@ clinical_care:
     - toxoplasma
     - treponema_syphilis
     - hepatitis_serology
-    # HIV serology is not capturable either, but HIV disease is: ICD-10 B20 has
-    # a row in utils/icd10_contraindications.csv, currently exclude = no
-    # (open question for Emily; see guides/questions_for_emily.md).
+    # HIV serology is not capturable either, but HIV disease is (ICD-10 B20).
+    # It is not an exclusion: CLIF-donor excludes on cancer only
+    # (guides/contraindications.md).
     - hiv_serology
