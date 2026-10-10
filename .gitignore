@@ -10,6 +10,7 @@ output/*
 !output/README.md
 *_upload_to_box/
 config/config.json
+config/config_*.json
 !config/config_template.json
 
 # Python bytecode embeds absolute source paths
@@ -32,3 +33,7 @@ manuscript/
 tests/
 guides/contraindications.md
 guides/questions.md
+
+# site bundles collected for pooling: never commit
+all_site_data_manuscript/
+manuscript_results/

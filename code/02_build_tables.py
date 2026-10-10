@@ -525,6 +525,36 @@ for _defn, _steps in CASCADES.items():
         f"{r['n']:,}" for r in _flow if r["definition"] == _defn))
 pl.DataFrame(_flow).write_csv(FINAL / "consort_counts.csv")
 
+# consort.png: the three cascades side by side, for a look without the pooled
+# report. The same numbers as consort_counts.csv, nothing more.
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt   # noqa: E402
+_flow_df = pl.DataFrame(_flow)
+_defs = list(dict.fromkeys(_flow_df["definition"].to_list()))
+_fig, _axes = plt.subplots(1, len(_defs), figsize=(5.6 * len(_defs), 7.5))
+_depth = max(_flow_df.group_by("definition").len()["len"].to_list())   # every column starts at the top
+for _ax, _d in zip(_axes, _defs):
+    _rows = _flow_df.filter(pl.col("definition") == _d).sort("step").to_dicts()
+    _n = _depth
+    _ax.set_xlim(0, 1.6); _ax.set_ylim(0, _n); _ax.axis("off")
+    _ax.set_title(_d, fontsize=12, weight="bold")
+    for _i, _r in enumerate(_rows):
+        _y = _n - _i - 0.5
+        _ax.text(0.45, _y, f"{_r['label']}\n{_r['n']:,}", ha="center", va="center", fontsize=9,
+                 bbox=dict(boxstyle="round,pad=0.4", fc="#eef3f2", ec="#5f8f88"))
+        if _i < len(_rows) - 1:
+            _nxt = _rows[_i + 1]
+            _ax.annotate("", xy=(0.45, _y - 0.78), xytext=(0.45, _y - 0.3),
+                         arrowprops=dict(arrowstyle="->", color="#5f8f88"))
+            _ax.text(0.92, _y - 0.5, f"{_nxt['excluded_label']}\n{_r['n'] - _nxt['n']:,} excluded",
+                     ha="left", va="center", fontsize=8, color="#7a4a1f")
+_fig.suptitle(f"{SITE.upper()}: cohort selection by definition", fontsize=13)
+_fig.tight_layout()
+_fig.savefig(FINAL / "consort.png", dpi=150)
+plt.close(_fig)
+print("CONSORT figure -> consort.png")
+
 # ── academic vs community ────────────────────────────────────────────────────
 # The manuscript compares academic and community hospitals but nothing was ever
 # computed for it. hospital_type comes from the terminal ADT record (CLIF field),
