@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Combined results report — the tables and figures in the manuscript, nothing else.
 
-    python code/coordinating/01_combined_report.py --sites-dir manuscript_results
+    python code/coordinating/01_combined_report.py --sites-dir all_site_data_manuscript
 
 Sites are discovered by scanning the directory. Contents follow
 CLIF-donor manuscript_4_WFP:
@@ -34,6 +34,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt          # noqa: E402
 import numpy as np                       # noqa: E402
 import polars as pl                      # noqa: E402
+import yaml                              # noqa: E402
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO))
@@ -48,7 +49,9 @@ WANTED = ["table_stats_raw", "definition_counts", "hospital_level_counts",
           "definition_overlap_upset", "missingness_by_hospital",
           "strobe_counts", "consort_counts", "data_availability_by_hospital",
           "definition_counts_by_hospital_type", "element_coverage",
-          "exclusion_codes_by_step", "decedents_by_location", "data_quality_flags"]
+          "exclusion_codes_by_step", "decedents_by_location", "data_quality_flags",
+          "value_timing", "ventilation_timing", "vitals_timing", "discharge_vs_death_timing",
+          "organ_criteria"]
 
 
 def discover(d: Path, exclude: set[str]) -> dict[str, Path]:
@@ -58,7 +61,7 @@ def discover(d: Path, exclude: set[str]) -> dict[str, Path]:
             continue
         for cand in (p, p / "final"):
             if (cand / "table_stats_raw.csv").exists():
-                out[p.name] = cand
+                out[p.name.removesuffix("_upload_to_box")] = cand   # a returned bundle keeps its folder name
                 break
     return out
 
@@ -322,13 +325,18 @@ def fig_caterpillar(hosp: pl.DataFrame, defs: list[tuple[str, str, str]],
     return figure(fig, caption)
 
 
-def fig_limits_of_agreement(hosp: pl.DataFrame) -> str:
-    """Figure 4 — limits of agreement between CLIF-donor and CALC, by hospital."""
-    h = num(hosp, ["CLIF_donor", "CALC", "n_decedents"]).filter(pl.col("n_decedents") > 0)
+def fig_limits_of_agreement(hosp: pl.DataFrame, col: str = "CALC", reading: str = "",
+                            tag: str = "4") -> str:
+    """Figure 4 — limits of agreement between CLIF-donor and CALC, by hospital.
+    `col` picks the CALC reading: CALC (the configured diagnosis position),
+    CALC_primary or CALC_primary_poa, all shipped in hospital_level_counts.csv."""
+    if col not in hosp.columns:
+        return ""
+    h = num(hosp, ["CLIF_donor", col, "n_decedents"]).filter(pl.col("n_decedents") > 0)
     if h.height < 3:
         return ""
     a = 100 * h["CLIF_donor"].to_numpy() / h["n_decedents"].to_numpy()
-    b = 100 * h["CALC"].to_numpy() / h["n_decedents"].to_numpy()
+    b = 100 * h[col].to_numpy() / h["n_decedents"].to_numpy()
     mean, diff = (a + b) / 2, a - b
     n = len(diff)
     bias, sd = float(np.mean(diff)), float(np.std(diff, ddof=1))
@@ -354,7 +362,8 @@ def fig_limits_of_agreement(hosp: pl.DataFrame) -> str:
     ax.set_xlabel("mean of the two definitions, % of decedents", fontsize=9)
     ax.set_ylabel("CLIF-donor \u2212 CALC, percentage points", fontsize=9)
     style(ax)
-    return figure(fig, f"Figure 4. Limits of agreement between CLIF-donor and CALC, "
+    return figure(fig, f"Figure {tag}. Limits of agreement between CLIF-donor and CALC"
+                       f"{' (' + reading + ')' if reading else ''}, "
                        f"{n} hospitals. Shaded bands are the 95% CI of each limit")
 
 
@@ -392,6 +401,101 @@ def fig_hospital_type(bt: pl.DataFrame) -> str:
     style(ax)
     return figure(fig, "Figure 3b. Eligibility by hospital type (academic versus community), "
                        "pooled across sites")
+
+
+SITE_COLORS = [TEAL, "#3f6f8f", "#9c5410", "#7a6796", "#5c8a3a", "#b04a5a", "#8a7a2a", "#2f7f8f"]
+
+
+def _palette(*frames) -> dict[str, str]:
+    """One colour per site, the same in every panel, whichever sites a panel has."""
+    sites = sorted({s for f in frames if f is not None for s in f["site"].unique().to_list()})
+    return {s: SITE_COLORS[i % len(SITE_COLORS)] for i, s in enumerate(sites)}
+
+
+def _site_curves(ax, df: pl.DataFrame, hours: list[int], cols: list[str], weight: str | None,
+                 palette: dict[str, str]):
+    """One cumulative curve per site over the hour marks. `weight` pools
+    per-hospital rows into a site figure as a count-weighted mean."""
+    for s in sorted(df["site"].unique().to_list()):
+        d = num(df.filter(pl.col("site") == s), cols + ([weight] if weight else []))
+        if weight:
+            w = d[weight].fill_null(0)
+            ys = [float((d[c].fill_null(0) * w).sum() / w.sum()) if w.sum() else float("nan") for c in cols]
+        else:
+            ys = [float(d[c][0]) for c in cols]
+        ax.plot(hours, ys, marker="o", ms=4, lw=1.6, color=palette[s], label=s.upper())
+    ax.set_xscale("log"); ax.set_xticks(hours); ax.set_xticklabels([f"{h}h" if h < 24 else f"{h // 24}d" for h in hours])
+    ax.set_ylim(0, 102); ax.grid(axis="y", color=RULE, lw=0.6)
+    style(ax)
+
+
+def fig_value_timing(vt: pl.DataFrame) -> str:
+    """Figure S4: for each Table 1 measure, the share of decedents whose last
+    value before death was recorded within 1 h, 6 h, 1 d, 2 d and 7 d of it.
+    One curve per site; a curve to the right of the others is a site whose
+    values are older."""
+    hours, cols = [1, 6, 24, 48, 168], [f"pct_within_{h}h" for h in (1, 6, 24, 48, 168)]
+    measures = [m for m in ("creatinine", "bun", "sodium", "bilirubin_total", "ast", "alt",
+                            "gcs_total", "rass", "weight_kg", "height_cm") if m in vt["measure"].to_list()]
+    ncol = 5; nrow = -(-len(measures) // ncol); palette = _palette(vt)
+    fig, axes = plt.subplots(nrow, ncol, figsize=(3.1 * ncol, 2.7 * nrow), sharey=True)
+    for ax, m in zip(axes.flat, measures):
+        _site_curves(ax, vt.filter(pl.col("measure") == m), hours, cols, None, palette)
+        miss = num(vt.filter(pl.col("measure") == m), ["pct_missing"])
+        ax.set_title(m.replace("_", " "), fontsize=9.5, loc="left")
+        ax.text(0.98, 0.04, "missing " + ", ".join(f"{s.upper()} {float(r):.0f}%" for s, r in
+                zip(miss["site"], miss["pct_missing"])), transform=ax.transAxes, ha="right", fontsize=6.5, color=OCHRE)
+    for ax in list(axes.flat)[len(measures):]:
+        ax.axis("off")
+    axes.flat[0].set_ylabel("% of decedents with the value by then", fontsize=8.5)
+    axes.flat[0].legend(fontsize=7.5, frameon=False, loc="upper left")
+    fig.tight_layout()
+    return figure(fig, "Figure S4. How long before death each value was last recorded, by site. "
+                       "Each curve is the cumulative share of decedents whose last value before death "
+                       "falls within the hours shown; a site to the right of the others carries older values.")
+
+
+def fig_death_time_timing(vent, vit, dvd) -> str:
+    """Figure S5: the evidence behind the time-of-death rule, pooled per site
+    from the per-hospital files as count-weighted means."""
+    panels = []
+    if vent is not None and vent.height:
+        panels.append(("last IMV record before death\n(ventilated decedents)", vent, [1, 6, 24, 48],
+                       [f"pct_within_{h}h" for h in (1, 6, 24, 48)], "n_ventilated"))
+    if vit is not None and vit.height:
+        panels.append(("last recorded vital before death\n(all decedents)", vit, [1, 6, 24, 48],
+                       [f"pct_within_{h}h" for h in (1, 6, 24, 48)], "n_decedents"))
+    if dvd is not None and dvd.height and num(dvd, ["n_timed_death"])["n_timed_death"].sum() > 0:
+        panels.append(("discharge after a timed death\n(decedents with a time of death)", dvd, [1, 6, 24],
+                       [f"pct_discharge_within_{h}h_after" for h in (1, 6, 24)], "n_timed_death"))
+    if not panels:
+        return ""
+    palette = _palette(vent, vit, dvd)
+    fig, axes = plt.subplots(1, len(panels), figsize=(3.6 * len(panels), 3.2), sharey=True)
+    axes = [axes] if len(panels) == 1 else list(axes)
+    for ax, (title, df, hours, cols, w) in zip(axes, panels):
+        _site_curves(ax, df, hours, cols, w, palette)
+        ax.set_title(title, fontsize=9, loc="left")
+    axes[0].set_ylabel("% within the hours shown", fontsize=8.5)
+    handles = [plt.Line2D([], [], color=c, marker="o", ms=4, lw=1.6, label=s.upper()) for s, c in palette.items()]
+    axes[0].legend(handles=handles, fontsize=7.5, frameon=False, loc="lower right")
+    fig.tight_layout()
+    return figure(fig, "Figure S5. The timings behind the time-of-death rule, by site: how close the last "
+                       "ventilator record and the last vital fall to the time of death, and how far discharge "
+                       "falls after a timed death. Per-hospital shares pooled as count-weighted means. A site "
+                       "whose extract records deaths as dates only has no timed deaths and no curve in the third panel.")
+
+
+def organ_criteria_table(oc: pl.DataFrame) -> str:
+    """Table S2: each organ-quality criterion's passes and every reason for
+    failing, per site and pooled, for both populations."""
+    counts = [c for c in oc.columns if c not in ("site", "population")]
+    oc = num(oc, counts)
+    pooled = (oc.group_by("population").agg([pl.col(c).sum() for c in counts])
+              .with_columns(pl.lit("pooled").alias("site")))
+    out = pl.concat([oc.select(["site", "population", *counts]), pooled.select(["site", "population", *counts])])
+    out = out.with_columns([pl.col(c).cast(pl.Int64) for c in counts]).sort(["population", "site"])
+    return html_table(out)
 
 
 def fig_upset(upset: pl.DataFrame, label: str) -> str:
@@ -732,7 +836,7 @@ def build_about() -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--sites-dir", default=str(REPO / "manuscript_results"))
+    ap.add_argument("--sites-dir", default=str(REPO / "all_site_data_manuscript"))
     ap.add_argument("--patient-level-dir", default=str(REPO / "output/intermediate"))
     ap.add_argument("--exclude", nargs="*", default=[])
     ap.add_argument("--srtr-dir",
@@ -799,12 +903,11 @@ def main() -> int:
                     _, _ids = match_hospitals(srtr, _sub.drop("srtr_donors", "matched_srtr"))
                 donor_col_site[_s] = donor_characteristics(srtr, _ids) if _ids else None
             # hospitals sharing a CCN carry the same donors; collapse before summing
-            hosp = (num(hosp, ["n_decedents", "CLIF_donor", "CALC",
-                               "Ventilated_Patient"])
+            _cnt = [c for c in ("n_decedents", "CLIF_donor", "CALC", "Ventilated_Patient",
+                                "CALC_any", "CALC_primary", "CALC_primary_poa") if c in hosp.columns]
+            hosp = (num(hosp, _cnt)
                     .group_by(["site", "hospital_label", "srtr_ccn_id", "hospital_type"])
-                    .agg([pl.col(c).sum() for c in ["n_decedents", "CLIF_donor",
-                          "CALC", "Ventilated_Patient"]]
-                         + [pl.col("srtr_donors").max()]))
+                    .agg([pl.col(c).sum() for c in _cnt] + [pl.col("srtr_donors").max()]))
         else:
             print(f"  SRTR not found at {srtr}; Figure 4 omitted")
 
@@ -894,7 +997,17 @@ def main() -> int:
                 "criteria, by hospital"))
 
             sec("Figure 4. Limits of agreement between CLIF-donor and CALC definitions")
-            blocks.append(fig_limits_of_agreement(hs))
+            # The configured CALC reading first; the principal-diagnosis reading
+            # beside it when the bundles carry it, so the choice of reading
+            # (calc.diagnosis_position) can be made from the same run.
+            _pos = str(yaml.safe_load((REPO / "config/donor_criteria.yaml").read_text())
+                       ["calc"].get("diagnosis_position", "any")).lower()
+            blocks.append(fig_limits_of_agreement(
+                hs, "CALC", {"any": "any diagnosis position", "primary": "principal diagnosis",
+                             "primary_poa": "principal diagnosis, present on admission"}.get(_pos, _pos),
+                "4a" if "CALC_primary" in hs.columns else "4"))
+            if "CALC_primary" in hs.columns and _pos != "primary":
+                blocks.append(fig_limits_of_agreement(hs, "CALC_primary", "principal diagnosis", "4b"))
 
             if "srtr_donors" in hs.columns:
                 sec("Figure 5. Incidence of actual organ donors by medical "
@@ -924,6 +1037,19 @@ def main() -> int:
                     "and hospital type")
                 blocks.append(fig_hospital_type(bt))
                 blocks.append(html_table(bt))
+            vt = cat("value_timing")
+            if vt is not None and vt.height:
+                sec("Figure S4. When each value was last recorded before death, by site")
+                blocks.append(fig_value_timing(vt))
+            ft = fig_death_time_timing(cat("ventilation_timing"), cat("vitals_timing"),
+                                       cat("discharge_vs_death_timing"))
+            if ft:
+                sec("Figure S5. The timings behind the time-of-death rule, by site")
+                blocks.append(ft)
+            oc = cat("organ_criteria")
+            if oc is not None and oc.height:
+                sec("Table S2. Organ-quality criteria: passes and reasons for failing")
+                blocks.append(organ_criteria_table(oc))
         return "".join(blocks)
 
     def by_site(df, key):

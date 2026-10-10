@@ -8,7 +8,7 @@ docs/manuscript_build/MANUSCRIPT_GAPS.md.
 
     python code/coordinating/02_fill_manuscript_tables.py \
         --docx "manuscript/CLIF-donor manuscript_6.docx" \
-        --sites-dir manuscript_results
+        --sites-dir all_site_data_manuscript
 """
 from __future__ import annotations
 
@@ -253,7 +253,7 @@ def fill_table(tbl, mapping: dict, stats, plevel, srtr: dict,
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--docx", required=True)
-    ap.add_argument("--sites-dir", default=str(REPO / "manuscript_results"))
+    ap.add_argument("--sites-dir", default=str(REPO / "all_site_data_manuscript"))
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
 

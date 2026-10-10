@@ -434,7 +434,14 @@ hosp = (cohort.filter(pl.col("hospital_label").is_not_null())
         .group_by(["hospital_label", "srtr_ccn_id", "hospital_type"])
         .agg([pl.col("patient_id").n_unique().alias("n_decedents"),
               *[pl.col(c).fill_null(False).sum().alias(d.replace(" ", "_").replace("-", "_"))
-                for d, c in DEFS]])
+                for d, c in DEFS],
+              # CALC under each diagnosis-position reading, so the pooled figures
+              # can be drawn for a reading other than the configured one
+              # (calc.diagnosis_position) without a re-run. CALC above is the
+              # configured reading.
+              *[(pl.col(c).fill_null(False) & pl.col("age_75_less").fill_null(False)).sum().alias(n)
+                for n, c in (("CALC_any", "calc_cause_any"), ("CALC_primary", "calc_cause_primary"),
+                             ("CALC_primary_poa", "calc_cause_primary_poa"))]])
         .sort("n_decedents", descending=True)
         .with_columns(pl.lit(SITE).alias("site")))
 # Counts are written UNSUPPRESSED. Suppressing here silently broke pooling:

@@ -10,7 +10,7 @@ The SRTR extract is under a DUA. Nothing here reads CLIF data and nothing here
 runs in the per-site pipeline.
 
     python code/coordinating/03_srtr_actual_donors.py
-    python code/coordinating/03_srtr_actual_donors.py --sites-dir manuscript_results \\
+    python code/coordinating/03_srtr_actual_donors.py --sites-dir all_site_data_manuscript \\
         --srtr-dir /path/to/00_SRTR_DATA --years 2020 2025
 
 Writes to the sites directory:
@@ -42,7 +42,7 @@ def collect_hospitals(sites_dir: Path) -> pl.DataFrame:
     """Pool every returned site's hospital_level_counts.csv."""
     frames = []
     for f in sorted(glob.glob(str(sites_dir / "*/hospital_level_counts.csv"))):
-        site = Path(f).parent.name
+        site = Path(f).parent.name.removesuffix("_upload_to_box")
         d = pl.read_csv(f, infer_schema_length=0)
         if "site" not in d.columns:
             d = d.with_columns(pl.lit(site).alias("site"))
@@ -59,7 +59,7 @@ def collect_hospitals(sites_dir: Path) -> pl.DataFrame:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--sites-dir", default=str(REPO / "manuscript_results"))
+    ap.add_argument("--sites-dir", default=str(REPO / "all_site_data_manuscript"))
     ap.add_argument("--srtr-dir", default=DEFAULT_SRTR)
     ap.add_argument("--years", nargs=2, type=int, default=[2020, 2025],
                     metavar=("MIN", "MAX"),
