@@ -82,7 +82,7 @@ def main() -> int:
     # not resolve should not be in the denominator at all — that is the rule the
     # per-site pipeline already applies, and this is the check on it.
     keep = [c for c in ("site", "hospital_label", "srtr_ccn_id", "matched_srtr",
-                        "n_decedents", "CLIF_donor", "CALC", "srtr_donors")
+                        "srtr_hospital_name", "n_decedents", "CLIF_donor", "CALC", "srtr_donors")
             if c in matched.columns]
     out_match = matched.select(keep).sort(["site", "hospital_label"])
     out_match.write_csv(sites_dir / "srtr_hospital_match.csv")
@@ -95,8 +95,10 @@ def main() -> int:
               f"{int(sub['srtr_donors'].sum()):,} donors")
     unmatched = out_match.filter(~pl.col("matched_srtr"))
     if unmatched.height:
-        print(f"\n  {unmatched.height} hospital(s) did NOT resolve — these should not "
-              "be in the denominator:")
+        print(f"\n  {unmatched.height} hospital(s) have a CCN that is not an active hospital "
+              "in SRTR's register. Check the crosswalk: the number is probably retired or "
+              "re-certified, and its decedents are in the denominator with no possible "
+              "donor:")
         for r in unmatched.iter_rows(named=True):
             print(f"    {r['site']:6s} {r.get('hospital_label')} "
                   f"ccn={r.get('srtr_ccn_id')!r}")

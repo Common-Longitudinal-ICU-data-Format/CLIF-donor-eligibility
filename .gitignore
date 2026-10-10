@@ -6,10 +6,10 @@ output/intermediate_phi/*
 !output/intermediate_phi/README.md
 
 # ── CLIF-donor outputs: never commit, never push ─────────────────────────────
-output/
+output/*
+!output/README.md
 *_upload_to_box/
 config/config.json
-config/config_*.json
 !config/config_template.json
 
 # Python bytecode embeds absolute source paths
@@ -24,3 +24,11 @@ reading_guide.md
 # ai folders and packages 
 .venv/
 .claude/
+
+# other local files
+code/exploration/
+tests
+manuscript/
+tests/
+guides/contraindications.md
+guides/questions.md

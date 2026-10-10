@@ -48,7 +48,7 @@ WANTED = ["table_stats_raw", "definition_counts", "hospital_level_counts",
           "definition_overlap_upset", "missingness_by_hospital",
           "strobe_counts", "consort_counts", "data_availability_by_hospital",
           "definition_counts_by_hospital_type", "element_coverage",
-          "exclusion_codes_by_step", "decedents_by_location"]
+          "exclusion_codes_by_step", "decedents_by_location", "data_quality_flags"]
 
 
 def discover(d: Path, exclude: set[str]) -> dict[str, Path]:
@@ -463,37 +463,6 @@ COLMAP = {"Age at death": "age_at_death", "Weight [kg]": "last_weight_kg",
           "First ICU LOS [days]": "first_icu_los_days"}
 DEFCOL = {"CLIF-donor": "clif_eligible_donors", "CALC": "calc_flag",
           "Ventilated Patient": "ventilated_patient_no_age_limit"}
-def fig_sepsis_rules(imp: pl.DataFrame) -> str:
-    """What each candidate sepsis rule actually detects, by site.
-
-    Deliberately NOT plotted as eligibility: the rule that finds the most sepsis
-    leaves the fewest eligible, so an eligibility chart reads backwards. The
-    resulting eligible counts are in the table below the figure.
-    """
-    imp = num(imp, ["n_excluded_by_sepsis", "n_clif_donor_eligible", "denominator"])
-    rules = ["ICD-10 sepsis, ever (current)", "CDC ASE, ever",
-             "CDC ASE, onset within 48h of death", "no sepsis exclusion"]
-    short = ["ICD-10, ever\n(current)", "CDC ASE\never", "CDC ASE\nwithin 48 h",
-             "no sepsis\nexclusion"]
-    sites = sorted(set(imp["site"]))
-    fig, ax = plt.subplots(figsize=(7.6, 3.8))
-    w = .8 / max(len(sites), 1)
-    x = np.arange(len(rules))
-    cols = [TEAL, OCHRE, "#3f6f8f", "#7a6796"]
-    for i, s_ in enumerate(sites):
-        sub = imp.filter(pl.col("site") == s_)
-        vals = [(sub.filter(pl.col("sepsis_rule") == r)["n_excluded_by_sepsis"].to_list()
-                 or [0])[0] for r in rules]
-        b = ax.bar(x + i * w - .4 + w / 2, vals, w * .92, label=s_, color=cols[i % len(cols)])
-        ax.bar_label(b, fmt="%.0f", fontsize=7, padding=1.5)
-    ax.set_xticks(x); ax.set_xticklabels(short, fontsize=8.5)
-    ax.set_ylabel("decedents excluded by the sepsis rule", fontsize=9)
-    ax.legend(frameon=False, fontsize=8.5, ncol=len(sites))
-    ax.grid(axis="y", color=RULE, lw=.8); ax.set_axisbelow(True)
-    style(ax)
-    return figure(fig, "Sepsis rule diagnostic. Decedents excluded by each candidate "
-                       "sepsis criterion, by site \u2014 more excluded means fewer "
-                       "CLIF-donor eligible (table below)")
 
 
 def pool_stats(raw: pl.DataFrame, patient_level: pl.DataFrame | None) -> pl.DataFrame:
@@ -671,15 +640,7 @@ def table3_provenance() -> dict[str, tuple[str, str]]:
 
 
 def build_about() -> str:
-    contra = REPO / "utils/icd10_contraindications.csv"
-    sepsis = _codes("utils/icd10_contraindications.csv", "ICD-10-CM", "description",
-                    pl.col("dx_broad") == "sepsis")
-    cancer_n = 0
-    if contra.exists():
-        cd = pl.read_csv(contra, infer_schema_length=0)
-        cancer_n = cd.filter(pl.col("dx_broad").is_in(["cancer", "other"])).height
-    cancer = _codes("utils/icd10_contraindications.csv", "ICD-10-CM", "description",
-                    pl.col("dx_broad").is_in(["cancer", "other"]), limit=40)
+    cancer = _codes("utils/codes/icd10_contraindications.csv", "code_prefix", "description")
     neuro = _codes("utils/codes/neuro_procedures.csv", "pattern", "description")
 
     calc_rng = [("I20\u2013I25", "Ischemic heart disease"),
@@ -699,18 +660,23 @@ def build_about() -> str:
 
     out.append(block(
         "CLIF-donor", "Definition of interest. Clinical criteria from structured EHR data.", [
-            ("Ventilation", "Last IMV record in <code>respiratory_support</code> within 48 h "
-             "before death (24 h grace after, for late charting). Identical to the "
+            ("Ventilation", "At least one IMV record in <code>respiratory_support</code> in the "
+             "48 h before the time of death. Records after death do not count. Identical to the "
              "Ventilated Patient definition."),
+            ("Time of death", "<code>death_dttm</code> when it has a time of day. When it is only "
+             "a date, <code>discharge_dttm</code> kept inside that date. When it is missing, or "
+             "recorded more than 24 h after discharge, <code>discharge_dttm</code>."),
             ("Age", "\u2264 75 at death, from <code>patient.birth_date</code>, falling back to "
              "<code>age_at_admission</code> where birth date is absent."),
-            ("Cancer / sepsis", "Any contraindicating ICD-10 code on the terminal "
-             "hospitalization. <b>No time window</b> \u2014 <code>hospital_diagnosis</code> "
-             "carries no timestamp. " + pop(f"cancer and related codes ({cancer_n})", cancer,
-                                            "First 40 of "
-                                            f"{cancer_n}; full list in utils/icd10_contraindications.csv.")
-             + " " + pop(f"sepsis codes ({len(sepsis)})", sepsis,
-                         "All 16. Several are non-severe despite Table 1 saying severe sepsis.")),
+            ("Cancer", "Any ICD-10 code, at any diagnosis position, on the terminal "
+             "hospitalization that falls in a contraindicating range: the OPTN eligible-death "
+             "cancer exclusions (current malignancy except non-melanoma skin and primary CNS "
+             "tumours, metastatic disease, history of melanoma, haematologic malignancy). "
+             "<b>No time window</b> \u2014 <code>hospital_diagnosis</code> carries no "
+             "timestamp. Sepsis is not an exclusion. "
+             + pop(f"codes ({len(cancer)})", cancer,
+                   "Matched by prefix: C34 covers C34.11. What is deliberately not "
+                   "excluded, and why, is in guides/contraindications.md.")),
             ("Blood cultures", "No positive blood culture in <code>microbiology_culture</code> "
              "within 48 h of death."),
             ("Organ quality", "Kidney: creatinine &lt; 4 and not on CRRT within 48 h. "
@@ -735,12 +701,12 @@ def build_about() -> str:
 
     out.append(block(
         "Ventilated Patient", "Secondary administrative comparator, from the HRSA form.", [
-            ("Ventilation", "Last IMV record within 48 h before death. This is the same flag "
+            ("Ventilation", "At least one IMV record in the 48 h before death. This is the same flag "
              "CLIF-donor uses, so CLIF-donor is a strict subset of this definition "
              "(verified: no CLIF-donor patient falls outside it)."),
-            ("Age", "<b>No age limit applied</b> (<code>apply_age_limit: false</code>), because "
-             "Table 1 says \u201cNo restrictions\u201d. Applying \u2264 75 would give 7,169 "
-             "instead of 10,013 pooled. <b>Open question Q-04:</b> Table 1 also says "
+            ("Age", "<b>No age limit applied</b>, because "
+             "Table 1 says \u201cNo restrictions\u201d. The count with \u2264 75 applied is reported "
+             "beside it. <b>Open question Q-04:</b> Table 1 also says "
              "\u201cat time of death\u201d, which is stricter than 48 h."),
         ]))
 
@@ -759,28 +725,8 @@ def build_about() -> str:
             ("Serologies", "Not capturable. Strongyloides and chagas are absent from mCIDE; "
              "toxoplasma, syphilis, HIV and hepatitis serologies belong in "
              "<code>microbiology_nonculture</code>, where they are absent."),
-            ("Sepsis, CDC ASE", "<code>clifpy.utils.ase.compute_ase</code> (CDC Sepsis "
-             "Surveillance Toolkit 2018), reported as a diagnostic only. It does not "
-             "currently feed any definition."),
         ]))
 
-    out.append(
-        "<h2>Caveat: the contraindication list is not reproducible</h2>"
-        "<p class='role'>The ICD-10 code set driving the cancer exclusion cannot be "
-        "re-derived from source.</p>"
-        "<div class='scroll'><table class='about'><tbody>"
-        "<tr><td>Contraindications<br><span class='warn'>unverified</span></td>"
-        "<td>1,174 codes in <code>utils/icd10_contraindications.csv</code>, carrying a "
-        "<code>Sheet</code> column of the form <code>CCS 2015 -&gt; ICD-&lt;row&gt;</code>. "
-        "The generating script is not in the repo, so it cannot be re-derived. "
-        "Known defects: 9 codes whose description resolves to \u201cCode not found\u201d; "
-        "<code>C8339</code> duplicated three times; and four codes that are not cancer at "
-        "all but sit in the cancer/other exclusion \u2014 <code>B007</code> disseminated "
-        "herpesviral disease, <code>G92</code> toxic encephalopathy, <code>R8581</code> and "
-        "<code>R87810</code> positive HPV DNA tests. Some decedents are excluded "
-        "from CLIF-donor solely by one of those four codes; each site's "
-        "<code>exclusion_codes_by_step.csv</code> reports how many.</td></tr>"
-        "</tbody></table></div>")
     return "".join(out)
 
 
@@ -801,6 +747,22 @@ def main() -> int:
         return 1
     print(f"sites: {', '.join(sites)}")
     data = {s: load(p) for s, p in sites.items()}
+
+    # Every bundle must come from the same definition of the time of death and
+    # the same ventilation test. The 2d_death_time_* rows of strobe_counts were
+    # added with the rule adopted on 2026-10-01; a bundle without them was built
+    # under the earlier rule and its counts cannot be added to the others.
+    stale = [s for s in sites if "strobe_counts" not in data[s] or not
+             data[s]["strobe_counts"]["metric"].str.starts_with("2d_death_time_").any()]
+    if stale:
+        print(f"cannot pool: {', '.join(stale)} "
+              f"{'was' if len(stale) == 1 else 'were'} produced before the time-of-death rule "
+              f"of 2026-10-01. Re-run the site pipeline on the current code and collect the new bundle.")
+        return 1
+    for s in sites:
+        fl = data[s].get("data_quality_flags")
+        for r in (fl.iter_rows(named=True) if fl is not None else []):
+            print(f"  data-quality flag  {s}: {r['flag']} ({r['severity']}) - {r['detail'][:140]}")
 
     NEED = list(COLMAP.values()) + list(DEFCOL.values())
     pls, missing_pl = [], []
@@ -839,8 +801,7 @@ def main() -> int:
             # hospitals sharing a CCN carry the same donors; collapse before summing
             hosp = (num(hosp, ["n_decedents", "CLIF_donor", "CALC",
                                "Ventilated_Patient"])
-                    .group_by(["site", "hospital_label", "srtr_ccn_id",
-                               "ccn_facility_type", "hospital_type"])
+                    .group_by(["site", "hospital_label", "srtr_ccn_id", "hospital_type"])
                     .agg([pl.col(c).sum() for c in ["n_decedents", "CLIF_donor",
                           "CALC", "Ventilated_Patient"]]
                          + [pl.col("srtr_donors").max()]))

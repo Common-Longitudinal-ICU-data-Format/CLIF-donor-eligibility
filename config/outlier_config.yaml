@@ -538,6 +538,9 @@ tables:
       icsdc_total:
         min: 0
         max: 32
+      rass:
+        min: -5
+        max: 4
       IMS:
         min: 0
         max: 5

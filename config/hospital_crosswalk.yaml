@@ -41,17 +41,6 @@ hospitals:
   - {site: hopkins, hospital_id: "sub", hospital_ccn_id: "210022", srtr_ccn_id: "210022", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: hopkins_210022, hospital_full_name: "Suburban Hospital (Johns Hopkins Medicine)"}
   - {site: hopkins, hospital_id: "smh", hospital_ccn_id: "090005", srtr_ccn_id: "090005", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: hopkins_090005, hospital_full_name: "Sibley Memorial Hospital"}
 
-  # ── mgb ─────────────────────────────────────────────────────────────────
-  - {site: mgb, hospital_id: "1011001", hospital_ccn_id: "221300", srtr_ccn_id: "221300", ccn_facility_type: critical_access, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: mgb_221300, hospital_full_name: "Martha's Vineyard Hospital"}
-  - {site: mgb, hospital_id: "1002001", hospital_ccn_id: "220071", srtr_ccn_id: "220071", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: mgb_220071, hospital_full_name: "Massachusetts General Hospital"}
-  - {site: mgb, hospital_id: "1019001", hospital_ccn_id: "300018", srtr_ccn_id: "300018", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: mgb_300018, hospital_full_name: "Wentworth-Douglass Hospital"}
-  - {site: mgb, hospital_id: "1005002", hospital_ccn_id: "220035", srtr_ccn_id: "220035", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: mgb_220035, hospital_full_name: "Salem Hospital"}
-  - {site: mgb, hospital_id: "1004001", hospital_ccn_id: "220119", srtr_ccn_id: "220119", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: mgb_220119, hospital_full_name: "Brigham and Women's Faulkner Hospital"}
-  - {site: mgb, hospital_id: "1003001", hospital_ccn_id: "220110", srtr_ccn_id: "220110", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: mgb_220110, hospital_full_name: "Brigham and Women's Hospital"}
-  - {site: mgb, hospital_id: "1001001", hospital_ccn_id: "220101", srtr_ccn_id: "220101", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: mgb_220101, hospital_full_name: "Newton-Wellesley Hospital"}
-  - {site: mgb, hospital_id: "1012001", hospital_ccn_id: "220177", srtr_ccn_id: "220177", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: mgb_220177, hospital_full_name: "Nantucket Cottage Hospital"}
-  - {site: mgb, hospital_id: "1015001", hospital_ccn_id: "220015", srtr_ccn_id: "220015", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: mgb_220015, hospital_full_name: "Cooley Dickinson Hospital"}
-
   # ── mich ────────────────────────────────────────────────────────────────
   - {site: mich, hospital_id: "michigan", hospital_ccn_id: "230046", srtr_ccn_id: "230046", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: mich_230046, hospital_full_name: "University of Michigan Health"}
 
@@ -62,9 +51,9 @@ hospitals:
   - {site: nu, hospital_id: "nu_nmh", hospital_ccn_id: "140281", srtr_ccn_id: "140281", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140281, hospital_full_name: "Northwestern Memorial Hospital"}
   - {site: nu, hospital_id: "nu_cdh", hospital_ccn_id: "140242", srtr_ccn_id: "140242", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140242, hospital_full_name: "Northwestern Medicine Central DuPage Hospital"}
   - {site: nu, hospital_id: "nu_dh", hospital_ccn_id: "140154", srtr_ccn_id: "140154", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140154, hospital_full_name: "Northwestern Medicine Delnor Community Hospital"}
-    # CCN corrected 2026-08-24. The shared crosswalk carried 140211, which SRTR shows as
-    # "COMMUNITY HOSPITAL, Geneva" — INACTIVE, 0 donors 2020-2025. 140154 is the active
-    # record, "Northwestern Medicine Delnor Hospital, Geneva", same ZIP 60134, 20 donors.
+    # CCN corrected 2026-08-24. The shared crosswalk carried 140211, which SRTR lists as an
+    # inactive record ("COMMUNITY HOSPITAL, Geneva"). 140154 is the active record,
+    # "Northwestern Medicine Delnor Hospital, Geneva", same ZIP 60134.
   - {site: nu, hospital_id: "nu_lfh", hospital_ccn_id: "140130", srtr_ccn_id: "140130", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140130, hospital_full_name: "Northwestern Medicine Lake Forest Hospital"}
   - {site: nu, hospital_id: "nu_kh", hospital_ccn_id: "140286", srtr_ccn_id: "140286", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140286, hospital_full_name: "Northwestern Medicine Kishwaukee Hospital"}
   - {site: nu, hospital_id: "nu_hh", hospital_ccn_id: "140116", srtr_ccn_id: "140116", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140116, hospital_full_name: "Northwestern Medicine Huntley Hospital"}
@@ -72,8 +61,8 @@ hospitals:
   - {site: nu, hospital_id: "nu_ph", hospital_ccn_id: "140062", srtr_ccn_id: "140062", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140062, hospital_full_name: "Northwestern Medicine Palos Hospital"}
   - {site: nu, hospital_id: "nu_vwh", hospital_ccn_id: "141340", srtr_ccn_id: "140203", ccn_facility_type: critical_access, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140203, hospital_full_name: "Northwestern Medicine Valley West Hospital"}
   - {site: nu, hospital_id: "nu_wh", hospital_ccn_id: "140176", srtr_ccn_id: "140176", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140176, hospital_full_name: "Northwestern Medicine Woodstock Hospital"}
-    # Added 2026-08-24: nu_wh appears in NU's ADT (888 hospitalizations) but was absent from
-    # the shared crosswalk. SRTR: active, ZIP 60098, 0 donors 2020-2025 (12 all years).
+    # Added 2026-08-24: nu_wh appears in NU's ADT but was absent from the shared crosswalk.
+    # Active in SRTR, ZIP 60098.
     # CMS-current CCN 141340 (critical access) is absent from SRTR donorhospital2506; SRTR attributes this facility to 140203.
 
   # ── ohsu ────────────────────────────────────────────────────────────────
@@ -96,10 +85,6 @@ hospitals:
 
   # ── rush ────────────────────────────────────────────────────────────────
   - {site: rush, hospital_id: "rumc", hospital_ccn_id: "140119", srtr_ccn_id: "140119", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: rush_140119, hospital_full_name: "Rush University Medical Center"}
-  - {site: rush, hospital_id: "0ef9a308eadb4a18b8af3e3c8259ed86", hospital_ccn_id: "140119", srtr_ccn_id: "140119", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: rush_140119, hospital_full_name: "Rush University Medical Center (de-identified hospital_id)"}
-    # RUSH distributes a de-identified extract whose adt.hospital_id is a hash. RUSH is a
-    # single-hospital site, so the hash resolves unambiguously to RUMC. If RUSH re-hashes on a
-    # future extract this row must be updated — 01_cohort_and_definitions.py will halt until it is.
 
   # ── ucmc ────────────────────────────────────────────────────────────────
   - {site: ucmc, hospital_id: "ucmc", hospital_ccn_id: "140088", srtr_ccn_id: "140088", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: ucmc_140088, hospital_full_name: "University of Chicago Medical Center"}

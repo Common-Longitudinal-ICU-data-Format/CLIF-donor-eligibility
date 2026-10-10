@@ -61,7 +61,7 @@ clif_donor:
     # The excluding ICD-10-CM codes, one prefix per row (C34 covers C34.11).
     # Follows the OPTN eligible-death cancer exclusions; what is not excluded,
     # and why, is in guides/contraindications.md.
-    icd10_file: utils/icd10_contraindications.csv
+    icd10_file: utils/codes/icd10_contraindications.csv
     # A code counts at any diagnosis position, present on admission or not.
     positive_blood_culture_hours: 48
 
@@ -77,7 +77,8 @@ calc:
   # only; CMS tested adding contraindication exclusions and declined, finding
   # "no additive value" (CMS-3380-F pp. 45, 51). The contraindication-based
   # definition in that document belongs to the December 2019 PROPOSED rule,
-  # which was not adopted. See DECISIONS D-43.
+  # which was not adopted. 
+  # [Reference](https://www.cms.gov/files/document/112020-opo-final-rule-cms-3380-f.pdf)
 
   # Which diagnosis position counts as the cause of death.
   #   any          every diagnosis position           <- PRIMARY ANALYSIS
@@ -96,8 +97,11 @@ calc:
 
 # ── Clinical care and contraindications (Table 3) ────────────────────────────
 clinical_care:
+  # Six neurologic procedure concepts for Table 3, as CPT codes and ICD-10-PCS
+  # patterns. The file carries a description per code.
+  procedures_file: utils/codes/neuro_procedures.csv
   medications:
-    # mCIDE med_category values, verified present in CLIF 2.1 at UCMC.
+    # mCIDE med_category values present in CLIF 2.1.
     corticosteroid_bolus: [dexamethasone, methylprednisolone, hydrocortisone]
     vasopressin:          [vasopressin]
     levothyroxine:        [levothyroxine]
@@ -123,3 +127,12 @@ clinical_care:
     # It is not an exclusion: CLIF-donor excludes on cancer only
     # (guides/contraindications.md).
     - hiv_serology
+
+# ── Reporting lists ──────────────────────────────────────────────────────────
+# Code lists that describe the cohort but decide nothing.
+reporting:
+  # Table 2 comorbidity rows (HCV, hypertension, diabetes, CVA) as ICD-10 prefixes.
+  comorbidities_file: utils/codes/icd10_comorbidities.csv
+  # Donor-related administrative procedure codes, checked for presence in the
+  # extract (donor_administrative_code_availability.csv).
+  donor_administrative_codes_file: utils/codes/donor_administrative_codes.csv

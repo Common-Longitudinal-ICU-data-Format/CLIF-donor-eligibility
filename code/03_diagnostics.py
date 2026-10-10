@@ -26,23 +26,26 @@ absence of a record means the event did not happen, not that it is unknown.
 Conflating the two overstates missingness, so only measurement fields are
 counted and event-derived fields are listed separately as "not applicable".
 
-    CLIF_DONOR_SITE=ucmc python code/03_diagnostics.py
+    uv run python code/03_diagnostics.py       # reads config/config.json
 """
 from __future__ import annotations
 
 import sys
+
+# Print Unicode (≤, →) on any console, Windows included
+sys.stdout.reconfigure(encoding="utf-8")
 from itertools import combinations
 from pathlib import Path
 
 import matplotlib
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt          # noqa: E402
-import polars as pl                      # noqa: E402
+import matplotlib.pyplot as plt          
+import polars as pl                    
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
-from utils.audit import StageAudit        # noqa: E402
-from utils.config import config           # noqa: E402
+from utils.audit import StageAudit       
+from utils.config import config         
 
 SITE = config["site_name"]
 INTER = Path(config["output_intermediate"])
@@ -161,7 +164,7 @@ if "hospital_label" in cohort.columns:
             hrows.append({"site": SITE, "hospital_label": hid, "field": f,
                           "n_total": g.height, "n_missing": int(g[f].null_count()),
                           "pct_missing": round(100 * g[f].null_count() / g.height, 2)})
-pl.DataFrame(hrows).write_csv(FINAL / "missingness_by_hospital.csv")
+pl.DataFrame(hrows).sort(["hospital_label", "field"]).write_csv(FINAL / "missingness_by_hospital.csv")
 print(f"\n2b. missingness by hospital -> {len(hrows)} field-hospital rows")
 
 # ── 2c. data availability, by hospital ───────────────────────────────────────
@@ -177,8 +180,11 @@ FT = config.get("file_type", "parquet")
 con = duckdb.connect()
 avail_rows = []
 if "hospital_label" in cohort.columns and "hospitalization_id" in cohort.columns:
-    ids = cohort.select(["hospitalization_id", "hospital_label"]).to_pandas()
-    ids["hospitalization_id"] = ids["hospitalization_id"].astype(str)
+    # Every stay in each decedent's encounter block, counted per patient.
+    ids = (pl.read_parquet(INTER / "encounter_block_members.parquet")
+           .with_columns(pl.col("hospitalization_id").cast(pl.Utf8))
+           .join(cohort.select(["patient_id", "hospital_label"]), on="patient_id", how="inner")
+           .to_pandas())
     con.register("ids_df", ids)
 
     def coverage(table: str, label: str, extra_select: str = "") -> None:
@@ -191,9 +197,9 @@ if "hospital_label" in cohort.columns and "hospitalization_id" in cohort.columns
             return
         q = con.sql(f"""
             SELECT i.hospital_label,
-                   count(DISTINCT i.hospitalization_id) AS n_decedents,
+                   count(DISTINCT i.patient_id) AS n_decedents,
                    count(DISTINCT CASE WHEN t.hospitalization_id IS NOT NULL
-                                       THEN i.hospitalization_id END) AS n_with_data,
+                                       THEN i.patient_id END) AS n_with_data,
                    COALESCE(count(t.hospitalization_id),0) AS n_rows
                    {extra_select}
             FROM ids_df i
@@ -224,7 +230,7 @@ if "hospital_label" in cohort.columns and "hospitalization_id" in cohort.columns
                        ("crrt_therapy", "CRRT")]:
         coverage(_tbl, _lab)
 
-pl.DataFrame(avail_rows).write_csv(FINAL / "data_availability_by_hospital.csv")
+pl.DataFrame(avail_rows).sort(["hospital_label", "source"]).write_csv(FINAL / "data_availability_by_hospital.csv")
 print(f"\n2c. data availability -> {len(avail_rows)} source-hospital rows")
 
 # ── 2d. element coverage: absent from the data, or absent from the cohort? ───
@@ -233,9 +239,8 @@ print(f"\n2c. data availability -> {len(avail_rows)} source-hospital rows")
 # footnoted, not reported as 0%), or the site records it and no decedent had it
 # (a real clinical finding). Those are indistinguishable in the tables, so each
 # concept is probed twice: site-wide, and restricted to cohort decedents.
-import re as _re                                                     # noqa: E402
-import yaml as _yaml                                                 # noqa: E402
-
+import re as _re                                                     
+import yaml as _yaml                                                
 _CRIT = _yaml.safe_load((REPO / "config/donor_criteria.yaml").read_text())
 elem_rows = []
 
@@ -277,7 +282,7 @@ def _probe(concept: str, group: str, table: str, col: str,
 
 if "hospitalization_id" in cohort.columns:
     # neuro procedures, by concept, across both vocabularies
-    _np = pl.read_csv(REPO / "utils/codes/neuro_procedures.csv", comment_prefix="#")
+    _np = pl.read_csv(REPO / _CRIT["clinical_care"]["procedures_file"], comment_prefix="#")
     for concept in sorted(set(_np["concept"])):
         rows = _np.filter(pl.col("concept") == concept)
         ex = [str(v) for v in rows.filter(pl.col("match_type") == "exact")["pattern"]]
@@ -438,14 +443,15 @@ audit.write()
 #   n_clif_donor       it appears on someone CLIF-donor already identifies
 # Codes and vocabulary labels are normalised on BOTH sides (upper-case, strip
 # non-alphanumerics) because the sites spell the vocabulary three different ways.
-_dac_path = REPO / "utils/codes/donor_administrative_codes.csv"
+_dac_path = REPO / _CRIT["reporting"]["donor_administrative_codes_file"]
 if _dac_path.exists() and "hospitalization_id" in cohort.columns:
     _dac = pl.read_csv(_dac_path, comment_prefix="#", infer_schema_length=0)
     _nrm = lambda s: _re.sub(r"[^0-9A-Za-z]", "", str(s)).upper()
 
-    con.register("coh_dac", cohort.select(
-        ["patient_id", "hospitalization_id", "clif_eligible_donors"]).with_columns(
-        pl.col("hospitalization_id").cast(pl.Utf8)).to_pandas())
+    con.register("coh_dac", pl.read_parquet(INTER / "encounter_block_members.parquet")
+        .with_columns(pl.col("hospitalization_id").cast(pl.Utf8))
+        .join(cohort.select(["patient_id", "clif_eligible_donors"]), on="patient_id", how="inner")
+        .to_pandas())
 
     # Normalised views of both source tables, vocabulary label included so a hit
     # can be attributed to the vocabulary it came from.
@@ -506,7 +512,7 @@ if _dac_path.exists() and "hospitalization_id" in cohort.columns:
 # STROBE counts, the CONSORT, definition_counts and the Table 2 denominators
 # means one of them is wrong, and a wrong number that only appears in one place
 # is exactly what nobody notices.
-from utils.provenance import reconcile, render          # noqa: E402
+from utils.provenance import reconcile, render          
 _problems = reconcile(FINAL)
 _prov = render(FINAL, _problems)
 print(f"\nwrote {_prov}")

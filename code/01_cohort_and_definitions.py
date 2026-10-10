@@ -32,7 +32,6 @@ from utils.death_time import (SOURCES as DEATH_TIME_SOURCES, add_death_anchor, c
 from utils.windows import imv_before_death_sql
 from utils.progress import Progress
 from utils.criteria import contraindication_sql, icd_range_sql, load_contraindications
-import gc
 
 # Timestamp arithmetic must not depend on the machine this runs on. DuckDB's
 # session timezone defaults to the operating system's; pin it so a subtraction
@@ -62,7 +61,6 @@ if PROJECT_ROOT.expanduser().resolve() != _REPO_HERE:
     raise SystemExit(
         f"config.json: project_root is '{PROJECT_ROOT}', which is not the folder "
         f"this code is in ({_REPO_HERE}). Set project_root to that path and rerun.")
-UTILS_DIR = PROJECT_ROOT / "utils"
 # PHI split: output/intermediate_phi/<site>/ never leaves the site;
 # <site>_upload_to_box/ holds aggregate, shareable output. Per-site subfolders so
 # three sites can be run on one machine without clobbering each other.
@@ -213,6 +211,10 @@ OUTLIER_CONFIG = PROJECT_ROOT / "config/outlier_config.yaml"
 # outlier_config.yaml is the only place any range is defined.
 WEIGHT_MIN, WEIGHT_MAX = outlier_range("vitals", "vital_value", "weight_kg", OUTLIER_CONFIG)
 HEIGHT_MIN, HEIGHT_MAX = outlier_range("vitals", "vital_value", "height_cm", OUTLIER_CONFIG)
+HR_MIN, HR_MAX = outlier_range("vitals", "vital_value", "heart_rate", OUTLIER_CONFIG)
+AGE_MIN, AGE_MAX = outlier_range("hospitalization", "age_at_admission", None, OUTLIER_CONFIG)
+GCS_MIN, GCS_MAX = outlier_range("patient_assessments", "numerical_value", "gcs_total", OUTLIER_CONFIG)
+RASS_MIN, RASS_MAX = outlier_range("patient_assessments", "numerical_value", "rass", OUTLIER_CONFIG)
 
 OUTPUT_DIR = PROJECT_ROOT / "output"
 OUTPUT_FINAL_DIR = Path(config["output_final"])
@@ -401,19 +403,14 @@ adt_stitched = adt_stitched.with_columns(
     pl.col("encounter_block").cast(pl.Int32)
 )
 
-# Filter hosp_stitched to only hospitalizations that are present in the adt_stitched table
-if "hospitalization_id" in hosp_stitched.columns and "hospitalization_id" in adt_stitched.columns:
-    hosp_stitched = (
-        hosp_stitched.filter(
-            pl.col("hospitalization_id").is_in(adt_stitched["hospitalization_id"].unique())
-        )
-    )
+# Only stays with an ADT row go on: without one there is no location and no hospital.
+hosp_stitched = hosp_stitched.filter(
+    pl.col("hospitalization_id").is_in(adt_stitched["hospitalization_id"].unique()))
 encounter_mapping = pl.from_pandas(encounter_mapping)
 encounter_mapping = encounter_mapping.with_columns(
     pl.col("encounter_block").cast(pl.Int32)
 )
 
-gc.collect()
 
 # Identify expired encounters
 decedents_df = hosp_stitched.filter(
@@ -517,7 +514,6 @@ strobe_counts["1b_decedents_without_adt"] = int(
     all_decedents_df.filter(~pl.col("patient_id").is_in(_pts_with_adt))["patient_id"].n_unique())
 assert strobe_counts["0c_decedents_in_window"] - strobe_counts["1b_decedents_without_adt"] \
     == decedents_df_n, "decedent flow does not reconcile: 0c - 1b != 1"
-strobe_counts
 
 _progress.mark("Stitch Encounters")
 
@@ -587,7 +583,7 @@ final_df = final_df.join(
     how='left'
 )
 
-# Decedent counts by ADT location, so a site difference like RUSH's hospice unit
+# Decedent counts by ADT location, so a site difference like a hospice unit
 # is a reported number rather than something absorbed into a filter.
 # Grouped by the TERMINAL location, but inclusion depends on ANY location in
 # the stay: a patient whose last record is 'procedural' is still in the cohort
@@ -631,22 +627,27 @@ def _hospital_in_study(row: dict) -> bool:
 _excluded_ids = {str(r["hospital_id"]).lower().strip() for r in _XWALK
                  if r["site"] == site_name and not _hospital_in_study(r)}
 _terminal_hosp = (
-    adt_df.filter(pl.col("hospitalization_id").is_in(final_cohort_df["hospitalization_id"].implode()))
+    adt_df.filter(pl.col("hospitalization_id").is_in(final_cohort_df["hospitalization_id"].implode())
+                  & pl.col("hospital_id").is_not_null())
     .sort(["out_dttm", "hospital_id"], descending=[True, False], nulls_last=True)
     .group_by("hospitalization_id", maintain_order=True).first()
-    .select("hospitalization_id",
-            pl.col("hospital_id").cast(pl.Utf8).str.to_lowercase().str.strip_chars().alias("_hosp")))
-_drop = _terminal_hosp.filter(pl.col("_hosp").is_in(list(_excluded_ids)))["hospitalization_id"]
+    .select(pl.col("hospitalization_id").cast(pl.Utf8),
+            pl.col("hospital_id").cast(pl.Utf8).str.to_lowercase().str.strip_chars().alias("hospital_id_key"),
+            pl.col("hospital_type").cast(pl.Utf8).str.to_lowercase().str.strip_chars().alias("hospital_type")))
+_drop = _terminal_hosp.filter(pl.col("hospital_id_key").is_in(list(_excluded_ids)))["hospitalization_id"]
 strobe_counts["2g_deaths_at_excluded_hospitals"] = int(_drop.len())
-final_cohort_df = final_cohort_df.filter(~pl.col("hospitalization_id").is_in(_drop.implode()))
+# hospital_id_key and hospital_type (academic or community, a CLIF field) stay on
+# the cohort: the hospital where the patient died.
+final_cohort_df = (final_cohort_df.with_columns(pl.col("hospitalization_id").cast(pl.Utf8))
+                   .filter(~pl.col("hospitalization_id").is_in(_drop.implode()))
+                   .join(_terminal_hosp, on="hospitalization_id", how="left"))
 print(f"Decedents at hospitals excluded from the study: {_drop.len():,}")
 
 # Age at death, in years, from birth_date. Where the birth date is missing,
 # age_at_admission stands in: it understates age by the length of stay, days for
-# a decedent, so at the limit it can only over-include. A de-identified extract
-# (RUSH) has no birth dates at all. A decedent with neither has no age, and two
+# a decedent, so at the limit it can only over-include.  A decedent with neither has no age, and two
 # of the three definitions need one, so they leave the cohort here and every
-# definition keeps the same denominator. Some sites store birth_date without a
+# definition keeps the same denominator. CLIF stores birth_date without a
 # timezone while final_death_dttm has one; align_time_zone relabels it so the
 # two can be subtracted.
 _birth = align_time_zone('birth_date', patient_df.schema['birth_date'],
@@ -655,12 +656,18 @@ final_cohort_df = (
     final_cohort_df
     .join(patient_df.select(['patient_id', 'birth_date']), on='patient_id', how='left')
     .with_columns(((pl.col('final_death_dttm') - _birth).dt.total_days() / 365.25).alias('_age_from_birth'))
+    # An age outside the plausible range, from either source, is no age: some
+    # extracts record an unknown birth date as 1900-01-01 and carry the patient at 120+.
     .with_columns(
-        pl.coalesce('_age_from_birth', pl.col('age_at_admission').cast(pl.Float64)).alias('age_at_death'),
+        pl.when(pl.col('_age_from_birth').is_between(AGE_MIN, AGE_MAX)).then('_age_from_birth').alias('_age_from_birth'),
+        pl.when(pl.col('age_at_admission').is_between(AGE_MIN, AGE_MAX)).then('age_at_admission')
+          .cast(pl.Float64).alias('_age_at_admission'))
+    .with_columns(
+        pl.coalesce('_age_from_birth', '_age_at_admission').alias('age_at_death'),
         pl.when(pl.col('_age_from_birth').is_not_null()).then(pl.lit('birth_date'))
-          .when(pl.col('age_at_admission').is_not_null()).then(pl.lit('age_at_admission'))
+          .when(pl.col('_age_at_admission').is_not_null()).then(pl.lit('age_at_admission'))
           .alias('age_source'))
-    .drop('_age_from_birth'))
+    .drop('_age_from_birth', '_age_at_admission'))
 strobe_counts["2h_deaths_without_age"] = final_cohort_df.filter(pl.col('age_at_death').is_null()).height
 strobe_counts["2i_age_from_age_at_admission"] = final_cohort_df.filter(
     pl.col('age_source') == 'age_at_admission').height
@@ -734,10 +741,10 @@ _progress.mark("Inpatient decedents")
 vitals_filepath = f"{tables_path}/clif_vitals.{file_type}"
 
 
-def _latest_plausible(category: str, lo: float, hi: float) -> str:
+def _latest_plausible(category: str, lo: float, hi: float, pick: str = "vital_value") -> str:
     # arg_max ordered by (time, value): the most recent plausible reading, a tie
     # at the same timestamp going to the larger value, so the result is deterministic.
-    return (f"arg_max(vital_value, {{'t': recorded_dttm, 'v': vital_value}}) "
+    return (f"arg_max({pick}, {{'t': recorded_dttm, 'v': vital_value}}) "
             f"FILTER (WHERE vital_category = '{category}' AND vital_value BETWEEN {lo} AND {hi})")
 
 
@@ -749,10 +756,13 @@ print("Processing vitals data with DuckDB...")
 vitals_by_block = pl.from_pandas(duckdb.sql(f"""
 SELECT b.encounter_block,
        MAX(recorded_dttm) AS last_recorded_vital_dttm,
-       MAX(recorded_dttm) FILTER (WHERE vital_category = 'heart_rate' AND vital_value > 0)
+       MAX(recorded_dttm) FILTER (WHERE vital_category = 'heart_rate'
+                                  AND vital_value > 0 AND vital_value BETWEEN {HR_MIN} AND {HR_MAX})
            AS last_hr_above_zero_dttm,
        {_latest_plausible('weight_kg', WEIGHT_MIN, WEIGHT_MAX)} AS last_weight_kg,
-       {_latest_plausible('height_cm', HEIGHT_MIN, HEIGHT_MAX)} AS last_height_cm
+       {_latest_plausible('height_cm', HEIGHT_MIN, HEIGHT_MAX)} AS last_height_cm,
+       {_latest_plausible('weight_kg', WEIGHT_MIN, WEIGHT_MAX, 'recorded_dttm')} AS last_weight_dttm,
+       {_latest_plausible('height_cm', HEIGHT_MIN, HEIGHT_MAX, 'recorded_dttm')} AS last_height_dttm
 FROM (SELECT hospitalization_id, recorded_dttm, LOWER(TRIM(vital_category)) AS vital_category, vital_value
       FROM read_parquet('{vitals_filepath}')) v
 JOIN block_members_df b ON v.hospitalization_id = b.hospitalization_id
@@ -773,8 +783,7 @@ _progress.mark("Weight, height and BMI; the last recorded vital")
 
 # Hospital and first-ICU length of stay over the whole encounter block, in
 # fractional days of elapsed time. The death stay alone is wrong wherever a
-# transfer starts a new hospitalization_id: at RUSH the hospice leg is usually
-# under a day and the episode before it ten. Hospital stay is first admission
+# transfer starts a new hospitalization_id. Hospital stay is first admission
 # to last discharge from the hospitalization table; ICU stay comes from ADT.
 def _days(later: str, earlier: str, df: pl.DataFrame) -> pl.Expr:
     return hours_between(later, earlier, df.schema, SITE_TZ) / 24
@@ -793,7 +802,7 @@ adt_in_blocks = (
     .filter(pl.col("hospitalization_id").is_in(block_members["hospitalization_id"].to_list()))
     .with_columns(pl.col("location_category").str.to_lowercase()))
 
-# The first ICU stay is the earliest ICU row of the block. Some sites (NU) log
+# The first ICU stay is the earliest ICU row of the block. Some sites log
 # more than one ICU row at that in_dttm with different out_dttm; the latest out
 # is taken, so the stay is the longest one starting at that moment.
 _icu = adt_in_blocks.filter(pl.col("location_category") == "icu")
@@ -832,39 +841,23 @@ _progress.mark("Age")
 # - I60–I69: cerebrovascular disease
 # - V01–Y89: external causes (e.g., blunt trauma, gunshot wounds, overdose, suicide, drowning, asphyxiation)
 # [Reference](https://www.cms.gov/files/document/112020-opo-final-rule-cms-3380-f.pdf)
-# We also flag contraindicating cancers using the ICD-10 code ranges in utils/icd10_contraindications.csv
+# We also flag contraindicating cancers using the ICD-10 code ranges in utils/codes/icd10_contraindications.csv
 ################################################################################
 
 hospial_dx_filepath = f"{tables_path}/clif_hospital_diagnosis.{file_type}"
 
-# Diagnostic counts via DuckDB (streamed; previously a polars read+join that
-# segfaulted on Windows at sites with large hospital_diagnosis tables).
-# DuckDB infers the column type of an EMPTY pandas frame as INTEGER, which then
-# fails to compare against VARCHAR ids ("Cannot compare values of type VARCHAR
-# and INTEGER"). Forcing str dtype keeps the comparison valid even when a site
-# legitimately has zero rows at this stage.
-all_ids_df = pd.DataFrame(
-    {"hospitalization_id": pd.Series(list(all_decedent_inpatient_hosp_ids), dtype="str")})
-age_relevant_ids_df = (
-    final_cohort_df.filter(pl.col('age_75_less')).select("patient_id").unique().to_pandas().astype({"patient_id": "str"}))
-
-n_present = duckdb.sql(f"""
-    SELECT COUNT(DISTINCT hospitalization_id)
-    FROM read_parquet('{hospial_dx_filepath}')
-    WHERE CAST(hospitalization_id AS VARCHAR) IN (SELECT hospitalization_id FROM all_ids_df)
-""").fetchone()[0]
-print(f"Hospitalization IDs present in hospital_dx: {n_present} out of "
-      f"{len(all_decedent_inpatient_hosp_ids)}")
-strobe_counts["5_present_inpatient_hospitalization_ids_in_hospital_dx"] = n_present
-
-n_age_relevant = duckdb.sql(f"""
-    SELECT COUNT(DISTINCT hosp.patient_id)
+# Diagnosis coverage: decedents with at least one diagnosis row in any stay of
+# their encounter block. Streamed through DuckDB; a polars read and join
+# segfaulted on Windows at sites with large hospital_diagnosis tables.
+_n_with_dx = duckdb.sql(f"""
+    SELECT COUNT(DISTINCT b.patient_id)
     FROM read_parquet('{hospial_dx_filepath}') hd
-    JOIN hospitalization_df hosp ON hd.hospitalization_id = hosp.hospitalization_id
-    WHERE CAST(hd.hospitalization_id AS VARCHAR) IN (SELECT hospitalization_id FROM all_ids_df)
-      AND CAST(hosp.patient_id AS VARCHAR)     IN (SELECT patient_id      FROM age_relevant_ids_df)
+    JOIN block_members_df b
+      ON CAST(hd.hospitalization_id AS VARCHAR) = CAST(b.hospitalization_id AS VARCHAR)
 """).fetchone()[0]
-strobe_counts["5_age_relevant_in_hospital_dx"] = n_age_relevant
+strobe_counts["5_decedents_with_any_diagnosis"] = _n_with_dx
+print(f"Decedents with a diagnosis row in any stay of their encounter block: "
+      f"{_n_with_dx:,} of {len(all_decedent_inpatient_patient_ids):,}")
 
 # ---- 0) Load the contraindication list ----
 # Code prefixes: C34 covers C34.11. The list follows the OPTN eligible-death
@@ -876,7 +869,7 @@ print(f"Contraindication list: {len(CONTRA_CODES)} code prefixes")
 # ---- 0b) Load comorbidity prefixes (HCV, HTN, DM, Hx CVA) from CSV ----
 # These are PREFIX matches (3-4 char ICD blocks) — e.g. 'i10' matches any
 # code starting with i10 (i10, i109, i1010, etc.). Lowercase + no periods.
-comorbidities_df = pl.read_csv(str(UTILS_DIR / "icd10_comorbidities.csv"))
+comorbidities_df = pl.read_csv(PROJECT_ROOT / CRIT["reporting"]["comorbidities_file"])
 comorbidity_prefixes: dict[str, list[str]] = {}
 for row in comorbidities_df.iter_rows(named=True):
     prefix = str(row["code_prefix"]).strip().lower().replace(".", "")
@@ -886,7 +879,6 @@ print(f"Loaded comorbidity prefixes: " +
       ", ".join(f"{k}={len(v)}" for k, v in comorbidity_prefixes.items()))
 
 # ---- 1) Compute ICD-10 cause + comorbidity flags via DuckDB SQL ----
-# (all_ids_df is already bound above for the diagnostic queries.)
 
 # Build SQL clauses for each comorbidity (HCV/HTN/DM/CVA) — prefix LIKE chain
 def _comorbidity_clause(key: str, prefixes: list[str]) -> str:
@@ -995,7 +987,7 @@ if _n_external == 0 and _n_injury > 0:
                    f"record external causes.")})
     print(f"  WARNING  no external-cause codes ({_lo}-{_hi}) although injury codes are present: "
           f"CALC lacks its external-cause arm at this site (see data_quality_flags.csv)")
-_n_without_dx = len(all_decedent_inpatient_hosp_ids) - n_present
+_n_without_dx = len(all_decedent_inpatient_patient_ids) - _n_with_dx
 strobe_counts["5b_decedents_without_any_diagnosis"] = _n_without_dx
 
 # Join flags to final_df on patient_id; fill null flags to False ----
@@ -1063,8 +1055,6 @@ strobe_counts["calc_qualified"] = calc_qualified_n
 
 print(f"\nCALC flag qualified: {calc_qualified_n} patients")
 
-strobe_counts
-
 _progress.mark("CALC Criteria")
 
 ################################################################################
@@ -1074,40 +1064,25 @@ _progress.mark("CALC Criteria")
 resp_filepath = f"{tables_path}/clif_respiratory_support.{file_type}"
 print("Processing IMV data with DuckDB...")
 
-final_cohort_for_imv = block_members_df          # every stay in each decedent's block
 
-imv_query = imv_before_death_sql(f"read_parquet('{resp_filepath}')", "final_cohort_for_imv", DONOR['imv_hours_before_death'])
+imv_query = imv_before_death_sql(f"read_parquet('{resp_filepath}')", "block_members_df", DONOR['imv_hours_before_death'])
 
 resp_expired_cohort = pl.from_pandas(duckdb.sql(imv_query).df())
 _require_matches(resp_expired_cohort.height, "respiratory_support", "device_category", "imv")
 
-# Add imv_48hr_expire flag to final_cohort_df first (so we can apply the age
-# filter when counting). True if patient_id appears in resp_expired_cohort.
-# Hours from the last IMV record inside the window to the time of death, kept
-# for the ventilation-timing diagnostic written at the end of this step.
-final_cohort_df = final_cohort_df.join(
-    resp_expired_cohort.select(["patient_id", pl.col("hr_2death_last_imv").alias("hours_last_imv_to_death")]),
-    on="patient_id", how="left")
-imv_48hr_expire_patients = resp_expired_cohort.select(["patient_id"]).unique().with_columns(
-    pl.lit(True).alias("imv_48hr_expire")
-)
-final_cohort_df = final_cohort_df.join(imv_48hr_expire_patients, on="patient_id", how="left")
-final_cohort_df = final_cohort_df.with_columns(pl.col("imv_48hr_expire").fill_null(False))
-
-# Materialize the canonical "Died_While_IMV" cohort flag = age <=75 AND IMV
-# within 48h before death. This is the same population shown as STROBE Stage 3
-# and used as the Table 1 "Died_While_IMV" column and the Table 2 denominator,
-# so all three stay consistent regardless of where the population gets read.
-final_cohort_df = final_cohort_df.with_columns(
-    (pl.col("imv_48hr_expire") & pl.col("age_75_less")).alias("died_while_imv")
-)
-
-imv_48hr_expire = final_cohort_df.filter(pl.col("died_while_imv"))["patient_id"].n_unique()
-# Named for what it counts: IMV within 48 h AND age <= 75. The bare
-# "imv_48hr_expire" flag, without the age cap, is the Ventilated Patient
-# definition and is counted separately.
-strobe_counts["6_died_while_imv_age_le75"] = imv_48hr_expire
-print(f"✓ Died while receiving IMV (age <={DONOR['age_at_death_max']:g} + IMV <={DONOR['imv_hours_before_death']:g}h): {imv_48hr_expire}")
+# imv_48hr_expire: at least one IMV record in the window before death. It is
+# the Ventilated Patient definition and the IMV criterion of CLIF-donor. The
+# hours from the last such record to death feed ventilation_timing.csv only.
+final_cohort_df = (
+    final_cohort_df
+    .join(resp_expired_cohort.select(["patient_id", pl.col("hr_2death_last_imv").alias("hours_last_imv_to_death")]),
+          on="patient_id", how="left")
+    .with_columns(pl.col("hours_last_imv_to_death").is_not_null().alias("imv_48hr_expire")))
+# With the age limit: the second step of the CLIF-donor CONSORT.
+strobe_counts["6_died_while_imv_age_le75"] = final_cohort_df.filter(
+    pl.col("imv_48hr_expire") & pl.col("age_75_less"))["patient_id"].n_unique()
+print(f"✓ IMV within {DONOR['imv_hours_before_death']:g} h of death and age <= {DONOR['age_at_death_max']:g}: "
+      f"{strobe_counts['6_died_while_imv_age_le75']:,}")
 
 _progress.mark("IMV — streamed via DuckDB on clif_respiratory_support.parquet")
 
@@ -1126,7 +1101,6 @@ labs_filepath = f"{tables_path}/clif_labs.{file_type}"
 # CRRT within 48h of death — streamed via DuckDB
 # ============================================
 print("Processing CRRT data with DuckDB...")
-final_cohort_for_crrt = block_members_df
 
 crrt_query = f"""
 WITH crrt_data AS (
@@ -1134,7 +1108,7 @@ WITH crrt_data AS (
         hospitalization_id,
         recorded_dttm
     FROM read_parquet('{crrt_filepath}')
-    WHERE hospitalization_id IN (SELECT hospitalization_id FROM final_cohort_for_crrt)
+    WHERE hospitalization_id IN (SELECT hospitalization_id FROM block_members_df)
 ),
 crrt_with_death AS (
     SELECT
@@ -1143,7 +1117,7 @@ crrt_with_death AS (
         f.final_death_dttm,
         EXTRACT(EPOCH FROM (f.final_death_dttm - c.recorded_dttm)) / 3600 AS hrs_before_death
     FROM crrt_data c
-    INNER JOIN final_cohort_for_crrt f ON c.hospitalization_id = f.hospitalization_id
+    INNER JOIN block_members_df f ON c.hospitalization_id = f.hospitalization_id
     WHERE c.recorded_dttm <= f.final_death_dttm
 )
 SELECT DISTINCT patient_id
@@ -1158,7 +1132,7 @@ crrt_48h_result = pl.from_pandas(duckdb.sql(crrt_query).df())
 # the two cannot be told apart from here, so it is flagged rather than fatal.
 _n_crrt_rows = duckdb.sql(f"""
     SELECT COUNT(*) FROM read_parquet('{crrt_filepath}')
-    WHERE hospitalization_id IN (SELECT hospitalization_id FROM final_cohort_for_crrt)
+    WHERE hospitalization_id IN (SELECT hospitalization_id FROM block_members_df)
 """).fetchone()[0]
 if _n_crrt_rows == 0:
     dq_flags.append({
@@ -1182,9 +1156,15 @@ print(f"✓ Patients on CRRT within {DONOR['kidney']['exclude_if_crrt_within_hou
 # Organ-quality labs (creatinine, bili, AST, ALT) — streamed via DuckDB
 # ============================================
 print("Processing Labs data with DuckDB...")
-final_cohort_for_labs = block_members_df
 
 _LAB_VALUE_USABLE = usable_number_sql("l.lab_value_numeric")
+# Plausibility bounds from config/outlier_config.yaml, applied BEFORE the
+# "last value" ranking, as for weight and height: the last PLAUSIBLE result
+# counts, and a unit error or placeholder at the latest timestamp does not.
+_LAB_BOUNDS = {c: outlier_range("labs", "lab_value_numeric", c, OUTLIER_CONFIG)
+               for c in ("creatinine", "bilirubin_total", "ast", "alt", "bun", "sodium")}
+_LAB_PLAUSIBLE = " OR ".join(f"(l.lab_category = '{c}' AND l.lab_value_numeric BETWEEN {lo} AND {hi})"
+                             for c, (lo, hi) in _LAB_BOUNDS.items())
 labs_query = f"""
 WITH labs_data AS (
     SELECT
@@ -1193,7 +1173,7 @@ WITH labs_data AS (
         LOWER(TRIM(lab_category)) AS lab_category,
         lab_value_numeric
     FROM read_parquet('{labs_filepath}')
-    WHERE hospitalization_id IN (SELECT hospitalization_id FROM final_cohort_for_labs)
+    WHERE hospitalization_id IN (SELECT hospitalization_id FROM block_members_df)
 ),
 labs_with_death AS (
     SELECT
@@ -1204,19 +1184,19 @@ labs_with_death AS (
         f.patient_id,
         f.final_death_dttm
     FROM labs_data l
-    INNER JOIN final_cohort_for_labs f ON l.hospitalization_id = f.hospitalization_id
+    INNER JOIN block_members_df f ON l.hospitalization_id = f.hospitalization_id
     WHERE l.lab_collect_dttm <= f.final_death_dttm
       -- Only results that carry a number can be the "last value". A text-only
       -- result (haemolysed, see note) or a NaN at the latest timestamp otherwise
       -- won the ranking below and nulled the value, which reads as missing,
       -- which is ineligible.
       AND {_LAB_VALUE_USABLE}
+      AND ({_LAB_PLAUSIBLE})
 ),
 latest_creatinine AS (
     -- Every "last value before death" selection breaks ties deterministically.
     -- Without a tiebreaker two results at the same timestamp were picked
     -- arbitrarily and the same code gave different counts on consecutive runs
-    -- (organ_kidney_eligible 2,906 vs 2,907 at UCMC, 2026-09-28).
     SELECT
         patient_id,
         lab_value_numeric AS creatinine_value,
@@ -1276,7 +1256,7 @@ SELECT
     l.bun_dttm,
     l.sodium_value,
     l.sodium_dttm
-FROM (SELECT DISTINCT patient_id FROM final_cohort_for_labs) f
+FROM (SELECT DISTINCT patient_id FROM block_members_df) f
 LEFT JOIN latest_creatinine c ON f.patient_id = c.patient_id
 LEFT JOIN latest_liver l ON f.patient_id = l.patient_id
 """
@@ -1363,7 +1343,6 @@ _progress.mark("Organ quality check")
 
 # Microbiology — streamed via DuckDB on clif_microbiology_culture.parquet
 print("Processing microbiology data with DuckDB...")
-final_cohort_for_micro = block_members_df
 
 micro_query = f"""
 WITH blood_cultures AS (
@@ -1374,7 +1353,7 @@ WITH blood_cultures AS (
     FROM read_parquet('{tables_path}/clif_microbiology_culture.{file_type}')
     WHERE LOWER(TRIM(fluid_category)) = 'blood_buffy'
         AND LOWER(TRIM(method_category)) = 'culture'
-        AND hospitalization_id IN (SELECT hospitalization_id FROM final_cohort_for_micro)
+        AND hospitalization_id IN (SELECT hospitalization_id FROM block_members_df)
 ),
 cultures_with_death AS (
     SELECT
@@ -1384,7 +1363,7 @@ cultures_with_death AS (
         f.final_death_dttm,
         EXTRACT(EPOCH FROM (f.final_death_dttm - b.collect_dttm)) / 3600 AS hrs_before_death
     FROM blood_cultures b
-    INNER JOIN final_cohort_for_micro f ON b.hospitalization_id = f.hospitalization_id
+    INNER JOIN block_members_df f ON b.hospitalization_id = f.hospitalization_id
     WHERE b.collect_dttm IS NOT NULL
 ),
 cultures_48h AS (
@@ -1407,7 +1386,7 @@ positive_cultures AS (
 SELECT
     f.patient_id,
     CASE WHEN p.patient_id IS NULL THEN true ELSE false END AS no_positive_culture_48hrs
-FROM (SELECT DISTINCT patient_id FROM final_cohort_for_micro) f
+FROM (SELECT DISTINCT patient_id FROM block_members_df) f
 LEFT JOIN positive_cultures p ON f.patient_id = p.patient_id
 """
 
@@ -1417,7 +1396,7 @@ _n_blood_cx = duckdb.sql(f"""
     SELECT COUNT(*) FROM read_parquet('{tables_path}/clif_microbiology_culture.{file_type}')
     WHERE LOWER(TRIM(fluid_category)) = 'blood_buffy'
       AND LOWER(TRIM(method_category)) = 'culture'
-      AND hospitalization_id IN (SELECT hospitalization_id FROM final_cohort_for_micro)
+      AND hospitalization_id IN (SELECT hospitalization_id FROM block_members_df)
 """).fetchone()[0]
 _require_matches(_n_blood_cx, "microbiology_culture", "fluid_category",
                  "blood_buffy' with method_category = 'culture")
@@ -1434,28 +1413,23 @@ strobe_counts["positive_culture_48hrs"] = positive_culture_n
 print(f"  Patients with no positive cultures in last {DONOR['contraindications']['positive_blood_culture_hours']:g}h: {no_positive_culture_n}")
 print(f"  Patients with positive cultures in last {DONOR['contraindications']['positive_blood_culture_hours']:g}h: {positive_culture_n}")
 
-final_cohort_df.columns
-
 _progress.mark("Microbiology")
 
 ################################################################################
 # CLIF Eligible Donor
-# Medically eligible potential deceased abdominal organ donor (CLIF-eligible-donors):
-# * From ALL inpatient deaths (ensure death location = ED, ward, stepdown, ICU)
-# * Age < 75
-# * On invasive mechanical ventilation
-# * at least one IMV record in the 48h before the time of death (final_death_dttm)
-# * No contraindications
-# * CLIF Microbiology_culture:
-# * No positive blood cultures within 2 days - 'no_positive_culture_48hrs'
-# * Hospital diagnosis (ICD based) -- 'icd10_contraindication': contraindicating cancer
-# * Pass the potential organ quality assessment check (independent assessment) using last recorded lab values, as defined by CMS:- organ_check_pass
-# * Kidney: recorded creatinine, Cr < 4 AND not on CRRT
-# * Liver: recorded TB, AST, ALT and
-# * Total bilirubin < 4
-# * AST < 700
-# * ALT < 700
-# * BMI <= 50
+# Medically eligible potential deceased abdominal organ donor. Every threshold
+# is read from config/donor_criteria.yaml; the numbers here are its values.
+# * From the cohort: in-hospital deaths whose stay touched one of
+#   study.cohort_locations (ED, ward, stepdown, ICU, hospice)
+# * Age at death 75 or under (inclusive)
+# * At least one IMV record in the 48 h before the time of death
+# * No contraindicating cancer diagnosis on any stay of the death encounter:
+#   every row of utils/codes/icd10_contraindications.csv
+# * No positive blood culture collected in the 48 h before death
+# * Organ quality, from the last recorded values before death:
+#   kidney: creatinine < 4 and no CRRT in the 48 h before death
+#   liver:  total bilirubin < 4, AST < 700 and ALT < 700, all three recorded
+#   BMI 50 or under; and (kidney OR liver) AND BMI
 ################################################################################
 
 # ============================================
@@ -1465,16 +1439,15 @@ _progress.mark("Microbiology")
 final_cohort_df = final_cohort_df.with_columns([
     # Overall CLIF-eligible-donors flag
     (
-        # 2. Age < 75
+        # age 75 or under
         (pl.col('age_75_less')) &
-        # 3. On invasive mechanical ventilation (within 48h of death)
+        # IMV within 48 h of death
         (pl.col('imv_48hr_expire')) &
-        # 4. No contraindicating cancer diagnosis: the exclude = yes rows of
-        #    utils/icd10_contraindications.csv. Sepsis is never an exclusion.
+        # no contraindicating cancer (utils/codes/icd10_contraindications.csv)
         (~pl.col('icd10_contraindication')) &
-        # 5. No positive blood cultures within 48h
+        # no positive blood culture within 48 h
         (pl.col('no_positive_culture_48hrs')) &
-        # 6. Pass organ quality assessment (kidney OR liver AND BMI)
+        # (kidney OR liver) AND BMI
         (pl.col('organ_check_pass'))
     ).alias('clif_eligible_donors')
 ])
@@ -1486,100 +1459,15 @@ strobe_counts["clif_eligible_donors"] = clif_eligible_n
 _progress.mark("CLIF Eligible Donor")
 
 ################################################################################
-# CLIF Donor Organ Eligibility Statistics
-################################################################################
-# Individual lab threshold flags for Table One
-final_cohort_df = final_cohort_df.with_columns([
-    # Terminal creatinine < 4
-    (
-        (pl.col('creatinine_value').is_not_null()) &
-        (pl.col('creatinine_value') < DONOR['kidney']['creatinine_max'])
-    ).alias('creatinine_lt_4'),
-
-    # Terminal bilirubin < 4
-    (
-        (pl.col('bilirubin_total_value').is_not_null()) &
-        (pl.col('bilirubin_total_value') < DONOR['liver']['total_bilirubin_max'])
-    ).alias('bilirubin_lt_4'),
-
-    # Terminal AST < 700
-    (
-        (pl.col('ast_value').is_not_null()) &
-        (pl.col('ast_value') < DONOR['liver']['ast_max'])
-    ).alias('ast_lt_700'),
-
-    # Terminal ALT < 700
-    (
-        (pl.col('alt_value').is_not_null()) &
-        (pl.col('alt_value') < DONOR['liver']['alt_max'])
-    ).alias('alt_lt_700'),
-])
-
-# BMI-filtered versions of terminal lab thresholds (for fair comparison)
-final_cohort_df = final_cohort_df.with_columns([
-    # Terminal creatinine < 4 (BMI ≤50 only)
-    (
-        (pl.col('bmi_eligible') == True) &
-        (pl.col('creatinine_value').is_not_null()) &
-        (pl.col('creatinine_value') < DONOR['kidney']['creatinine_max'])
-    ).alias('creatinine_lt_4_bmi50'),
-
-    # Terminal bilirubin < 4 (BMI ≤50 only)
-    (
-        (pl.col('bmi_eligible') == True) &
-        (pl.col('bilirubin_total_value').is_not_null()) &
-        (pl.col('bilirubin_total_value') < DONOR['liver']['total_bilirubin_max'])
-    ).alias('bilirubin_lt_4_bmi50'),
-
-    # Terminal AST < 700 (BMI ≤50 only)
-    (
-        (pl.col('bmi_eligible') == True) &
-        (pl.col('ast_value').is_not_null()) &
-        (pl.col('ast_value') < DONOR['liver']['ast_max'])
-    ).alias('ast_lt_700_bmi50'),
-
-    # Terminal ALT < 700 (BMI ≤50 only)
-    (
-        (pl.col('bmi_eligible') == True) &
-        (pl.col('alt_value').is_not_null()) &
-        (pl.col('alt_value') < DONOR['liver']['alt_max'])
-    ).alias('alt_lt_700_bmi50'),
-])
-
-# Filter to CLIF donors only (883 patients)
-clif_donors_df = final_cohort_df.filter(pl.col('clif_eligible_donors'))
-
-# Count organ eligibility among CLIF donors
-clif_kidney_eligible_n = clif_donors_df.filter(pl.col('kidney_eligible'))['patient_id'].n_unique()
-clif_liver_eligible_n = clif_donors_df.filter(pl.col('liver_eligible'))['patient_id'].n_unique()
-clif_both_eligible_n = clif_donors_df.filter(
-    pl.col('kidney_eligible') & pl.col('liver_eligible')
-)['patient_id'].n_unique()
-
-# Calculate percentages
-clif_kidney_pct = (clif_kidney_eligible_n / clif_eligible_n * 100) if clif_eligible_n > 0 else 0
-clif_liver_pct = (clif_liver_eligible_n / clif_eligible_n * 100) if clif_eligible_n > 0 else 0
-clif_both_pct = (clif_both_eligible_n / clif_eligible_n * 100) if clif_eligible_n > 0 else 0
-
-# Add to strobe_counts for tracking
-strobe_counts["clif_kidney_eligible"] = clif_kidney_eligible_n
-strobe_counts["clif_liver_eligible"] = clif_liver_eligible_n
-strobe_counts["clif_both_kidney_liver_eligible"] = clif_both_eligible_n
-
-print(f"\nCLIF Donor Organ Eligibility (n={clif_eligible_n}):")
-print(f"  Kidney eligible (Cr <{DONOR['kidney']['creatinine_max']:g} AND not on CRRT): {clif_kidney_eligible_n} ({clif_kidney_pct:.1f}%)")
-print(f"  Liver eligible (Bili <{DONOR['liver']['total_bilirubin_max']:g} AND AST <{DONOR['liver']['ast_max']:g} AND ALT <{DONOR['liver']['alt_max']:g}): {clif_liver_eligible_n} ({clif_liver_pct:.1f}%)")
-print(f"  Both kidney AND liver eligible: {clif_both_eligible_n} ({clif_both_pct:.1f}%)")
-
-_progress.mark("CLIF Donor Organ Eligibility Statistics")
-
-################################################################################
 # Patient assessments
 ################################################################################
 
-# Patient assessments — streamed via DuckDB on clif_patient_assessments.parquet
+# GCS total and RASS for Table 2: the last value recorded before death, with
+# no time limit, the same rule as the labs. Neither is a criterion. They used
+# to be the value closest to death on either side; at the sites checked no
+# decedent has one only after death, so this changes which value is taken for
+# the ~2% whose nearest record was after death, and reaches the same patients.
 print("Processing patient assessments with DuckDB...")
-final_cohort_for_assessments = block_members_df
 
 assessments_query = f"""
 WITH assessments_filtered AS (
@@ -1589,35 +1477,39 @@ WITH assessments_filtered AS (
         LOWER(TRIM(assessment_category)) AS assessment_category,
         numerical_value
     FROM read_parquet('{tables_path}/clif_patient_assessments.{file_type}')
-    WHERE LOWER(TRIM(assessment_category)) IN ('gcs_total', 'rass')
-        AND numerical_value IS NOT NULL
-        AND hospitalization_id IN (SELECT hospitalization_id FROM final_cohort_for_assessments)
+    WHERE ((LOWER(TRIM(assessment_category)) = 'gcs_total' AND numerical_value BETWEEN {GCS_MIN} AND {GCS_MAX})
+        OR (LOWER(TRIM(assessment_category)) = 'rass' AND numerical_value BETWEEN {RASS_MIN} AND {RASS_MAX}))
+        AND hospitalization_id IN (SELECT hospitalization_id FROM block_members_df)
 ),
-with_death_time AS (
+before_death AS (
     SELECT
         f.patient_id,
         a.assessment_category,
         a.numerical_value,
-        ABS(EXTRACT(EPOCH FROM (f.final_death_dttm - a.recorded_dttm))) AS abs_time_to_death
+        a.recorded_dttm
     FROM assessments_filtered a
-    INNER JOIN final_cohort_for_assessments f ON a.hospitalization_id = f.hospitalization_id
+    INNER JOIN block_members_df f ON a.hospitalization_id = f.hospitalization_id
+    WHERE a.recorded_dttm <= f.final_death_dttm
 ),
-closest_per_category AS (
+last_per_category AS (
     SELECT
         patient_id,
         assessment_category,
         numerical_value,
+        recorded_dttm,
         ROW_NUMBER() OVER (
             PARTITION BY patient_id, assessment_category
-            ORDER BY abs_time_to_death, numerical_value ASC
+            ORDER BY recorded_dttm DESC, numerical_value ASC
         ) AS rn
-    FROM with_death_time
+    FROM before_death
 )
 SELECT
     patient_id,
     MAX(CASE WHEN assessment_category = 'gcs_total' THEN numerical_value END) AS gcs_total_value,
-    MAX(CASE WHEN assessment_category = 'rass'      THEN numerical_value END) AS rass_value
-FROM closest_per_category
+    MAX(CASE WHEN assessment_category = 'rass'      THEN numerical_value END) AS rass_value,
+    MAX(CASE WHEN assessment_category = 'gcs_total' THEN recorded_dttm END) AS gcs_total_dttm,
+    MAX(CASE WHEN assessment_category = 'rass'      THEN recorded_dttm END) AS rass_dttm
+FROM last_per_category
 WHERE rn = 1
 GROUP BY patient_id
 """
@@ -1627,7 +1519,9 @@ if "patient_assessments" in OPTIONAL_UNUSABLE:
     # Table 2 rows report as unavailable; no definition depends on them.
     patient_gcs_rass = pl.DataFrame(schema={
         "patient_id": final_cohort_df.schema["patient_id"],
-        "gcs_total_value": pl.Float64, "rass_value": pl.Float64})
+        "gcs_total_value": pl.Float64, "rass_value": pl.Float64,
+        "gcs_total_dttm": final_cohort_df.schema["final_death_dttm"],
+        "rass_dttm": final_cohort_df.schema["final_death_dttm"]})
     print("  patient assessments SKIPPED (clif_patient_assessments absent or incomplete): "
           "GCS and RASS unavailable")
 else:
@@ -1645,27 +1539,7 @@ print("\n" + "="*80)
 print("FINALIZING PATIENT-LEVEL COHORT")
 print("="*80)
 
-# Step 1: First, remove encounter-level identifiers
-print("Step 1: Renaming encounter-level identifiers to terminal_* ...")
-# The cohort is already deduplicated to one row per patient (their LAST death
-# encounter), so these identifiers describe the TERMINAL hospitalization. They
-# are renamed rather than dropped because downstream steps need them to attach
-# the hospital where the patient died (adt.hospital_id) and to join diagnoses.
-# The frame stays patient-level: one row per patient_id either way.
-for _src, _dst in (('hospitalization_id', 'terminal_hospitalization_id'),
-                   ('encounter_block', 'terminal_encounter_block')):
-    if _src in final_cohort_df.columns:
-        final_cohort_df = final_cohort_df.rename({_src: _dst})
-        print(f"  renamed {_src} -> {_dst}")
-columns_to_drop = []
-
-if columns_to_drop:
-    final_cohort_df = final_cohort_df.drop(columns_to_drop)
-    print(f"✓ Dropped: {', '.join(columns_to_drop)}")
-else:
-    print("✓ No encounter-level identifiers found to drop")
-
-# Step 2: Sanity check — early dedup upstream means we should already be 1 row/patient.
+# Sanity check — early dedup upstream means we should already be 1 row/patient.
 # If this assertion fails, a downstream join introduced duplicates (would need a fix).
 n_patients_final = final_cohort_df['patient_id'].n_unique()
 n_rows_final = len(final_cohort_df)
@@ -1696,12 +1570,9 @@ _progress.mark("Patient assessments")
 
 ################################################################################
 # Definitions that need the finished cohort
-# Merged from the former 02_apply_definitions.py on 2026-09-25 (D-49), so that
-# every definition is computed once, from one read and one normalisation of the
-# diagnosis table. Possible Donor was removed from the study in the same change.
 ################################################################################
 
-from utils.audit import StageAudit                                  # noqa: E402
+from utils.audit import StageAudit                                 
 _audit = StageAudit(site_name, OUTPUT_FINAL_DIR, label="definitions")
 
 # ── Ventilated Patient ───────────────────────────────────────────────────────
@@ -1723,47 +1594,14 @@ _audit.record("21_ventilated_age_le75", final_cohort_df,
               rule=f"IMV within {DONOR['imv_hours_before_death']:g}h of death AND age <= {DONOR['age_at_death_max']:g}")
 
 # ── hospital identity ────────────────────────────────────────────────────────
-# The TERMINAL ADT record is the hospital where the patient died, which is the
-# unit CMS and SRTR attribute a donor to.
-# _XWALK was loaded and checked in the setup checks at the top of this file.
-_hid_col = ("terminal_hospitalization_id" if "terminal_hospitalization_id"
-            in final_cohort_df.columns else "hospitalization_id")
-_ids = pd.DataFrame({"hospitalization_id":
-                     final_cohort_df[_hid_col].cast(pl.Utf8).unique().to_list()})
-_con = duckdb.connect()
-_con.register("cohort_ids", _ids)
-_adt_h = _con.sql(f"""
-    SELECT CAST(hospitalization_id AS VARCHAR) AS {_hid_col},
-           lower(trim(CAST(hospital_id AS VARCHAR))) AS hospital_id_key,
-           lower(trim(CAST(hospital_type AS VARCHAR))) AS hospital_type,
-           ROW_NUMBER() OVER (PARTITION BY hospitalization_id
-                              ORDER BY out_dttm DESC NULLS LAST,
-                                       lower(trim(CAST(hospital_id AS VARCHAR))) ASC) rn
-    FROM read_parquet('{tables_path}/clif_adt.{file_type}')
-    WHERE CAST(hospitalization_id AS VARCHAR) IN (SELECT hospitalization_id FROM cohort_ids)
-      AND hospital_id IS NOT NULL
-    QUALIFY rn = 1
-""").pl().drop("rn")
-
+# The hospital where the patient died is the one on the last ADT row, attached
+# when the cohort was formed. The crosswalk gives the CMS number SRTR files its
+# donors under; that number is the hospital for everything that leaves the site.
 _rows = [r for r in _XWALK if r["site"] == site_name]
-final_cohort_df = final_cohort_df.with_columns(pl.col(_hid_col).cast(pl.Utf8)).join(
-    _adt_h, on=_hid_col, how="left")
-if _rows:
-    _xw = pl.DataFrame([{
-        "hospital_id_key": str(r["hospital_id"]).lower().strip(),
-        "analytic_hospital_id": r["analytic_hospital_id"],
-        "srtr_ccn_id": r.get("srtr_ccn_id"),
-        "ccn_facility_type": r.get("ccn_facility_type"),
-        "hospital_include": _hospital_in_study(r),
-    } for r in _rows])
-    final_cohort_df = final_cohort_df.join(_xw, on="hospital_id_key", how="left")
-else:
-    final_cohort_df = final_cohort_df.with_columns(
-        [pl.lit(None, pl.Utf8).alias(c) for c in
-         ("analytic_hospital_id", "srtr_ccn_id", "ccn_facility_type")]
-    ).with_columns(pl.lit(False).alias("hospital_include"))
-final_cohort_df = final_cohort_df.with_columns(
-    pl.col("hospital_include").fill_null(False))
+final_cohort_df = final_cohort_df.join(
+    pl.DataFrame([{"hospital_id_key": str(r["hospital_id"]).lower().strip(),
+                   "srtr_ccn_id": r.get("srtr_ccn_id")} for r in _rows]),
+    on="hospital_id_key", how="left")
 
 # Anonymous labels for anything that leaves the site, numbered by CCN ascending
 # so the mapping is deterministic across runs. The real CCN never appears in
@@ -1772,8 +1610,7 @@ _ccns = sorted({c for c in final_cohort_df["srtr_ccn_id"].drop_nulls().unique().
 _labels = {c: f"{site_name}_hospital_{i}" for i, c in enumerate(_ccns, 1)}
 final_cohort_df = final_cohort_df.with_columns(
     pl.col("srtr_ccn_id").replace_strict(_labels, default=None).alias("hospital_label"))
-pl.DataFrame([{"site": site_name, "srtr_ccn_id": c, "hospital_label": l,
-               "analytic_hospital_id": f"{site_name}_{c}"} for c, l in _labels.items()]
+pl.DataFrame([{"site": site_name, "srtr_ccn_id": c, "hospital_label": l} for c, l in _labels.items()]
              ).write_csv(OUTPUT_INTERMEDIATE_DIR / "hospital_label_key.csv")
 print(f"  hospital labels: {len(_labels)} -> hospital_label_key.csv (kept local)")
 # The hospital_ids contract, checked on the COHORT rather than on raw ADT: a
@@ -1787,9 +1624,9 @@ _n_null_hosp = int(final_cohort_df.filter(pl.col("hospital_id_key").is_null()).h
 
 # A declared hospital with no decedents is NOT an error. Deaths are attributed to
 # the hospital of the terminal ADT record, which is what SRTR does, so a feeder
-# hospital that transfers dying patients out contributes zero by design — all 64
-# of NU Woodstock's deaths are attributed to McHenry and Huntley. Warn, so a
-# genuinely missing extract is still visible, but do not stop.
+# hospital that transfers dying patients out contributes zero by design: its
+# deaths are attributed to the hospitals it transfers to. Warn, so a genuinely
+# missing extract is still visible, but do not stop.
 for _h in _absent:
     print(f"  warn  '{_h}' is declared in config but no decedent died there "
           f"(transfers out, or no deaths in the window)")
@@ -1821,7 +1658,7 @@ print(f"Declared-hospital check passed: {len(_observed)} hospital_ids contribute
       + (f"; {len(_absent)} declared id(s) contributed none" if _absent else ""))
 
 _unmapped = sorted(final_cohort_df.filter(
-    pl.col("analytic_hospital_id").is_null() & pl.col("hospital_id_key").is_not_null()
+    pl.col("srtr_ccn_id").is_null() & pl.col("hospital_id_key").is_not_null()
 )["hospital_id_key"].unique().to_list())
 if _unmapped:
     raise SystemExit(
@@ -1829,37 +1666,21 @@ if _unmapped:
         f"'{site_name}' in config/hospital_crosswalk.yaml. Ask the coordinating centre to add them.")
 
 _audit.record("10_hospital_identity", final_cohort_df, final_cohort_df, key="patient_id",
-              rule="terminal ADT hospital_id -> analytic_hospital_id via crosswalk",
-              n_unmapped=int(final_cohort_df.filter(
-                  pl.col("analytic_hospital_id").is_null()).height))
+              rule="terminal ADT hospital_id -> srtr_ccn_id via crosswalk",
+              n_unmapped=int(final_cohort_df.filter(pl.col("srtr_ccn_id").is_null()).height))
 
-# ── SRTR denominator restriction ─────────────────────────────────────────────
-_analytic = final_cohort_df.filter(pl.col("hospital_include"))
-_audit.record("30_srtr_linkable_denominator", final_cohort_df, _analytic, key="patient_id",
-              rule="hospital retained only if include_flag AND srtr_ccn_id resolves in SRTR",
-              reason="hospital has no SRTR-resolvable CCN; keeping it would inflate "
-                     "the denominator")
-final_cohort_df = final_cohort_df.with_columns(
-    pl.col("hospital_include").alias("in_srtr_denominator"))
-
-# Downstream steps join on `hospitalization_id`. The cohort frame carries it as
-# `terminal_hospitalization_id` (renamed above to make the patient-level grain
-# explicit); the former 02 renamed it back before writing, so keep that contract.
-if _hid_col != "hospitalization_id":
-    final_cohort_df = final_cohort_df.rename({_hid_col: "hospitalization_id"})
 _write_parquet(final_cohort_df, OUTPUT_INTERMEDIATE_DIR / "cohort_with_definitions.parquet", SITE_TZ)
 
 _counts = {
     "site": site_name,
     "n_inpatient_deaths": final_cohort_df["patient_id"].n_unique(),
-    "n_srtr_linkable": _analytic["patient_id"].n_unique(),
     "clif_donor": int(final_cohort_df.filter(pl.col("clif_eligible_donors"))["patient_id"].n_unique()),
     "calc": int(final_cohort_df.filter(pl.col("calc_flag"))["patient_id"].n_unique()),
     "ventilated_no_age_limit": int(final_cohort_df.filter(
         pl.col("ventilated_patient_no_age_limit"))["patient_id"].n_unique()),
     "ventilated_age_le75": int(final_cohort_df.filter(
         pl.col("ventilated_patient_age_le75"))["patient_id"].n_unique()),
-    "n_analytic_hospitals": int(_analytic["analytic_hospital_id"].n_unique()),
+    "n_analytic_hospitals": int(final_cohort_df["srtr_ccn_id"].drop_nulls().n_unique()),
     # The arms of the CALC cause criterion (any age, any diagnosis position) and
     # the diagnosis coverage behind them, so a site whose extract lacks an arm
     # is visible in the pooled table rather than hidden inside its CALC count.
@@ -1883,6 +1704,47 @@ _h = pl.col("hours_last_imv_to_death")
           "pct_within_24h", "pct_within_48h"])
  .sort("hospital_label")
  .write_csv(OUTPUT_FINAL_DIR / "ventilation_timing.csv"))
+
+# Organ-quality criteria, counted over every decedent and over the patients the
+# organ step actually decides (ventilated, 75 or under, no contraindicating
+# cancer, no positive culture). Failure reasons are not exclusive, a patient can
+# fail on two labs, so each is counted. Site totals ship; the per-hospital rows
+# stay local, since some cells are small.
+_K, _L = DONOR['kidney'], DONOR['liver']
+_ORGAN_COUNTS = [
+    pl.len().alias("n_patients"),
+    pl.col("kidney_eligible").sum().alias("kidney_pass"),
+    pl.col("creatinine_value").is_null().sum().alias("creatinine_missing"),
+    (pl.col("creatinine_value") >= _K['creatinine_max']).sum().alias("creatinine_at_or_above_limit"),
+    pl.col("on_crrt_48h_before_death").sum().alias("on_crrt"),
+    pl.col("liver_eligible").sum().alias("liver_pass"),
+    (pl.col("bilirubin_total_value").is_null() | pl.col("ast_value").is_null()
+     | pl.col("alt_value").is_null()).sum().alias("liver_lab_missing"),
+    (pl.col("bilirubin_total_value") >= _L['total_bilirubin_max']).sum().alias("bilirubin_at_or_above_limit"),
+    (pl.col("ast_value") >= _L['ast_max']).sum().alias("ast_at_or_above_limit"),
+    (pl.col("alt_value") >= _L['alt_max']).sum().alias("alt_at_or_above_limit"),
+    pl.col("bmi_eligible").sum().alias("bmi_pass"),
+    pl.col("bmi").is_null().sum().alias("bmi_missing"),
+    (pl.col("bmi") > DONOR['bmi_max']).sum().alias("bmi_above_limit"),
+    (pl.col("kidney_eligible") & pl.col("liver_eligible")).sum().alias("kidney_and_liver_pass"),
+    pl.col("organ_check_pass").sum().alias("organ_pass"),
+]
+_reached_organ_step = (pl.col("imv_48hr_expire") & pl.col("age_75_less")
+                       & ~pl.col("icd10_contraindication") & pl.col("no_positive_culture_48hrs"))
+
+
+def _organ_criteria(by: list[str]) -> pl.DataFrame:
+    parts = []
+    for population, sub in (("all_decedents", final_cohort_df),
+                            ("reached_organ_step", final_cohort_df.filter(_reached_organ_step))):
+        g = sub.group_by(by).agg(_ORGAN_COUNTS) if by else sub.select(_ORGAN_COUNTS)
+        parts.append(g.with_columns(pl.lit(population).alias("population")))
+    out = pl.concat(parts).with_columns(pl.lit(site_name).alias("site"))
+    return out.select(["site", *by, "population", *[c.meta.output_name() for c in _ORGAN_COUNTS]]).sort(by + ["population"])
+
+
+_organ_criteria([]).write_csv(OUTPUT_FINAL_DIR / "organ_criteria.csv")
+_organ_criteria(["hospital_label"]).write_csv(OUTPUT_INTERMEDIATE_DIR / "organ_criteria_by_hospital.csv")
 
 # Death-time diagnostics, per hospital. With ventilation_timing.csv they are the
 # evidence for the time-of-death rule in utils/death_time.py. Every interval is
@@ -1931,6 +1793,35 @@ _hr = hours_between("last_hr_above_zero_dttm", "final_death_dttm", _sch, SITE_TZ
           "pct_over_48h_before", "pct_hr_above_zero_after_1h"])
  .sort("hospital_label")
  .write_csv(OUTPUT_FINAL_DIR / "vitals_timing.csv"))
+
+# value_timing.csv: when each Table 2 value was taken, relative to the time of
+# death, as the share of decedents whose value is within 1, 6, 24, 48 and 168 h
+# before it. One row per measure, so the pooled report can lay the sites over
+# one another and a site with stale values stands out. Every value here is the
+# last one before death, so no hours are negative. Site totals ship; the
+# per-hospital rows stay local.
+_VALUE_TIMES = {"creatinine": "creatinine_dttm", "bilirubin_total": "bilirubin_total_dttm",
+                "ast": "ast_dttm", "alt": "alt_dttm", "bun": "bun_dttm", "sodium": "sodium_dttm",
+                "gcs_total": "gcs_total_dttm", "rass": "rass_dttm",
+                "weight_kg": "last_weight_dttm", "height_cm": "last_height_dttm"}
+
+
+def _value_timing(by: list[str]) -> pl.DataFrame:
+    parts = []
+    for measure, col in _VALUE_TIMES.items():
+        _hrs = hours_between("final_death_dttm", col, _sch, SITE_TZ)
+        aggs = [pl.len().alias("n_decedents"), pl.col(col).is_not_null().sum().alias("n_with_value"),
+                *[_pct(_hrs.is_between(0, _k), f"pct_within_{_k}h") for _k in (1, 6, 24, 48, 168)],
+                _pct(pl.col(col).is_null(), "pct_missing")]
+        g = final_cohort_df.group_by(by).agg(aggs) if by else final_cohort_df.select(aggs)
+        parts.append(g.with_columns(pl.lit(measure).alias("measure")))
+    out = pl.concat(parts).with_columns(pl.lit(site_name).alias("site"))
+    return out.select(["site", *by, "measure", "n_decedents", "n_with_value", "pct_within_1h", "pct_within_6h",
+                       "pct_within_24h", "pct_within_48h", "pct_within_168h", "pct_missing"]).sort(by + ["measure"])
+
+
+_value_timing([]).write_csv(OUTPUT_FINAL_DIR / "value_timing.csv")
+_value_timing(["hospital_label"]).write_csv(OUTPUT_INTERMEDIATE_DIR / "value_timing_by_hospital.csv")
 pl.DataFrame(dq_flags, schema={"site": pl.Utf8, "flag": pl.Utf8, "severity": pl.Utf8,
                                "detail": pl.Utf8}).write_csv(
     OUTPUT_FINAL_DIR / "data_quality_flags.csv")
@@ -1958,8 +1849,7 @@ for _k, _v in _counts.items():
 _SREF = OUTPUT_FINAL_DIR / "srtr_ref"
 _SREF.mkdir(parents=True, exist_ok=True)
 _cov = final_cohort_df.select(
-    ["patient_id", "hospital_id_key", "hospital_label", "srtr_ccn_id",
-     "ccn_facility_type", "hospital_type", "in_srtr_denominator", "final_death_dttm"]
+    ["patient_id", "hospital_id_key", "hospital_label", "srtr_ccn_id", "hospital_type", "final_death_dttm"]
 ).drop_nulls("hospital_id_key")
 
 # Year of death only. The earliest and latest death timestamps are dates tied to
@@ -1975,8 +1865,7 @@ _cov = _cov.with_columns(_year_local(_cov, "final_death_dttm").alias("death_year
  .sort(["hospital_id_key", "year"])
  .write_csv(_SREF / "hospital_years.csv"))
 
-_hc = (_cov.group_by(["hospital_id_key", "hospital_label", "srtr_ccn_id",
-                      "ccn_facility_type", "hospital_type", "in_srtr_denominator"])
+_hc = (_cov.group_by(["hospital_id_key", "hospital_label", "srtr_ccn_id", "hospital_type"])
        .agg(pl.col("patient_id").n_unique().alias("n_decedents"),
             pl.col("death_year").min().alias("first_year"),
             pl.col("death_year").max().alias("last_year"))
@@ -1988,8 +1877,7 @@ _hc = (_cov.group_by(["hospital_id_key", "hospital_label", "srtr_ccn_id",
 # reading the run log. No label: labels are given only to hospitals with decedents.
 _zero = pl.DataFrame([{
     "hospital_id_key": h, "hospital_label": None,
-    "srtr_ccn_id": r.get("srtr_ccn_id"), "ccn_facility_type": r.get("ccn_facility_type"),
-    "hospital_type": None, "in_srtr_denominator": _hospital_in_study(r),
+    "srtr_ccn_id": r.get("srtr_ccn_id"), "hospital_type": None,
     "n_decedents": 0, "first_year": None, "last_year": None,
     "site": site_name, "n_years_spanned": None,
 } for h in _absent for r in _rows if str(r["hospital_id"]).lower().strip() == h],
@@ -1999,8 +1887,6 @@ pl.concat([_hc, _zero]).write_csv(_SREF / "hospital_coverage.csv")
 pl.DataFrame([{
     "site": site_name,
     "n_hospital_ids": _cov["hospital_id_key"].n_unique(),
-    "n_hospital_ids_in_srtr_denominator":
-        _cov.filter(pl.col("in_srtr_denominator"))["hospital_id_key"].n_unique(),
     "n_distinct_ccn": _cov["srtr_ccn_id"].drop_nulls().n_unique(),
     "n_decedents": _cov["patient_id"].n_unique(),
     "first_year": _cov["death_year"].min(),

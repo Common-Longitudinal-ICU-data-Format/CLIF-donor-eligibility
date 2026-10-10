@@ -49,6 +49,25 @@ def normalise_ccn(v) -> str | None:
     return s.zfill(6) if s.isdigit() else s
 
 
+def srtr_active_hospitals(srtr: Path) -> dict[str, str]:
+    """CCN -> hospital name for every donor hospital SRTR lists as active.
+
+    `donorhospital2506` is SRTR's hospital register: one row per hospital per
+    OPO, with ACTIVE_FLG. It is the test of whether a crosswalk CCN is one SRTR
+    files donors under today. A retired CCN (CMS re-certified the hospital
+    under a new number) is still in the register, inactive, and still carries
+    its old donors, so "has ever had a donor" would pass it; 999999 is SRTR's
+    "UNKNOWN" placeholder and is inactive too. A CCN with no active row can
+    never have a donor in the numerator, so it must not be in the denominator.
+    """
+    import pandas as pd
+    # pd.read_sas, not pyreadstat: these files' character set is one pyreadstat rejects.
+    reg = pd.read_sas(srtr / "donorhospital2506.sas7bdat", encoding="latin-1")
+    reg = reg[reg.ACTIVE_FLG == 1]
+    reg["ccn"] = reg.PROVIDER_NUM.map(normalise_ccn)
+    return {r.ccn: str(r.HOSPITAL_NAME).strip() for r in reg.itertuples() if r.ccn}
+
+
 def load_donor_hospital_links(srtr: Path, year_min: int, year_max: int):
     """One row per (donor, hospital CCN) for donors recovered in the window."""
     import pandas as pd
@@ -69,10 +88,18 @@ def match_hospitals(srtr: Path, hosp: pl.DataFrame,
 
     `hosp` is the pooled `hospital_level_counts.csv` and must carry
     `srtr_ccn_id`. Returns the annotated frame and the set of donor ids at those
-    CCNs. A hospital whose CCN does not resolve gets 0, not null, so it is
-    visibly unmatched rather than quietly dropped.
+    CCNs. `matched_srtr` is true only when the CCN is an active hospital in
+    SRTR's register (`srtr_active_hospitals`); `srtr_hospital_name` is SRTR's
+    name for it, so the crosswalk's mapping can be read off against it. A CCN
+    that is not active gets 0 donors, not null, so it is visibly unmatched
+    rather than quietly dropped. A matched hospital with 0 donors in the window
+    is real.
     """
+    active = srtr_active_hospitals(srtr)
     links = load_donor_hospital_links(srtr, year_min, year_max)
+    # a frame this function already annotated can be passed back in
+    hosp = hosp.drop([c for c in ("srtr_donors", "matched_srtr", "srtr_hospital_name")
+                      if c in hosp.columns])
     cohort_ccns = {normalise_ccn(c) for c in hosp["srtr_ccn_id"].drop_nulls().to_list()}
     cohort_ccns.discard(None)
     donor_ids = set(links[links.ccn.isin(cohort_ccns)].DONOR_ID)
@@ -83,8 +110,10 @@ def match_hospitals(srtr: Path, hosp: pl.DataFrame,
               pl.col("srtr_ccn_id").map_elements(normalise_ccn, return_dtype=pl.Utf8)
               .alias("_ccn"))
            .join(pl.from_pandas(by).rename({"ccn": "_ccn"}), on="_ccn", how="left")
+           .join(pl.DataFrame({"_ccn": list(active), "srtr_hospital_name": list(active.values())}),
+                 on="_ccn", how="left")
            .with_columns(pl.col("srtr_donors").fill_null(0).cast(pl.Int64),
-                         pl.col("_ccn").is_not_null().alias("matched_srtr"))
+                         pl.col("srtr_hospital_name").is_not_null().alias("matched_srtr"))
            .drop("_ccn"))
     return out, donor_ids
 

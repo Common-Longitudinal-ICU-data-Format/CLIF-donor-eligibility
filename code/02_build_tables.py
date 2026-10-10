@@ -8,17 +8,20 @@ manuscript needs. Output is aggregate only and lands in
 the formatted tables only when study.suppress_small_cells is true in
 config/donor_criteria.yaml; the raw-count files are never masked, so they pool.
 
-Tables produced, matching CLIF-donor manuscript_4_WFP:
+Tables produced:
     table2_characteristics.csv   demographics + labs + contraindications by definition
     table3_clinical_care.csv     procedures, medications, organ support by definition
     tableS2_missingness.csv      per-variable missingness
     hospital_level_counts.csv    per analytic hospital (Will, 2026-08-20)
 
-    CLIF_DONOR_SITE=ucmc python code/02_build_tables.py
+    uv run python code/02_build_tables.py      # reads config/config.json
 """
 from __future__ import annotations
 
 import sys
+
+# Print Unicode (≤, →) on any console, Windows included
+sys.stdout.reconfigure(encoding="utf-8")
 from pathlib import Path
 
 import duckdb
@@ -28,8 +31,10 @@ import yaml
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 from utils.audit import StageAudit
-from utils.dtypes import write_parquet                      # noqa: E402
-from utils.config import config                         # noqa: E402
+from utils.dtypes import write_parquet                      
+from utils.config import config                    
+from utils.criteria import (contraindication_prefix, contraindication_sql,  
+                            load_contraindications)
 
 SITE = config["site_name"]
 TABLES = Path(config["tables_path"])
@@ -50,7 +55,7 @@ if not SUPPRESS_ON:
 _CD = CRIT["clif_donor"]
 _AGE, _IMV_H = f'{_CD["age_at_death_max"]:g}', f'{_CD["imv_hours_before_death"]:g}'
 _CX_H = f'{_CD["contraindications"]["positive_blood_culture_hours"]:g}'
-_AGE_IN, _AGE_OUT = ("\u2264", ">") if _CD["age_operator"] == "<=" else ("<", "\u2265")
+_AGE_IN, _AGE_OUT = "\u2264", ">"                      # the age limit is inclusive
 _CAUSES = ", ".join(f"{lo}-{hi}" for lo, hi in CRIT["calc"]["cause_icd10_prefixes"].values())
 
 audit = StageAudit(SITE, FINAL, label="tables")
@@ -67,7 +72,11 @@ def have(name: str) -> bool:
 
 cohort = pl.read_parquet(INTER / "cohort_with_definitions.parquet")
 print(f"[{SITE}] {cohort.height:,} decedents")
-ids = pl.DataFrame({"hospitalization_id": cohort["hospitalization_id"].cast(pl.Utf8)}).to_pandas()
+# Every stay in each decedent's encounter block (written by step 01), so the
+# clinical-care variables cover the same stays as the definitions.
+MEMBERS = pl.read_parquet(INTER / "encounter_block_members.parquet").with_columns(
+    pl.col("hospitalization_id").cast(pl.Utf8))
+ids = MEMBERS.select("hospitalization_id").unique().to_pandas()
 con.register("ids_df", ids)
 
 missing_tables: list[str] = []
@@ -89,7 +98,11 @@ def add_flag(name: str, table: str, sql: str) -> None:
         audit.note(f"var_{name}", f"UNAVAILABLE — {type(e).__name__}: {str(e)[:120]}")
         print(f"  {name:34s} SKIPPED ({type(e).__name__})")
         return
-    cohort = (cohort.join(f.rename({f.columns[1]: name}), on="hospitalization_id", how="left")
+    per_patient = (f.rename({f.columns[1]: name})
+                   .with_columns(pl.col("hospitalization_id").cast(pl.Utf8))
+                   .join(MEMBERS, on="hospitalization_id", how="inner")
+                   .group_by("patient_id").agg(pl.col(name).cast(pl.Boolean).any()))
+    cohort = (cohort.join(per_patient, on="patient_id", how="left")
                     .with_columns(pl.col(name).fill_null(False).cast(pl.Boolean)))
     n = int(cohort.filter(pl.col(name))["patient_id"].n_unique())
     print(f"  {name:34s} {n:>7,}")
@@ -98,12 +111,11 @@ def add_flag(name: str, table: str, sql: str) -> None:
 print("\n-- clinical care variables --")
 
 # Neurologic procedures — CPT and ICD-10-PCS OR-ed together.
-# Sites code inpatient procedures in different vocabularies (UCMC: PCS only;
-# RUSH: CPT only for these concepts), and spell the format label differently
+# Sites code inpatient procedures in different vocabularies (some PCS only,
+# some CPT only for these concepts), and spell the format label differently
 # ("icd10pcs" / "ICD10PCS" / "ICD-10-PCS"), so the label is normalised by
 # lowercasing and stripping non-alphanumerics before comparison.
-PROC = pl.read_csv(REPO / "utils/codes/neuro_procedures.csv", comment_prefix="#",
-                   infer_schema_length=0)
+PROC = pl.read_csv(REPO / CARE["procedures_file"], comment_prefix="#", infer_schema_length=0)
 FMT_NORM = "regexp_replace(lower(CAST(procedure_code_format AS VARCHAR)),'[^a-z0-9]','','g')"
 CODE = "upper(CAST(procedure_code AS VARCHAR))"
 
@@ -126,11 +138,10 @@ for concept in sorted(PROC["concept"].unique()):
         GROUP BY 1""")
 
 # ── donor administrative codes (v6 Tables 1 and 2) ───────────────────────────
-# Emily's face-validity codes, one flag per code because the manuscript lists
-# each CPT as its own row. Diagnosis codes go through hospital_diagnosis, CPT
+# Diagnosis codes go through hospital_diagnosis, CPT
 # through patient_procedures. Codes and vocabulary labels are both normalised —
 # the sites spell the vocabulary three different ways.
-DAC_PATH = REPO / "utils/codes/donor_administrative_codes.csv"
+DAC_PATH = REPO / CRIT["reporting"]["donor_administrative_codes_file"]
 if DAC_PATH.exists():
     DAC = pl.read_csv(DAC_PATH, comment_prefix="#", infer_schema_length=0)
     _nrm = lambda s: "".join(ch for ch in str(s) if ch.isalnum()).upper()
@@ -152,19 +163,21 @@ if DAC_PATH.exists():
                   AND {PRC} = '{code}' GROUP BY 1""")
 
 # Cancer alone, separated from the pooled contraindication flag, because v6
-# Table 1 lists "Cancer" and "Positive blood culture" as separate rows.
-_cancer_codes = (pl.read_csv(REPO / "utils/icd10_contraindications.csv", infer_schema_length=0)
-                 .rename({"ICD-10-CM": "code"})
-                 .filter(pl.col("dx_broad").is_in(["cancer", "other"])))
-_cc = ",".join("'" + _nrm(c) + "'" for c in _cancer_codes["code"])
+# Table 1 lists "Cancer" and "Positive blood culture" as separate rows. Same
+# list and matching as step 01.
+CONTRA_CODES = load_contraindications(REPO / _CD["contraindications"]["icd10_file"])
+_DX_NORM = "lower(regexp_replace(CAST(diagnosis_code AS VARCHAR),'[^0-9A-Za-z]','','g'))"
+_DX_SYS = "regexp_replace(lower(CAST(diagnosis_code_format AS VARCHAR)),'[^a-z0-9]','','g')"
 add_flag("icd10_cancer_only", "hospital_diagnosis", f"""
     SELECT CAST(hospitalization_id AS VARCHAR) hospitalization_id, TRUE flag
     FROM read_parquet('{{p}}')
     WHERE CAST(hospitalization_id AS VARCHAR) IN (SELECT hospitalization_id FROM ids_df)
-      AND {DXC} IN ({_cc}) GROUP BY 1""")
+      AND {_DX_SYS} IN ('icd10','icd10cm')
+      AND {contraindication_sql(_DX_NORM, CONTRA_CODES)}
+    GROUP BY 1""")
 
 # Infectious screening, from microbiology_culture. This is culture positivity,
-# NOT serostatus — serologies live in microbiology_nonculture, which RUSH lacks.
+# NOT serostatus — serologies live in microbiology_nonculture, which not every site has.
 for _org, _rx in [("cmv", "cytomegalo|cmv"), ("ebv", "epstein|ebv"),
                   ("tuberculosis", "tubercul|mycobact"), ("aspergillus", "aspergill")]:
     add_flag(f"micro_{_org}", "microbiology_culture", f"""
@@ -217,7 +230,7 @@ cohort = cohort.with_columns(
     (pl.col("contra_fungemia").fill_null(False) | (~pl.col("no_positive_culture_48hrs"))
      | pl.col("icd10_contraindication")).alias("contra_any"))
 
-write_parquet(cohort, INTER / "cohort_with_variables.parquet")
+write_parquet(cohort, INTER / "cohort_with_variables.parquet", config["timezone"])
 
 # ── definition columns ───────────────────────────────────────────────────────
 DEFS = [("CLIF-donor", "clif_eligible_donors"), ("CALC", "calc_flag"),
@@ -357,7 +370,6 @@ for _d, _c in DEFS:
                        ("Cerebrovascular disease", "icd10_cerebro"),
                        ("External causes", "icd10_external"),
                        ("Z52.9 donor of organs", "dx_z529"),
-                       ("Sepsis (ICD-10)", "icd10_sepsis"),
                        ("Cancer", "icd10_cancer_only")]:
         if _col in cohort.columns:
             raw_count("table2", _lbl, _d, _m, pl.col(_col).fill_null(False))
@@ -418,8 +430,8 @@ pl.DataFrame(miss).write_csv(FINAL / "tableS2_missingness.csv")
 print(f"Table S2: {len(miss)} rows -> tableS2_missingness.csv")
 
 # ── hospital-level (Will, 2026-08-20) ────────────────────────────────────────
-hosp = (cohort.filter(pl.col("in_srtr_denominator") & pl.col("hospital_label").is_not_null())
-        .group_by(["hospital_label", "srtr_ccn_id", "ccn_facility_type", "hospital_type"])
+hosp = (cohort.filter(pl.col("hospital_label").is_not_null())
+        .group_by(["hospital_label", "srtr_ccn_id", "hospital_type"])
         .agg([pl.col("patient_id").n_unique().alias("n_decedents"),
               *[pl.col(c).fill_null(False).sum().alias(d.replace(" ", "_").replace("-", "_"))
                 for d, c in DEFS]])
@@ -454,10 +466,6 @@ _CALC_CAUSE_COL = {"any": "calc_cause_any", "primary": "calc_cause_primary",
 
 cohort = cohort.with_columns(
     (~pl.col("icd10_contraindication").fill_null(False)).alias("no_icd10_contraindication"),
-    # CLIF-donor excludes on the cancer and "other" arms only; sepsis is never
-    # an exclusion (2026-09-19). Built in 01 as icd10_contraindication_clif.
-    (~pl.col("icd10_contraindication_clif").fill_null(False)
-     ).alias("no_icd10_contraindication_clif"),
     # CALC's cause flag is built in 01 in three diagnosis-position variants;
     # calc.diagnosis_position in config/donor_criteria.yaml picks which one is
     # the analysis. Falls back to the any-position flag for older cohorts.
@@ -466,13 +474,13 @@ cohort = cohort.with_columns(
      ).fill_null(False).alias("calc_cause"),
 )
 
-# Order, per Emily Vail 2026-08-25: the criteria the definitions SHARE come
+# the criteria the definitions SHARE come
 # first and in the same order (deaths -> ventilation -> age), so the cascades are
 # readable side by side and the definition-specific steps are isolated at the
 # end. Set intersection is commutative, so reordering changes no endpoint.
 # Ventilated Patient IS the ventilation step: it is IMV within 48 h of death with
 # no age limit, so step 1 of the clinical cascades equals that definition exactly
-# (verified: 10,013 pooled, and no CLIF-donor or PD patient falls outside it).
+# (no CLIF-donor patient falls outside it).
 # CALC has NO ventilation criterion, so its cascade legitimately lacks that step.
 CASCADES = {
     "CLIF-donor": [
@@ -480,8 +488,8 @@ CASCADES = {
         (f"Received IMV within {_IMV_H} h of death\n(= Ventilated Patient)", "imv_48hr_expire",
          f"No IMV within {_IMV_H} h of death"),
         (f"Age {_AGE_IN} {_AGE} at death", "age_75_less", f"Age {_AGE_OUT} {_AGE} at death"),
-        ("No cancer diagnosis", "no_icd10_contraindication_clif",
-         "Cancer diagnosis"),
+        ("No contraindicating cancer diagnosis", "no_icd10_contraindication",
+         "Contraindicating cancer diagnosis"),
         (f"No positive blood culture within {_CX_H} h", "no_positive_culture_48hrs",
          f"Positive blood culture within {_CX_H} h"),
         ("Passed organ quality assessment\n(CLIF-donor eligible)", "organ_check_pass",
@@ -521,8 +529,7 @@ pl.DataFrame(_flow).write_csv(FINAL / "consort_counts.csv")
 # The manuscript compares academic and community hospitals but nothing was ever
 # computed for it. hospital_type comes from the terminal ADT record (CLIF field),
 # not the crosswalk, which carries no such column. Counts only, so they pool.
-_by_type = (cohort.filter(pl.col("in_srtr_denominator")
-                          & pl.col("hospital_type").is_not_null())
+_by_type = (cohort.filter(pl.col("hospital_type").is_not_null())
             .group_by("hospital_type")
             .agg([pl.col("patient_id").n_unique().alias("n_decedents"),
                   pl.col("hospital_label").n_unique().alias("n_hospitals"),
@@ -546,44 +553,24 @@ print("hospital_type: " + ", ".join(
 #             There is no code to name, so report the count only, alongside the
 #             codes the SURVIVORS had, which is the useful diagnostic there.
 _CODE_STEPS = {
-    # Keyed on the flag the CLIF-donor cascade actually uses. It was keyed on
-    # no_icd10_contraindication, which no cascade step carries, so the cancer
-    # step was reported as "non-ICD" and no code was ever attributed.
-    ("CLIF-donor", "no_icd10_contraindication_clif"):
-        ("presence", "contraindication_clif", None),
+    # Keyed on the flag the CLIF-donor cascade uses.
+    ("CLIF-donor", "no_icd10_contraindication"):
+        ("presence", "contraindication", None),
     ("CALC", "calc_cause"):
         ("absence", "calc_cause", None),
 }
 
-_contra_codes = (pl.read_csv(REPO / _CD["contraindications"]["icd10_file"], infer_schema_length=0)
-                 .rename({"ICD-10-CM": "code"}))
-# CLIF-donor excludes on the cancer and "other" arms only, as in step 01. The
-# sepsis arm is reporting only and must not be named as a reason for exclusion.
-_clif_arm_codes = _contra_codes.filter(pl.col("dx_broad").is_in(["cancer", "other"]))
-_norm = lambda s: sorted({str(x).upper().replace(".", "").strip() for x in s})
-
-
-def _desc_map(df, code_col, desc_col) -> dict[str, str]:
-    """Code -> description, built row-wise. Zipping a sorted set of codes against
-    an unsorted description column silently mismatches every pair."""
-    out = {}
-    for c, d in zip(df[code_col], df[desc_col]):
-        k = str(c).upper().replace(".", "").strip()
-        out.setdefault(k, d)
-    return out
-
-
-_contra_desc = _desc_map(_contra_codes, "code", "description")
-
+# A code is attributed when it matches the same prefixes, normalised the same
+# way, as step 01's icd10_contraindication. Its description is the prefix's.
 _SETS = {
-    "contraindication_clif": (_norm(_clif_arm_codes["code"]), _contra_desc),
-    "calc_cause": ([], {}),
+    "contraindication": contraindication_sql("x.code", CONTRA_CODES),
+    "calc_cause": "FALSE",
 }
 
 con.register("dx_all", con.sql(f"""
-    SELECT CAST(hospitalization_id AS VARCHAR) hid,
-           UPPER(REPLACE(CAST(diagnosis_code AS VARCHAR), '.', '')) code
-    FROM read_parquet('{TABLES}/clif_hospital_diagnosis.{FT}')""").df())
+    SELECT CAST(hospitalization_id AS VARCHAR) hid, {_DX_NORM} code
+    FROM read_parquet('{TABLES}/clif_hospital_diagnosis.{FT}')
+    WHERE {_DX_SYS} IN ('icd10','icd10cm')""").df())
 
 _excl = []
 for _defn, _steps in CASCADES.items():
@@ -610,17 +597,14 @@ for _defn, _steps in CASCADES.items():
                           "code": None, "description": None,
                           "n_excluded_carrying_code": None, "n_excluded_only_this_code": None})
             continue
-        codes, desc = _SETS[setname]
-        ids = (cohort.filter(_dropped).select("hospitalization_id")
-               .with_columns(pl.col("hospitalization_id").cast(pl.Utf8)).drop_nulls().unique())
-        pat = (cohort.filter(_dropped).select(["patient_id", "hospitalization_id"])
-               .with_columns(pl.col("hospitalization_id").cast(pl.Utf8)))
+        match_sql = _SETS[setname]
+        pat = MEMBERS.join(cohort.filter(_dropped).select("patient_id"), on="patient_id",
+                           how="inner")
         con.register("drop_ids", pat.to_pandas())
-        lst = "','".join(codes)
         hit = con.sql(f"""
             WITH h AS (SELECT DISTINCT d.patient_id, x.code
                        FROM drop_ids d JOIN dx_all x ON x.hid = d.hospitalization_id
-                       WHERE x.code IN ('{lst}'))
+                       WHERE {match_sql})
             SELECT code, count(DISTINCT patient_id) n,
                    count(DISTINCT CASE WHEN NOT EXISTS
                         (SELECT 1 FROM h y WHERE y.patient_id = h.patient_id AND y.code <> h.code)
@@ -628,7 +612,8 @@ for _defn, _steps in CASCADES.items():
             FROM h GROUP BY 1 ORDER BY n DESC, code""").pl()   # code breaks ties: stable across runs
         for r in hit.iter_rows(named=True):
             _excl.append({**base, "criterion_type": "presence",
-                          "code": r["code"], "description": desc.get(r["code"], ""),
+                          "code": r["code"].upper(),
+                          "description": CONTRA_CODES[contraindication_prefix(r["code"], CONTRA_CODES)],
                           "n_excluded_carrying_code": r["n"],
                           "n_excluded_only_this_code": r["n_sole"]})
         if not hit.height:

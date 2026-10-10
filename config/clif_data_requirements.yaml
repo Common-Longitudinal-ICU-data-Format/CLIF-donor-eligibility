@@ -27,7 +27,6 @@ tables:
     patient_assessments:         [hospitalization_id, recorded_dttm, assessment_category, numerical_value]
     medication_admin_continuous: [hospitalization_id, admin_dttm, med_category]
     medication_admin_intermittent: [hospitalization_id, admin_dttm, med_category]
-    ecmo_mcs:                    [hospitalization_id, recorded_dttm, device_category]
     position:                    [hospitalization_id, recorded_dttm, position_category]
 
 # Consequence of each optional table being absent, so the effect on the
@@ -37,19 +36,20 @@ optional_table_impact:
   patient_assessments:           "Table 2 GCS and RASS rows unavailable"
   medication_admin_continuous:   "Table 3 vasopressin and levothyroxine rows unavailable"
   medication_admin_intermittent: "Table 3 corticosteroid, sedative and antiepileptic rows unavailable"
-  ecmo_mcs:                      "Table 3 ECMO/MCS row unavailable"
   position:                      "Table 3 prone-positioning row unavailable"
 
 category_values:
-  adt.location_category:            [ed, ward, stepdown, icu]
-  adt.hospital_type:                [academic, community, LTACH]
-  hospitalization.discharge_category: [expired]
-  respiratory_support.device_category: [imv]
-  labs.lab_category:                [creatinine, bilirubin_total, ast, alt, bun, sodium]
-  vitals.vital_category:            [weight_kg, height_cm]
-  microbiology_culture.fluid_category: [blood_buffy]
-  patient_assessments.assessment_category: [gcs_total, RASS]
-
-# Known site gaps, recorded 2026-08-24 (DECISIONS F-13).
-known_site_gaps:
-  rush: [ecmo_mcs, microbiology_nonculture]
+  adt.location_category:                   [ed, ward, stepdown, icu, hospice]
+  adt.hospital_type:                       [academic, community]
+  hospitalization.discharge_category:      [expired]
+  hospital_diagnosis.diagnosis_code_format: [icd10cm]
+  respiratory_support.device_category:     [imv]
+  labs.lab_category:                       [creatinine, bilirubin_total, ast, alt, bun, sodium]
+  vitals.vital_category:                   [weight_kg, height_cm, heart_rate]
+  microbiology_culture.fluid_category:     [blood_buffy]
+  microbiology_culture.method_category:    [culture]
+  microbiology_culture.organism_category:  [no_growth]
+  patient_assessments.assessment_category: [gcs_total, rass]
+  patient_procedures.procedure_code_format: [cpt, icd10pcs]
+  position.position_category:              [prone]
+  # medication_admin_*.med_category: clinical_care.medications in donor_criteria.yaml
