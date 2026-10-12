@@ -4,14 +4,9 @@
     "tables_path": "/absolute/path/to/your/clif/parquet/tables",
     "timezone": "US/Central",
     "project_root": "/absolute/path/to/CLIF-donor-eligibility",
-    "hospital_ids": [
-        "your_hospital_id_1",
-        "your_hospital_id_2"
-    ],
     "_notes": {
         "site_name": "lowercase, e.g. ucmc, nu, rush",
         "timezone": "The timezone your hospital is in. One of: US/Eastern, US/Central, US/Mountain, US/Arizona, US/Pacific, US/Alaska, US/Hawaii. Not UTC",
-        "project_root": "the folder this repository is in",
-        "hospital_ids": "Every hospital_id in clif_adt"
+        "project_root": "the folder this repository is in"
     }
 }

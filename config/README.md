@@ -11,7 +11,10 @@ Site settings live in `config/config.json`. It is git-ignored and never leaves y
 | `tables_path` | Absolute path to the folder holding your CLIF tables (`clif_patient.parquet`, `clif_adt.parquet`, …). |
 | `timezone` | The timezone your hospital is in: `US/Eastern`, `US/Central`, `US/Mountain`, `US/Arizona`, `US/Pacific`, `US/Alaska` or `US/Hawaii`. It places admissions, discharges and deaths in the right calendar year, and it decides which death times count as date-only (exactly midnight at your hospital). Not `UTC`, even though CLIF stores timestamps in UTC. |
 | `project_root` | Absolute path to this repository on your machine. |
-| `hospital_ids` | Every `hospital_id` in `clif_adt` where your decedents died, written exactly as in your data. Check them against your site's rows in `hospital_crosswalk.yaml`; if one is missing or spelled differently, tell the coordinating centre so the crosswalk can be updated. |
+
+Your hospitals are not listed here. They come from your site's rows in `hospital_crosswalk.yaml`,
+which the coordinating centre builds from the `hospital_id` values you confirm in your `clif_adt`.
+An older `config.json` that still has `hospital_ids` runs unchanged; the list is ignored.
 
 The fields starting with `_` in the template are notes and are ignored.
 
@@ -25,7 +28,8 @@ plain message if something is wrong:
   (a missing optional table is a warning that names the manuscript rows it costs);
 - the timestamps used for the 48-hour windows are all timezone-aware or all timezone-naive,
   not a mix;
-- `hospital_crosswalk.yaml` has rows for your `site_name` and for every id in `hospital_ids`;
+- `hospital_crosswalk.yaml` has rows for your `site_name` and for every `hospital_id` in your
+  `clif_adt` (matched ignoring case and surrounding spaces; blank ids are skipped);
 - every row of `utils/codes/icd10_contraindications.csv` is well-formed (see
   [`../guides/contraindications.md`](../guides/contraindications.md)).
 

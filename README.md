@@ -34,11 +34,12 @@ recorded values, age and the hospital of death are handled, with the evidence fo
 ```bash
 # 1. Configure
 cp config/config_template.json config/config.json
-#    Fill in ALL of: site_name, tables_path, timezone, project_root,
-#    hospital_ids. timezone is your hospital's, e.g. US/Central (not UTC).
-#    hospital_ids must list every hospital_id in clif_adt that has decedents.
-#    The run stops if the cohort contains an id you did not declare. A declared
-#    id that contributes no decedents is reported as a warning.
+#    Fill in ALL of: site_name, tables_path, timezone, project_root.
+#    timezone is your hospital's, e.g. US/Central (not UTC).
+#    Your hospitals come from config/hospital_crosswalk.yaml, which the
+#    coordinating centre keeps. The run stops if clif_adt holds a hospital_id
+#    with no row there. A hospital in the study that contributes no decedents
+#    is reported as a warning.
 
 # 2. Install (Python 3.12; uv installs it if needed)
 uv sync

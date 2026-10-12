@@ -86,12 +86,9 @@ _problems, _warnings = [], []
 _TIMESTAMPS_NAIVE = False
 
 # 1. config
-for _k in ("site_name", "tables_path", "timezone", "project_root", "hospital_ids"):
+for _k in ("site_name", "tables_path", "timezone", "project_root"):
     if config.get(_k) in (None, "", []):
         _problems.append(f"config.json: '{_k}' is missing or empty")
-DECLARED_HOSPITAL_IDS = [str(h).lower().strip() for h in config.get("hospital_ids", [])]
-if not DECLARED_HOSPITAL_IDS:
-    _problems.append("config.json: hospital_ids is empty — list every hospital_id in clif_adt")
 
 # 2. tables and columns, from schemas only
 _tp = Path(tables_path)
@@ -145,20 +142,34 @@ else:
             _warnings.append(f"{_c} is {_t}, unlike the timestamps used for the death-anchored "
                              f"windows; variables built from it may be affected")
 
-# 4. the hospital crosswalk must know this site and every hospital it declares.
-#    A hospital without a crosswalk row cannot be linked to SRTR; its decedents
-#    would leave every hospital-level output without any error.
+# 4. the hospital crosswalk must know this site and every hospital_id in its
+#    clif_adt. A hospital without a crosswalk row cannot be linked to SRTR; its
+#    decedents would leave every hospital-level output without any error. The ids
+#    are read from the data, not from a list in config.json, so the check covers
+#    what the extract actually holds. A blank id is no hospital and is skipped.
 _XWALK = yaml.safe_load(
     (PROJECT_ROOT / "config/hospital_crosswalk.yaml").read_text())["hospitals"]
 _xw_ids = {str(r["hospital_id"]).lower().strip() for r in _XWALK if r["site"] == site_name}
 if not _xw_ids:
     _problems.append(f"config/hospital_crosswalk.yaml has no rows for site '{site_name}'. "
                      f"Check site_name, or ask the coordinating centre to add your hospitals")
-for _h in (DECLARED_HOSPITAL_IDS if _xw_ids else []):
-    if _h not in _xw_ids:
-        _problems.append(f"hospital_id '{_h}' is in config.json hospital_ids but has no row for "
-                         f"site '{site_name}' in config/hospital_crosswalk.yaml. Ask the "
-                         f"coordinating centre to add it")
+_adt_file = _tp / f"clif_adt.{file_type}"
+if _xw_ids and _adt_file.is_file():
+    _adt_ids: dict[str, int] = {}
+    try:
+        for _h, _n in duckdb.sql(f"SELECT CAST(hospital_id AS VARCHAR), COUNT(*) "
+                                 f"FROM read_parquet('{_adt_file}') GROUP BY 1").fetchall():
+            if (_h or "").strip():
+                _adt_ids[_h.lower().strip()] = _adt_ids.get(_h.lower().strip(), 0) + _n
+    except duckdb.Error:
+        pass                            # an unreadable clif_adt is already reported above
+    _unknown = sorted(h for h in _adt_ids if h not in _xw_ids)
+    if _unknown:
+        _problems.append(
+            f"clif_adt has hospital_id value(s) with no row for site '{site_name}' in "
+            f"config/hospital_crosswalk.yaml: "
+            + ", ".join(f"'{h}' ({_adt_ids[h]:,} ADT rows)" for h in _unknown)
+            + ". Send this list to the coordinating centre so they can be added")
 
 for _w in _warnings:
     print(f"  warn  {_w}")
@@ -1614,49 +1625,32 @@ final_cohort_df = final_cohort_df.with_columns(
 pl.DataFrame([{"site": site_name, "srtr_ccn_id": c, "hospital_label": l} for c, l in _labels.items()]
              ).write_csv(OUTPUT_INTERMEDIATE_DIR / "hospital_label_key.csv")
 print(f"  hospital labels: {len(_labels)} -> hospital_label_key.csv (kept local)")
-# The hospital_ids contract, checked on the COHORT rather than on raw ADT: a
-# hospital that appears in ADT but contributes no decedents is not a problem,
-# whereas one contributing decedents that the site never declared is — it
-# silently changes the denominator. Stops the run in both directions.
+# Every hospital_id in clif_adt has a crosswalk row (setup check 4), so every
+# decedent here died at a hospital the crosswalk knows.
 _observed = {h for h in final_cohort_df["hospital_id_key"].drop_nulls().unique().to_list()}
-_undeclared = sorted(_observed - set(DECLARED_HOSPITAL_IDS))
-_absent = sorted(set(DECLARED_HOSPITAL_IDS) - _observed)
+_in_study = {str(r["hospital_id"]).lower().strip() for r in _rows if _hospital_in_study(r)}
+_absent = sorted(_in_study - _observed)
 _n_null_hosp = int(final_cohort_df.filter(pl.col("hospital_id_key").is_null()).height)
 
-# A declared hospital with no decedents is NOT an error. Deaths are attributed to
-# the hospital of the terminal ADT record, which is what SRTR does, so a feeder
+# A hospital in the study with no decedents is NOT an error. Deaths are attributed
+# to the hospital of the terminal ADT record, which is what SRTR does, so a feeder
 # hospital that transfers dying patients out contributes zero by design: its
 # deaths are attributed to the hospitals it transfers to. Warn, so a genuinely
 # missing extract is still visible, but do not stop.
 for _h in _absent:
-    print(f"  warn  '{_h}' is declared in config but no decedent died there "
+    print(f"  warn  '{_h}' is in the study but no decedent died there "
           f"(transfers out, or no deaths in the window)")
 if _n_null_hosp:
     print(f"  warn  {_n_null_hosp:,} decedents have no hospital_id in clif_adt")
 
-# No decedent attributable to any hospital means adt.hospital_id is empty. The
-# declared-hospital check below would pass on that empty set and every
-# hospital-level output would be written with no rows.
+# No decedent attributable to any hospital means adt.hospital_id is empty, and
+# every hospital-level output would be written with no rows.
 if not _observed:
     raise SystemExit(
         "No decedent has a hospital_id in clif_adt, so no death can be attributed to a "
         "hospital. Populate adt.hospital_id in the extract and rerun.")
-
-# An UNDECLARED hospital contributing decedents is an error: it silently changes
-# the denominator, and the site has not said it should be in the study.
-if _undeclared:
-    print("\nDeclared-hospital check FAILED:")
-    for _h in _undeclared:
-        _n = final_cohort_df.filter(pl.col("hospital_id_key") == _h).height
-        print(f"  - '{_h}' contributes {_n:,} decedents but is not in config hospital_ids")
-    raise SystemExit(
-        "Add it to hospital_ids in config/config.json, or correct the hospital_id "
-        "values in the ADT extract, then rerun. No definition outputs were written; "
-        "the partial cohort files already in output/ are from this failed run and "
-        "must not be used.")
-print(f"Declared-hospital check passed: {len(_observed)} hospital_ids contribute "
-      f"decedents, all declared"
-      + (f"; {len(_absent)} declared id(s) contributed none" if _absent else ""))
+print(f"Hospital check passed: {len(_observed)} hospital_ids contribute decedents"
+      + (f"; {len(_absent)} hospital(s) in the study contributed none" if _absent else ""))
 
 _unmapped = sorted(final_cohort_df.filter(
     pl.col("srtr_ccn_id").is_null() & pl.col("hospital_id_key").is_not_null()
@@ -1873,7 +1867,7 @@ _hc = (_cov.group_by(["hospital_id_key", "hospital_label", "srtr_ccn_id", "hospi
        .with_columns(pl.lit(site_name).alias("site"))
        .with_columns((pl.col("last_year") - pl.col("first_year") + 1).alias("n_years_spanned"))
        .sort("n_decedents", descending=True))
-# Declared hospitals that contributed no decedents get a zero row, so the
+# Hospitals in the study that contributed no decedents get a zero row, so the
 # coordinating centre can tell a feeder hospital from a thin extract without
 # reading the run log. No label: labels are given only to hospitals with decedents.
 _zero = pl.DataFrame([{
