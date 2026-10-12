@@ -618,8 +618,9 @@ final_cohort_df = final_df.filter(_in_cohort)
 # every output, site totals included, is over the same hospitals. A hospital is
 # excluded when its crosswalk row has include_flag false or its CMS number does
 # not resolve in SRTR (config/hospital_crosswalk.yaml); a decedent there can never
-# be matched to a donor. The hospital is the one on the last ADT row. Ids missing
-# from the crosswalk are kept here and stop the run in the hospital-identity step.
+# be matched to a donor. The hospital is the one on the last ADT row that names
+# one: a blank hospital_id is no hospital, like a null. Ids missing from the
+# crosswalk are kept here and stop the run in the hospital-identity step.
 def _hospital_in_study(row: dict) -> bool:
     return bool(row.get("include_flag") and row.get("ccn_in_srtr") and row.get("srtr_ccn_id"))
 
@@ -628,7 +629,7 @@ _excluded_ids = {str(r["hospital_id"]).lower().strip() for r in _XWALK
                  if r["site"] == site_name and not _hospital_in_study(r)}
 _terminal_hosp = (
     adt_df.filter(pl.col("hospitalization_id").is_in(final_cohort_df["hospitalization_id"].implode())
-                  & pl.col("hospital_id").is_not_null())
+                  & (pl.col("hospital_id").cast(pl.Utf8).str.strip_chars() != ""))
     .sort(["out_dttm", "hospital_id"], descending=[True, False], nulls_last=True)
     .group_by("hospitalization_id", maintain_order=True).first()
     .select(pl.col("hospitalization_id").cast(pl.Utf8),

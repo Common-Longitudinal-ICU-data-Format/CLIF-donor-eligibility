@@ -30,9 +30,21 @@ hospitals:
 
   # ── emory ───────────────────────────────────────────────────────────────
   - {site: emory, hospital_id: "euh", hospital_ccn_id: "110010", srtr_ccn_id: "110010", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: emory_110010, hospital_full_name: "Emory University Hospital"}
-  - {site: emory, hospital_id: "eclh", hospital_ccn_id: "110078", srtr_ccn_id: "110078", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: emory_110078, hospital_full_name: "Emory Crawford Long Hospital (now Emory University Hospital Midtown)"}
-  - {site: emory, hospital_id: "esjh", hospital_ccn_id: "110082", srtr_ccn_id: "110082", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: emory_110082, hospital_full_name: "Emory St Joseph Hospital"}
+  - {site: emory, hospital_id: "euhm", hospital_ccn_id: "110078", srtr_ccn_id: "110078", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: emory_110078, hospital_full_name: "Emory University Hospital Midtown (formerly Crawford Long)"}
+  - {site: emory, hospital_id: "esjh", hospital_ccn_id: "110082", srtr_ccn_id: "110082", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: emory_110082, hospital_full_name: "Emory Saint Joseph's Hospital"}
   - {site: emory, hospital_id: "ejch", hospital_ccn_id: "110230", srtr_ccn_id: "110230", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: emory_110230, hospital_full_name: "Emory Johns Creek Hospital"}
+  - {site: emory, hospital_id: "edh", hospital_ccn_id: "110076", srtr_ccn_id: "110076", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: emory_110076, hospital_full_name: "Emory Decatur Hospital"}
+  - {site: emory, hospital_id: "ehh", hospital_ccn_id: "110226", srtr_ccn_id: "110226", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: emory_110226, hospital_full_name: "Emory Hillandale Hospital"}
+  - {site: emory, hospital_id: "euosh", hospital_ccn_id: "110033", srtr_ccn_id: "110033", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: emory_110033, hospital_full_name: "Emory University Orthopedic and Spine Hospital"}
+  - {site: emory, hospital_id: "eww", hospital_ccn_id: "110203", srtr_ccn_id: "110203", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: emory_110203, hospital_full_name: "Wesley Woods Geriatric Hospital"}
+  - {site: emory, hospital_id: "eltac", hospital_ccn_id: "110178", srtr_ccn_id: "110178", ccn_facility_type: long_term_care, ccn_in_srtr: true, include_flag: false, exclusion_reason: long_term_care, analytic_hospital_id: emory_110178, hospital_full_name: "Emory Long Term Acute Care"}
+  - {site: emory, hospital_id: "erh", hospital_ccn_id: ~, srtr_ccn_id: ~, ccn_facility_type: ~, ccn_in_srtr: false, include_flag: false, exclusion_reason: inpatient_rehabilitation, analytic_hospital_id: emory_erh, hospital_full_name: "Emory Rehabilitation Hospital (name inferred from the id)"}
+    # Emory rows rebuilt 2026-10-12 from the hospital_ids Emory's clif_adt actually holds.
+    # eclh, the old id for Midtown, is not in the ADT: Midtown is euhm. The new CCNs were
+    # matched by name and ZIP in SRTR donorhospital2506. eltac is a long-term acute care
+    # hospital (its ADT hospital_type is "ltach") although SRTR numbers it as short-term.
+    # erh has no SRTR record. The tracker's 110129 for esjh is St. Francis Hospital,
+    # Columbus GA, a different hospital.
 
   # ── hopkins ─────────────────────────────────────────────────────────────
   - {site: hopkins, hospital_id: "jhh", hospital_ccn_id: "210009", srtr_ccn_id: "210009", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: hopkins_210009, hospital_full_name: "Johns Hopkins Hospital"}
@@ -85,6 +97,9 @@ hospitals:
 
   # ── rush ────────────────────────────────────────────────────────────────
   - {site: rush, hospital_id: "rumc", hospital_ccn_id: "140119", srtr_ccn_id: "140119", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: rush_140119, hospital_full_name: "Rush University Medical Center"}
+  - {site: rush, hospital_id: "0ef9a308eadb4a18b8af3e3c8259ed86", hospital_ccn_id: "140119", srtr_ccn_id: "140119", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: rush_140119, hospital_full_name: "Rush University Medical Center"}
+
+
 
   # ── ucmc ────────────────────────────────────────────────────────────────
   - {site: ucmc, hospital_id: "ucmc", hospital_ccn_id: "140088", srtr_ccn_id: "140088", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: ucmc_140088, hospital_full_name: "University of Chicago Medical Center"}

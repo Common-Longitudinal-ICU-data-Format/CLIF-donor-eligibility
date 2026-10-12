@@ -14,7 +14,7 @@ only — no patient-level data.
 | `definition_counts.csv` | one row: decedents, each definition's count, the three CALC cause-arm counts, and decedents with no diagnosis rows |
 | `data_quality_flags.csv` | conditions that do not stop the run but change what a number means at your site; also shown in `provenance.md` |
 | `definition_counts_by_hospital_type.csv` | definition counts for academic and community hospitals |
-| `consort_counts.csv` | per-definition cascade, step by step |
+| `consort_counts.csv`, `consort.png` | per-definition cascade, step by step, as counts and as a figure |
 | `strobe_counts.csv` | every filter-stage count from step 01 |
 | `table2_characteristics.csv`, `table3_clinical_care.csv` | manuscript tables |
 | `table_stats_raw.csv` | the same numbers as raw n / denominator, so they pool exactly |

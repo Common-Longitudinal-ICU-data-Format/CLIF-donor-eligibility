@@ -52,12 +52,6 @@ uv run python code/02_build_tables.py
 uv run python code/03_diagnostics.py
 ```
 
-The run validates the config, the required tables and the required columns
-before reading any patient data, and stops with a plain message if something is
-wrong. `03_diagnostics.py` finishes by reconciling the STROBE counts, the
-CONSORT, the definition counts and the Table 2 denominators against each other,
-and fails the run if they disagree.
-
 ## What to return
 
 Ship the whole of **`<site>_upload_to_box/`**: aggregate counts only, no patient-level data.
