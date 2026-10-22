@@ -10,7 +10,10 @@ study:
   require_admission_and_discharge_in_window: true
   death_discharge_category: expired      # 'hospice' is NOT a death
 
-  # A death enters the cohort if the stay touched any of these ADT locations.
+  # A death enters the cohort if the stay touched any of these ADT locations,
+  # except a stay whose every ADT record is the ED: a death in the ED without
+  # admission is not an inpatient death, the denominator CMS uses for CALC
+  # (85 FR 77909). The strobe row 2b_ed_only_deaths counts those decedents.
   cohort_locations: [ed, ward, stepdown, icu, hospice]
   suppress_small_cells: false
   small_cell_suppression_n: 11

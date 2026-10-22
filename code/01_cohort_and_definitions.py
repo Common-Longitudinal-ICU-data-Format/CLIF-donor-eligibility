@@ -558,7 +558,10 @@ _progress.mark("Time of death")
 
 ################################################################################
 # Inpatient decedents
-# Identify inpatient encounters - the stay must have touched one of study.cohort_locations
+# Identify inpatient encounters - the stay must have touched one of study.cohort_locations.
+# A stay whose every ADT record is the ED (a death in the ED without admission) is
+# not an inpatient death (CMS's CALC denominator, 85 FR 77909); it leaves here,
+# counted in 2b_ed_only_deaths.
 ################################################################################
 
 # Check that all decedents are present in ADT table
@@ -583,6 +586,7 @@ last_location_per_hosp = (
           pl.col('location_category').first().alias('last_location_category'),
           (pl.col('location_category').str.to_lowercase() == 'icu').any().alias('ever_icu'),
           (pl.col('location_category').str.to_lowercase() == 'hospice').any().alias('ever_hospice'),
+          (pl.col('location_category').str.to_lowercase().fill_null('') == 'ed').all().alias('ed_only'),
           (pl.col('location_category').str.to_lowercase()
              .is_in(COHORT_LOCATIONS)).any().alias('in_cohort_location'),
       ])
@@ -594,6 +598,9 @@ final_df = final_df.join(
     how='left'
 )
 
+_in_cohort = (pl.col('in_cohort_location').fill_null(False)
+              & ~pl.col('ed_only').fill_null(False))
+
 # Decedent counts by ADT location, so a site difference like a hospice unit
 # is a reported number rather than something absorbed into a filter.
 # Grouped by the TERMINAL location, but inclusion depends on ANY location in
@@ -604,7 +611,7 @@ _by_loc = (
     final_df.group_by(pl.col('last_location_category').str.to_lowercase()
                         .fill_null('(no ADT record)').alias('terminal_location'))
     .agg(pl.col('patient_id').n_unique().alias('n_decedents'),
-         pl.col('patient_id').filter(pl.col('in_cohort_location').fill_null(False))
+         pl.col('patient_id').filter(_in_cohort)
            .n_unique().alias('n_in_cohort'))
     .with_columns((pl.col('n_decedents') - pl.col('n_in_cohort')).alias('n_excluded'))
     .sort('n_decedents', descending=True)
@@ -617,9 +624,11 @@ for r in _by_loc.iter_rows(named=True):
     print(f"    {str(r['terminal_location']):20}{r['n_decedents']:>9,}"
           f"{r['n_in_cohort']:>11,}{r['n_excluded']:>10,}")
 
-_in_cohort = pl.col('in_cohort_location').fill_null(False)
 strobe_counts["2a_deaths_in_cohort_locations"] = final_df.filter(_in_cohort)['patient_id'].n_unique()
 strobe_counts["2b_deaths_excluded_by_location"] = final_df.filter(~_in_cohort)['patient_id'].n_unique()
+strobe_counts["2b_ed_only_deaths"] = final_df.filter(pl.col('ed_only').fill_null(False))['patient_id'].n_unique()
+print(f"Excluded by location: {strobe_counts['2b_deaths_excluded_by_location']:,}, "
+      f"of which died in the ED without admission: {strobe_counts['2b_ed_only_deaths']:,}")
 strobe_counts["2c_deaths_with_hospice"] = (
     final_df.filter(pl.col('ever_hospice').fill_null(False))['patient_id'].n_unique())
 
@@ -694,18 +703,9 @@ print("Time of death in the cohort, by where it came from:")
 for _s in DEATH_TIME_SOURCES:
     strobe_counts[f"2d_death_time_{_s}"] = int(_src_n.get(_s, 0))
     print(f"    {_s:34s}{_src_n.get(_s, 0):>8,}")
-# A time of death before admission is a recording error. Every window before it
-# is empty, so the patient reads as ineligible. Flagged without a count, because
-# the count is almost always a handful; the patients are the rows of the local
-# cohort file with final_death_dttm < admission_dttm.
-_adm = comparable("admission_dttm", final_cohort_df.schema["admission_dttm"],
-                  final_cohort_df.schema["final_death_dttm"])
-if final_cohort_df.filter(pl.col("final_death_dttm") < _adm).height:
-    dq_flags.append({
-        "site": site_name, "flag": "death_time_before_admission", "severity": "low",
-        "detail": ("At least one decedent has a time of death before the admission time of the "
-                   "death hospitalization. No window before death can contain anything for them, "
-                   "so they read as not ventilated and ineligible. Check death_dttm for those rows.")})
+# A recorded time of death before admission is a placeholder; the anchor rule
+# disregards it and uses discharge, and the 2d_death_time_discharge_death_before_admission
+# row above says how many.
 print(f"Cohort locations {COHORT_LOCATIONS}: {final_df.height:,} -> "
       f"{final_cohort_df.height:,} hospitalizations")
 
@@ -1432,7 +1432,8 @@ _progress.mark("Microbiology")
 # Medically eligible potential deceased abdominal organ donor. Every threshold
 # is read from config/donor_criteria.yaml; the numbers here are its values.
 # * From the cohort: in-hospital deaths whose stay touched one of
-#   study.cohort_locations (ED, ward, stepdown, ICU, hospice)
+#   study.cohort_locations (ED, ward, stepdown, ICU, hospice), except a stay
+#   whose every ADT record is the ED
 # * Age at death 75 or under (inclusive)
 # * At least one IMV record in the 48 h before the time of death
 # * No contraindicating cancer diagnosis on any stay of the death encounter:
