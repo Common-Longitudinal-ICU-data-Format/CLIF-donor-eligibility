@@ -84,15 +84,15 @@ calc:
   # [Reference](https://www.cms.gov/files/document/112020-opo-final-rule-cms-3380-f.pdf)
 
   # Which diagnosis position counts as the cause of death.
-  #   any          every diagnosis position           <- PRIMARY ANALYSIS
-  #   primary      principal discharge diagnosis only  <- sensitivity B
-  #   primary_poa  principal AND present on admission  <- sensitivity C
+  #   primary      principal discharge diagnosis only  <- PRIMARY ANALYSIS
+  #   any          every diagnosis position           <- sensitivity, upper bound
+  #   primary_poa  principal AND present on admission  <- diagnostic, lower bound
   #
-  # CMS specifies the PRIMARY cause of death, but that is the underlying cause
-  # from a death certificate, which no EHR field reproduces. All three counts
-  # are reported at every run; this sets which one becomes calc_flag.
-  # Agreed with Joel and Emily 2026-09-20: A primary, B and C as sensitivity.
-  diagnosis_position: any
+  # CMS specifies the primary cause of death on the death certificate, which no
+  # EHR field reproduces; the principal discharge diagnosis is the nearest
+  # analogue. All three counts are reported at every run; this sets which one
+  # becomes calc_flag. Agreed with Will, Joel and Emily 2026-10-21.
+  diagnosis_position: primary
 
 # ── Ventilated Patient — HRSA form comparator ────────────────────────────────
 # IMV within clif_donor.imv_hours_before_death of death, no age limit. The
