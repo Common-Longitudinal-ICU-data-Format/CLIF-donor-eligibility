@@ -15,8 +15,9 @@ patient managed as a donor after death is declared, discharge is recorded at
 organ recovery, a day or more later, and is not the time of death.
 
 A death recorded long after discharge (a date linked from an outside registry,
-or an error) is disregarded and discharge is used: the cohort is in-hospital
-deaths, so the patient died no later than discharge.
+or an error), or before the admission of the death hospitalization (a
+placeholder such as 1936), is disregarded and discharge is used: the cohort is
+in-hospital deaths, so the patient died between admission and discharge.
 
 The last recorded vital is not used. Units such as inpatient hospice chart no
 vitals, and a vitals extract that ends before the hospitalization extract makes
@@ -34,6 +35,7 @@ SOURCES = (
     "death_date_start",                  # date-only death; discharge is shortly before the date
     "discharge_death_missing",           # no death_dttm
     "discharge_death_after_discharge",   # death recorded long after discharge; disregarded
+    "discharge_death_before_admission",  # death recorded before admission; disregarded
     "none",                              # neither timestamp present
 )
 
@@ -66,7 +68,8 @@ def comparable(col: str, dtype: pl.Datetime, target: pl.Datetime) -> pl.Expr:
 
 
 def add_death_anchor(df: pl.DataFrame, site_tz: str, max_hours_after_discharge: float,
-                     death: str = "death_dttm", discharge: str = "discharge_dttm") -> pl.DataFrame:
+                     death: str = "death_dttm", discharge: str = "discharge_dttm",
+                     admission: str | None = "admission_dttm") -> pl.DataFrame:
     """Add `final_death_dttm` and `death_time_source` to `df`.
 
     `final_death_dttm` has the dtype of the death column. `site_tz` is the
@@ -97,11 +100,16 @@ def add_death_anchor(df: pl.DataFrame, site_tz: str, max_hours_after_discharge: 
     end = end.cast(d_ty)
 
     recorded_long_after = (dth - disc).dt.total_seconds() > max_hours_after_discharge * 3600
+    if admission and admission in df.columns:
+        recorded_before_admission = dth < comparable(admission, df.schema[admission], d_ty)
+    else:
+        recorded_before_admission = pl.lit(False)
 
     cases = [   # first match wins
         (dth.is_null() & disc.is_null(), pl.lit(None, d_ty), "none"),
         (dth.is_null(), disc, "discharge_death_missing"),
         (recorded_long_after, disc, "discharge_death_after_discharge"),
+        (recorded_before_admission, disc, "discharge_death_before_admission"),
         (~date_only, dth, "death_dttm"),
         (disc.is_null() | (disc > end), end, "death_date_end"),
         (disc < start, start, "death_date_start"),

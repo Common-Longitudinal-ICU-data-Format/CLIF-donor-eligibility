@@ -38,3 +38,6 @@ guides/questions.md
 all_site_data_manuscript/
 manuscript_results/
 guides/notes_for_manuscript.md
+code/coordinating/
+utils/srtr.py
+utils/pooling.py

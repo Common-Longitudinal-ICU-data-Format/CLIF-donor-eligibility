@@ -9,12 +9,14 @@ only — no patient-level data.
 | `ventilation_timing.csv` | per hospital, share of ventilated decedents whose last ventilator record is within 1, 6, 24 and 48 h of death |
 | `discharge_vs_death_timing.csv` | per hospital, among decedents with a timed `death_dttm`: how far `discharge_dttm` falls from it. Evidence that discharge can stand in for a date-only or missing death time |
 | `vitals_timing.csv` | per hospital, where the last recorded vital falls relative to the time of death, and how often a heart rate above zero is charted more than an hour after it. Evidence for not anchoring on the last vital |
-| `organ_criteria.csv` | site totals for each organ-quality criterion: kidney, liver and BMI passes and every reason for failing, over all decedents and over the patients who reached the organ step. The same counts per hospital stay local in `output/intermediate_phi/<site>/organ_criteria_by_hospital.csv` |
+| `organ_criteria.csv` | site totals for each organ-quality criterion: kidney, liver and BMI passes and every reason for failing, over all decedents, over the patients who reached the organ step, and over the CLIF-donor eligible. The same counts per hospital stay local in `output/intermediate_phi/<site>/organ_criteria_by_hospital.csv` |
 | `value_timing.csv` | per measure (labs, GCS, RASS, weight, height): share of decedents whose last value before death is within 1, 6, 24, 48 and 168 h of it, and share missing. For laying sites over one another. Per-hospital rows stay local in `value_timing_by_hospital.csv` |
 | `definition_counts.csv` | one row: decedents, each definition's count, the three CALC cause-arm counts, and decedents with no diagnosis rows |
 | `data_quality_flags.csv` | conditions that do not stop the run but change what a number means at your site; also shown in `provenance.md` |
 | `definition_counts_by_hospital_type.csv` | definition counts for academic and community hospitals |
 | `consort_counts.csv`, `consort.png` | per-definition cascade, step by step, as counts and as a figure |
+| `figure1_cohort.png`, `figure1_counts.csv` | Figure 1 for your site: exclusions before analysis, CALC applied in sequence, CLIF-donor's six criteria applied in parallel with eligibility split kidney only / liver only / both, and the organ assessment; the counts behind it, which the coordinating centre pools into the manuscript figure |
+| `hospitals.csv` | every hospital id in your config and what became of it: included (with its label), no decedents in the window, or excluded and why (long-term acute care, inpatient rehabilitation, not a system hospital, no CMS number); decedents per id |
 | `strobe_counts.csv` | every filter-stage count from step 01 |
 | `table2_characteristics.csv`, `table3_clinical_care.csv` | manuscript tables |
 | `table_stats_raw.csv` | the same numbers as raw n / denominator, so they pool exactly |

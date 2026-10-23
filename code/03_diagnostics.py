@@ -507,6 +507,26 @@ if _dac_path.exists() and "hospitalization_id" in cohort.columns:
                   f"decedents={r['n_cohort_decedents']:5,} "
                   f"clif-donors={r['n_among_clif_donors']:4,}")
 
+# ── Figure 1 for this site: the cohort flow, from this run's own counts ──────
+# The counts behind it ship in figure1_counts.csv, so the coordinating centre
+# pools the same figure over sites without patient-level data (utils/figure1.py).
+from utils import figure1                                 # noqa: E402
+_strobe = dict(pl.read_csv(FINAL / "strobe_counts.csv").select("metric", "n").iter_rows())
+_dc = pl.read_csv(FINAL / "definition_counts.csv").row(0, named=True)
+_organ = {k: int(v) for k, v in pl.read_csv(FINAL / "organ_criteria.csv")
+          .filter(pl.col("population") == figure1.ORGAN_POPULATION).row(0, named=True).items()
+          if k in figure1.ORGAN}
+_flow = figure1.site_flow(cohort, _strobe, _dc)
+_f1_problems = figure1.all_problems(_flow, _organ)
+if _f1_problems:
+    raise SystemExit("Figure 1 not drawn; this run's counts disagree:\n  " + "\n  ".join(_f1_problems))
+(pl.DataFrame({"metric": list(_flow), "n": list(_flow.values())})
+   .with_columns(pl.lit(SITE).alias("site")).select("site", "metric", "n")
+   .write_csv(FINAL / "figure1_counts.csv"))
+_f1 = figure1.render(_flow, _organ, figure1.excluded_text(pl.read_csv(FINAL / "hospitals.csv")),
+                     1, FINAL / "figure1_cohort")
+print(f"\nFigure 1 -> {_f1[0].name}; counts -> figure1_counts.csv")
+
 # ── provenance: one document, and a check that the artifacts agree ───────────
 # Last site step, so every artifact exists by now. A mismatch between the
 # STROBE counts, the CONSORT, definition_counts and the Table 2 denominators

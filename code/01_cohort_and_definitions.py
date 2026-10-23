@@ -663,6 +663,9 @@ final_cohort_df = (final_cohort_df.with_columns(pl.col("hospitalization_id").cas
                    .filter(~pl.col("hospitalization_id").is_in(_drop.implode()))
                    .join(_terminal_hosp, on="hospitalization_id", how="left"))
 print(f"Decedents at hospitals excluded from the study: {_drop.len():,}")
+# Decedents at each excluded hospital, for hospitals.csv at the identity step.
+_n_at_excluded = dict(_terminal_hosp.filter(pl.col("hospital_id_key").is_in(list(_excluded_ids)))
+                      .group_by("hospital_id_key").len().iter_rows())
 
 # Age at death, in years, from birth_date. Where the birth date is missing,
 # age_at_admission stands in: it understates age by the length of stay, days for
@@ -1020,6 +1023,9 @@ final_cohort_df = (
     ])
 )
 
+# Which diagnosis position defines the cause of death (config/donor_criteria.yaml).
+_POSITION = str(CALC_CFG['diagnosis_position']).lower()
+
 # CALC cause of death, all three diagnosis-position variants, before age is
 # applied. Reported every run so the sensitivity analyses need no re-run.
 CALC_POSITIONS = {"any": "calc_cause_any",
@@ -1028,7 +1034,7 @@ CALC_POSITIONS = {"any": "calc_cause_any",
 for _name, _col in CALC_POSITIONS.items():
     strobe_counts[f"calc_cause_{_name}"] = (
         final_cohort_df.filter(pl.col(_col))["patient_id"].n_unique())
-strobe_counts["calc_cause"] = strobe_counts["calc_cause_any"]   # legacy key
+strobe_counts["calc_cause"] = strobe_counts[f"calc_cause_{_POSITION}"]   # the configured reading
 
 _progress.mark("ICD Codes")
 
@@ -1043,9 +1049,6 @@ _progress.mark("ICD Codes")
 # - V01–Y89: external causes (e.g., blunt trauma, gunshot wounds, overdose, suicide, drowning, asphyxiation)
 # [Reference](https://www.cms.gov/files/document/112020-opo-final-rule-cms-3380-f.pdf)
 ################################################################################
-
-# Which diagnosis position defines the cause of death (config/donor_criteria.yaml).
-_POSITION = str(CALC_CFG['diagnosis_position']).lower()
 
 print(f"CALC diagnosis position: {_POSITION} -> {CALC_POSITIONS[_POSITION]}")
 for _name, _col in CALC_POSITIONS.items():
@@ -1653,6 +1656,28 @@ if not _observed:
 print(f"Hospital check passed: {len(_observed)} hospital_ids contribute decedents"
       + (f"; {len(_absent)} hospital(s) in the study contributed none" if _absent else ""))
 
+# Every configured hospital and what became of it: included, with its label;
+# no decedents in the window; or excluded, and why. Ids are the crosswalk's,
+# already public beside the hospital names; the CCN stays local.
+_n_included = dict(final_cohort_df.group_by("hospital_id_key").len().iter_rows())
+
+
+def _hospital_row(r: dict) -> dict:
+    key = str(r["hospital_id"]).lower().strip()
+    if not _hospital_in_study(r):
+        reason = str(r.get("exclusion_reason") or ("not_in_srtr" if r.get("srtr_ccn_id") else "no_cms_number"))
+        return dict(status="excluded", reason=reason, hospital_label=None, n_decedents=_n_at_excluded.get(key, 0))
+    if key not in _observed:
+        return dict(status="no_decedents", reason=None, hospital_label=None, n_decedents=0)
+    return dict(status="included", reason=None, hospital_label=_labels.get(r.get("srtr_ccn_id")),
+                n_decedents=_n_included.get(key, 0))
+
+
+pl.DataFrame([{"site": site_name, "hospital_id": str(r["hospital_id"]), **_hospital_row(r)} for r in _rows],
+             schema={"site": pl.Utf8, "hospital_id": pl.Utf8, "status": pl.Utf8, "reason": pl.Utf8,
+                     "hospital_label": pl.Utf8, "n_decedents": pl.Int64}
+             ).write_csv(OUTPUT_FINAL_DIR / "hospitals.csv")
+
 _unmapped = sorted(final_cohort_df.filter(
     pl.col("srtr_ccn_id").is_null() & pl.col("hospital_id_key").is_not_null()
 )["hospital_id_key"].unique().to_list())
@@ -1732,7 +1757,8 @@ _reached_organ_step = (pl.col("imv_48hr_expire") & pl.col("age_75_less")
 def _organ_criteria(by: list[str]) -> pl.DataFrame:
     parts = []
     for population, sub in (("all_decedents", final_cohort_df),
-                            ("reached_organ_step", final_cohort_df.filter(_reached_organ_step))):
+                            ("reached_organ_step", final_cohort_df.filter(_reached_organ_step)),
+                            ("clif_donor_eligible", final_cohort_df.filter(pl.col("clif_eligible_donors")))):
         g = sub.group_by(by).agg(_ORGAN_COUNTS) if by else sub.select(_ORGAN_COUNTS)
         parts.append(g.with_columns(pl.lit(population).alias("population")))
     out = pl.concat(parts).with_columns(pl.lit(site_name).alias("site"))
