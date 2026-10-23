@@ -41,3 +41,5 @@ guides/notes_for_manuscript.md
 code/coordinating/
 utils/srtr.py
 utils/pooling.py
+# coordinating centre's verification worksheet behind hospital_crosswalk.yaml
+utils/hospital_crosswalk_verified.csv

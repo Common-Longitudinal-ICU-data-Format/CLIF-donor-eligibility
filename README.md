@@ -14,7 +14,7 @@ All three are computed on the same cohort, in `01_cohort_and_definitions.py`.
 |---|:--:|:--:|:--:|
 | In-hospital death (`discharge_category = expired`) | ✓ | ✓ | ✓ |
 | Age ≤ 75 at death | ✓ | ✓ | — |
-| Cause of death consistent with donation (I20–I25, I60–I69, V01–Y89) | — | ✓ | — |
+| Principal discharge diagnosis consistent with donation (I20–I25, I60–I69, V01–Y89) | — | ✓ | — |
 | IMV within 48 h of death | ✓ | — | ✓ |
 | No contraindicating cancer diagnosis | ✓ | — | — |
 | No positive blood culture within 48 h of death | ✓ | — | — |
@@ -24,9 +24,7 @@ Kidney = terminal creatinine < 4 mg/dL and no CRRT within 48 h.
 Liver = terminal bilirubin < 4 mg/dL, AST < 700, ALT < 700.
 
 
-Every criterion lives in `config/donor_criteria.yaml`. How the time of death, linked stays, last
-recorded values, age and the hospital of death are handled, with the evidence for each:
-[`guides/notes_for_manuscript.md`](guides/notes_for_manuscript.md).
+Every criterion lives in `config/donor_criteria.yaml`.
 
 
 ## Running it
@@ -34,7 +32,7 @@ recorded values, age and the hospital of death are handled, with the evidence fo
 ```bash
 # 1. Configure
 cp config/config_template.json config/config.json
-#    Fill in ALL of: site_name, tables_path, timezone, project_root.
+#    Fill in ALL of: site_name, tables_path, timezone.
 #    timezone is your hospital's, e.g. US/Central (not UTC).
 #    Your hospitals come from config/hospital_crosswalk.yaml, which the
 #    coordinating centre keeps. The run stops if clif_adt holds a hospital_id
@@ -90,10 +88,10 @@ the manuscript rows it costs, and the run continues.
 | `vitals` | `hospitalization_id`, `recorded_dttm`, `vital_category`, `vital_value` | `vital_category`: `weight_kg`, `height_cm`, `heart_rate` | BMI, death-time diagnostics |
 | `crrt_therapy` | `hospitalization_id`, `recorded_dttm` | any row | CRRT within 48 h of death |
 | `microbiology_culture` | `hospitalization_id`, `collect_dttm`, `fluid_category`, `method_category`, `organism_category` | `fluid_category`: `blood_buffy`; `method_category`: `culture`; `organism_category`: `no_growth` against any organism | positive blood culture within 48 h of death, Table 3 organism rows |
-| `patient_procedures` | `hospitalization_id`, `procedure_code`, `procedure_code_format`, `procedure_billed_dttm` | `procedure_code_format`: `cpt`, `icd10pcs`; the codes in `utils/codes/` | Table 3 neurologic procedures, donor administrative codes |
-| `patient_assessments` | `hospitalization_id`, `recorded_dttm`, `assessment_category`, `numerical_value` | `assessment_category`: `gcs_total`, `rass` | Table 2 GCS and RASS |
-| `medication_admin_continuous`, `medication_admin_intermittent` | `hospitalization_id`, `admin_dttm`, `med_category` | `med_category`: `dexamethasone`, `methylprednisolone`, `hydrocortisone`, `vasopressin`, `levothyroxine`, `propofol`, `midazolam`, `fentanyl`, `valproate` (`clinical_care.medications` in `donor_criteria.yaml`) | Table 3 medication rows |
-| `position` | `hospitalization_id`, `recorded_dttm`, `position_category` | `position_category`: `prone` | Table 3 prone positioning |
+| `patient_procedures` (optional) | `hospitalization_id`, `procedure_code`, `procedure_code_format`, `procedure_billed_dttm` | `procedure_code_format`: `cpt`, `icd10pcs`; the codes in `utils/codes/` | Table 3 neurologic procedures, donor administrative codes |
+| `patient_assessments` (optional) | `hospitalization_id`, `recorded_dttm`, `assessment_category`, `numerical_value` | `assessment_category`: `gcs_total`, `rass` | Table 2 GCS and RASS |
+| `medication_admin_continuous`, `medication_admin_intermittent` (optional) | `hospitalization_id`, `admin_dttm`, `med_category` | `med_category`: `dexamethasone`, `methylprednisolone`, `hydrocortisone`, `vasopressin`, `levothyroxine`, `propofol`, `midazolam`, `fentanyl`, `valproate` (`clinical_care.medications` in `donor_criteria.yaml`) | Table 3 medication rows |
+| `position` (optional) | `hospitalization_id`, `recorded_dttm`, `position_category` | `position_category`: `prone` | Table 3 prone positioning |
 
 Category values are matched ignoring case and surrounding spaces. A category filter that
 matches nothing for the whole cohort stops the run and lists the values present, so a
