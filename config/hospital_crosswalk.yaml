@@ -15,6 +15,11 @@
 # site's donation rate. Rows failing either test are dropped as a recorded
 # cohort-flow step, never silently.
 #
+# A hospital_id with no row here is not a hospital (a blank, 'Missing', 'Unknown'
+# or a typo): such ADT rows are skipped when the hospital of death is chosen, and
+# a decedent whose stay names no crosswalk hospital leaves the cohort at the same
+# step. hospitals.csv lists the values seen and how many decedents carried them.
+#
 # CCN structure: final four digits encode facility type —
 #   0001-0879 short-term acute · 1300-1399 critical access · 2000-2299 long-term care
 #
@@ -92,14 +97,15 @@ hospitals:
   - {site: penn, hospital_id: "penn_umcop", hospital_ccn_id: "310010", srtr_ccn_id: "310010", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: penn_310010, hospital_full_name: "Penn Medicine Princeton Medical Center"}
   - {site: penn, hospital_id: "penn_pcam", hospital_ccn_id: "390111", srtr_ccn_id: "390111", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: penn_390111, hospital_full_name: "Perelman Center for Advanced Medicine (provider-based under HUP)"}
   - {site: penn, hospital_id: "penn_phpbr", hospital_ccn_id: "390111", srtr_ccn_id: "390111", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: penn_390111, hospital_full_name: "Medical Arts Pavilion (provider-based under HUP)"}
-  - {site: penn, hospital_id: "penn_pasyc", hospital_ccn_id: "390226", srtr_ccn_id: "390226", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: penn_390226, hospital_full_name: "Pennsylvania Hospital psychiatric unit (provider-based under PAH)"}
-  - {site: penn, hospital_id: "penn_hmipp", hospital_ccn_id: ~, srtr_ccn_id: ~, ccn_facility_type: ~, ccn_in_srtr: false, include_flag: false, exclusion_reason: not_a_system_facility, analytic_hospital_id: penn_hmipp, hospital_full_name: "Unknown facility; reported by Penn as not a system hospital"}
+  - {site: penn, hospital_id: "penn_pasyc", hospital_ccn_id: "390226", srtr_ccn_id: "390226", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: false, exclusion_reason: psychiatric, analytic_hospital_id: penn_390226, hospital_full_name: "Pennsylvania Hospital psychiatric unit (provider-based under PAH)"}
+    # Penn, 2026-10-23: PASYC and HMIPP are psychiatric centres whose data should not be
+    # trusted, so both are excluded. PCAM and PHPBR are outpatient facilities under HUP and
+    # stay included: they share HUP's CCN, so a death there is a HUP death for SRTR.
+  - {site: penn, hospital_id: "penn_hmipp", hospital_ccn_id: ~, srtr_ccn_id: ~, ccn_facility_type: ~, ccn_in_srtr: false, include_flag: false, exclusion_reason: psychiatric, analytic_hospital_id: penn_hmipp, hospital_full_name: "HUP Cedar psychiatric department (per Penn)"}
 
   # ── rush ────────────────────────────────────────────────────────────────
   - {site: rush, hospital_id: "rumc", hospital_ccn_id: "140119", srtr_ccn_id: "140119", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: rush_140119, hospital_full_name: "Rush University Medical Center"}
   - {site: rush, hospital_id: "0ef9a308eadb4a18b8af3e3c8259ed86", hospital_ccn_id: "140119", srtr_ccn_id: "140119", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: rush_140119, hospital_full_name: "Rush University Medical Center"}
-
-
 
   # ── ucmc ────────────────────────────────────────────────────────────────
   - {site: ucmc, hospital_id: "ucmc", hospital_ccn_id: "140088", srtr_ccn_id: "140088", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: ucmc_140088, hospital_full_name: "University of Chicago Medical Center"}

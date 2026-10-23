@@ -33,7 +33,7 @@ sys.path.insert(0, str(REPO))
 from utils.audit import StageAudit
 from utils.dtypes import write_parquet                      
 from utils.config import config                    
-from utils.criteria import (CALC_POSITIONS, DEFS, contraindication_prefix,
+from utils.criteria import (DEFS, contraindication_prefix,
                             contraindication_sql, load_contraindications)
 
 SITE = config["site_name"]
@@ -50,13 +50,7 @@ SUPPRESS_ON = CRIT["study"].get("suppress_small_cells", True)
 if not SUPPRESS_ON:
     print("NOTE: small-cell masking is OFF (config study.suppress_small_cells=false)")
 
-# Values named in the CONSORT labels come from the YAML that step 01 applied,
-# so a label cannot state a threshold the counts did not use.
 _CD = CRIT["clif_donor"]
-_AGE, _IMV_H = f'{_CD["age_at_death_max"]:g}', f'{_CD["imv_hours_before_death"]:g}'
-_CX_H = f'{_CD["contraindications"]["positive_blood_culture_hours"]:g}'
-_AGE_IN, _AGE_OUT = "\u2264", ">"                      # the age limit is inclusive
-_CAUSES = ", ".join(f"{lo}-{hi}" for lo, hi in CRIT["calc"]["cause_icd10_prefixes"].values())
 
 audit = StageAudit(SITE, FINAL, label="tables")
 con = duckdb.connect()
@@ -395,6 +389,37 @@ for _d, _c in DEFS:
 pl.DataFrame(raw).write_csv(FINAL / "table_stats_raw.csv")
 print(f"raw long-form stats: {len(raw)} rows -> table_stats_raw.csv")
 
+# ── binned counts, so the coordinating centre can pool medians exactly ───────
+# A median of the pooled patients is not a function of the site medians. Counts
+# per fixed-width bin are, to the width of the bin, and they add across sites.
+_BINS = [("Age at death", "age_at_death", 1), ("Weight [kg]", "last_weight_kg", 1),
+         ("Height [cm]", "last_height_cm", 1), ("BMI", "bmi", .5),
+         ("Terminal creatinine [mg/dL]", "creatinine_value", .1),
+         ("Terminal total bilirubin [mg/dL]", "bilirubin_total_value", .1),
+         ("Terminal AST [U/L]", "ast_value", 10), ("Terminal ALT [U/L]", "alt_value", 10),
+         ("Terminal BUN [mg/dL]", "bun_value", 1), ("Terminal sodium [mmol/L]", "sodium_value", 1),
+         ("Terminal GCS", "gcs_total_value", 1), ("Terminal RASS", "rass_value", 1),
+         ("Hospital LOS [days]", "hospital_length_of_stay_days", .5),
+         ("First ICU LOS [days]", "first_icu_los_days", .5)]
+_bins: list[dict] = []
+for _d, _c in DEFS:
+    _m = mask(_c)
+    for _lbl, _col, _w in _BINS:
+        if _col not in cohort.columns:
+            continue
+        _s = cohort.filter(_m)[_col].drop_nulls().cast(pl.Float64)
+        _g = (_s.to_frame("v").with_columns(((pl.col("v") / _w + 1e-9).floor() * _w).round(6).alias("bin_lo"))
+              .group_by("bin_lo").len().sort("bin_lo"))
+        assert int(_g["len"].sum()) == _s.len()
+        _bins += [{"site": SITE, "table": "table2", "variable": _lbl, "definition": _d,
+                   "bin_lo": float(_b), "width": float(_w), "n": int(_n)} for _b, _n in _g.iter_rows()]
+_bins_df = pl.DataFrame(_bins, schema={"site": pl.Utf8, "table": pl.Utf8, "variable": pl.Utf8, "definition": pl.Utf8,
+                                       "bin_lo": pl.Float64, "width": pl.Float64, "n": pl.Int64})
+_bins_df.write_csv(INTER / "value_bins.csv")
+if not SUPPRESS_ON:          # bins are small cells; with suppression on they stay local
+    _bins_df.write_csv(FINAL / "value_bins.csv")
+print(f"value bins: {_bins_df.height} rows -> value_bins.csv" + (" (kept local: suppression on)" if SUPPRESS_ON else ""))
+
 t2 = pl.DataFrame(rows)
 t2.write_csv(FINAL / "table2_characteristics.csv")
 print(f"\nTable 2: {t2.height} rows -> table2_characteristics.csv")
@@ -462,71 +487,6 @@ audit.record("40_tables_built", cohort, cohort, key="patient_id",
 audit.write()
 print(f"\nall outputs -> {FINAL}")
 
-# ── CONSORT cascades, one per definition ─────────────────────────────────────
-# The strobe_counts flags are population-wide, not sequential: organ_check_pass
-# and no_positive_culture_48hrs are evaluated on every decedent, so reading them
-# as successive steps makes the funnel go up. Applied cumulatively here instead,
-# for each definition, so the report can show a CONSORT per definition.
-_CALC_CAUSE_COL = CALC_POSITIONS[str(CRIT["calc"]["diagnosis_position"]).lower()]
-
-cohort = cohort.with_columns(
-    (~pl.col("icd10_contraindication").fill_null(False)).alias("no_icd10_contraindication"),
-    # CALC's cause flag is built in 01 in three diagnosis-position variants;
-    # calc.diagnosis_position in config/donor_criteria.yaml picks the analysis.
-    pl.col(_CALC_CAUSE_COL).fill_null(False).alias("calc_cause"),
-)
-
-# the criteria the definitions SHARE come
-# first and in the same order (deaths -> ventilation -> age), so the cascades are
-# readable side by side and the definition-specific steps are isolated at the
-# end. Set intersection is commutative, so reordering changes no endpoint.
-# Ventilated Patient IS the ventilation step: it is IMV within 48 h of death with
-# no age limit, so step 1 of the clinical cascades equals that definition exactly
-# (no CLIF-donor patient falls outside it).
-# CALC has NO ventilation criterion, so its cascade legitimately lacks that step.
-CASCADES = {
-    "CLIF-donor": [
-        ("All in-hospital deaths", None, None),
-        (f"Received IMV within {_IMV_H} h of death\n(= Ventilated Patient)", "imv_48hr_expire",
-         f"No IMV within {_IMV_H} h of death"),
-        (f"Age {_AGE_IN} {_AGE} at death", "age_75_less", f"Age {_AGE_OUT} {_AGE} at death"),
-        ("No contraindicating cancer diagnosis", "no_icd10_contraindication",
-         "Contraindicating cancer diagnosis"),
-        (f"No positive blood culture within {_CX_H} h", "no_positive_culture_48hrs",
-         f"Positive blood culture within {_CX_H} h"),
-        ("Passed organ quality assessment\n(CLIF-donor eligible)", "organ_check_pass",
-         "Failed both kidney and liver criteria, or BMI"),
-    ],
-    # Kallan SAS seven-step cascade (Goldberg AJT 2017), reordered to share the
-    # prefix above; the SAS step numbers are unchanged in DECISIONS.
-    "CALC": [
-        ("All in-hospital deaths", None, None),
-        (f"Age {_AGE_IN} {_AGE} at death", "age_75_less", f"Age {_AGE_OUT} {_AGE} at death"),
-        # CALC applies no contraindication codes (42 CFR 486.302; D-43), so the
-        # cascade ends here.
-        (f"Cause of death consistent with donation\n({_CAUSES})\n(CALC qualified)",
-         "calc_cause", "No qualifying cause of death"),
-    ],
-    "Ventilated Patient": [
-        ("All in-hospital deaths", None, None),
-        (f"Received IMV within {_IMV_H} h of death\n(Ventilated Patient)", "imv_48hr_expire",
-         f"No IMV within {_IMV_H} h of death"),
-    ],
-}
-
-_flow = []
-for _defn, _steps in CASCADES.items():
-    _keep = pl.Series([True] * cohort.height)
-    for _i, (_label, _col, _excl) in enumerate(_steps):
-        if _col is not None:
-            _keep = _keep & cohort[_col].fill_null(False)
-        _flow.append({"site": SITE, "definition": _defn, "step": _i, "label": _label,
-                      "n": cohort.filter(_keep)["patient_id"].n_unique(),
-                      "excluded_label": _excl})
-    print(f"CONSORT {_defn}: " + " -> ".join(
-        f"{r['n']:,}" for r in _flow if r["definition"] == _defn))
-pl.DataFrame(_flow).write_csv(FINAL / "consort_counts.csv")
-
 # ── academic vs community ────────────────────────────────────────────────────
 # The manuscript compares academic and community hospitals but nothing was ever
 # computed for it. hospital_type comes from the terminal ADT record (CLIF field),
@@ -544,105 +504,41 @@ print("hospital_type: " + ", ".join(
     f"{r['hospital_type']}={r['n_decedents']:,} ({r['n_hospitals']} hosp)"
     for r in _by_type.iter_rows(named=True)))
 
-# ── which codes actually caused each exclusion, step by step ─────────────────
-# The CONSORT says how many were dropped at each step. This says WHY: for every
-# ICD-driven step, the specific codes carried by the patients dropped there.
-#
-# Two kinds of criterion, and they need different reporting:
-#   PRESENCE  the code disqualifies you (contraindications, MSOF, cancer).
-#             Report each code and how many of the dropped patients carried it.
-#   ABSENCE   you are dropped for NOT having a qualifying code (cause of death).
-#             There is no code to name, so report the count only, alongside the
-#             codes the SURVIVORS had, which is the useful diagnostic there.
-_CODE_STEPS = {
-    # Keyed on the flag the CLIF-donor cascade uses.
-    ("CLIF-donor", "no_icd10_contraindication"): ("presence", "contraindication"),
-    ("CALC", "calc_cause"): ("absence", "calc_cause"),
-}
-
-# A code is attributed when it matches the same prefixes, normalised the same
-# way, as step 01's icd10_contraindication. Its description is the prefix's.
-_SETS = {
-    "contraindication": contraindication_sql("x.code", CONTRA_CODES),
-}
-
+# ── the cancer codes behind the contraindication criterion ───────────────────
+# The criteria are applied in parallel, so the question is not which codes
+# dropped patients at a step but which codes the decedents with a
+# contraindication carry: per code, decedents carrying it, and decedents
+# carrying no other contraindicating code.
 con.register("dx_all", con.sql(f"""
     SELECT CAST(hospitalization_id AS VARCHAR) hid, {_DX_NORM} code
     FROM read_parquet('{TABLES}/clif_hospital_diagnosis.{FT}')
     WHERE {_DX_SYS} IN ('icd10','icd10cm')""").df())
-
-_excl = []
-for _defn, _steps in CASCADES.items():
-    _keep = pl.Series([True] * cohort.height)
-    for _label, _col, _excl_label in _steps:
-        if _col is None:
-            continue
-        _entering = _keep.clone()
-        _keep = _keep & cohort[_col].fill_null(False)
-        _dropped = _entering & ~_keep
-        n_drop = cohort.filter(_dropped)["patient_id"].n_unique()
-        n_in = cohort.filter(_entering)["patient_id"].n_unique()
-        spec = _CODE_STEPS.get((_defn, _col))
-        base = {"site": SITE, "definition": _defn, "step_label": _label.replace("\n", " "),
-                "flag": _col, "n_entering_step": n_in, "n_excluded_at_step": n_drop}
-        if spec is None:
-            _excl.append({**base, "criterion_type": "non-ICD",
-                          "code": None, "description": None,
-                          "n_excluded_carrying_code": None, "n_excluded_only_this_code": None})
-            continue
-        kind, setname = spec
-        if kind == "absence" or not n_drop:
-            _excl.append({**base, "criterion_type": f"{kind} (no code to attribute)",
-                          "code": None, "description": None,
-                          "n_excluded_carrying_code": None, "n_excluded_only_this_code": None})
-            continue
-        match_sql = _SETS[setname]
-        pat = MEMBERS.join(cohort.filter(_dropped).select("patient_id"), on="patient_id",
-                           how="inner")
-        con.register("drop_ids", pat.to_pandas())
-        hit = con.sql(f"""
-            WITH h AS (SELECT DISTINCT d.patient_id, x.code
-                       FROM drop_ids d JOIN dx_all x ON x.hid = d.hospitalization_id
-                       WHERE {match_sql})
-            SELECT code, count(DISTINCT patient_id) n,
-                   count(DISTINCT CASE WHEN NOT EXISTS
-                        (SELECT 1 FROM h y WHERE y.patient_id = h.patient_id AND y.code <> h.code)
-                        THEN patient_id END) n_sole
-            FROM h GROUP BY 1 ORDER BY n DESC, code""").pl()   # code breaks ties: stable across runs
-        for r in hit.iter_rows(named=True):
-            _excl.append({**base, "criterion_type": "presence",
-                          "code": r["code"].upper(),
-                          "description": CONTRA_CODES[contraindication_prefix(r["code"], CONTRA_CODES)],
-                          "n_excluded_carrying_code": r["n"],
-                          "n_excluded_only_this_code": r["n_sole"]})
-        if not hit.height:
-            _excl.append({**base, "criterion_type": "presence",
-                          "code": None, "description": "no code matched the dropped patients",
-                          "n_excluded_carrying_code": 0, "n_excluded_only_this_code": 0})
-
-# Per-code rows count the patients carrying one specific diagnosis, and most of
-# those counts are below the small-cell threshold. Unless
-# study.ship_exclusion_code_detail is true, the full table is written to the
-# site's local folder and the shipped file carries one row per step.
-_excl_df = pl.DataFrame(_excl, infer_schema_length=None).with_row_index("_i")
-_has_code = pl.col("code").is_not_null()
-if CRIT["study"].get("ship_exclusion_code_detail", False) or not _excl_df.filter(_has_code).height:
-    _shipped = _excl_df
+_contra_pts = cohort.filter(pl.col("icd10_contraindication").fill_null(False)).select("patient_id")
+con.register("contra_ids", MEMBERS.join(_contra_pts, on="patient_id", how="inner").to_pandas())
+_hit = con.sql(f"""
+    WITH h AS (SELECT DISTINCT d.patient_id, x.code
+               FROM contra_ids d JOIN dx_all x ON x.hid = d.hospitalization_id
+               WHERE {contraindication_sql("x.code", CONTRA_CODES)})
+    SELECT code, count(DISTINCT patient_id) n_decedents,
+           count(DISTINCT CASE WHEN NOT EXISTS
+                (SELECT 1 FROM h y WHERE y.patient_id = h.patient_id AND y.code <> h.code)
+                THEN patient_id END) n_only_this_code
+    FROM h GROUP BY 1 ORDER BY n_decedents DESC, code""").pl()   # code breaks ties: stable across runs
+_codes = (_hit.with_columns(
+    pl.Series("description", [CONTRA_CODES[contraindication_prefix(c, CONTRA_CODES)] for c in _hit["code"]],
+              dtype=pl.Utf8),
+    pl.col("code").str.to_uppercase(), pl.lit(SITE).alias("site"))
+    .select("site", "code", "description", "n_decedents", "n_only_this_code"))
+_codes.write_csv(INTER / "contraindication_codes.csv")
+# Per-code counts are small cells. Unless study.ship_exclusion_code_detail is
+# true the shipped file carries the total only; the per-code table stays local.
+if CRIT["study"].get("ship_exclusion_code_detail", False):
+    _codes.write_csv(FINAL / "contraindication_codes.csv")
 else:
-    _excl_df.drop("_i").write_csv(INTER / "exclusion_codes_by_step.csv")
-    _keys = ["site", "definition", "step_label", "flag", "n_entering_step", "n_excluded_at_step"]
-    _summary = (_excl_df.filter(_has_code).group_by(_keys)
-                .agg(pl.col("_i").min(), pl.col("code").n_unique().alias("_n_codes"))
-                .with_columns(
-                    pl.lit("presence (per-code counts kept at the site)").alias("criterion_type"),
-                    pl.lit(None, pl.Utf8).alias("code"),
-                    pl.format("{} distinct codes; the per-code breakdown is in the site's "
-                              "local output folder", pl.col("_n_codes")).alias("description"),
-                    pl.lit(None, pl.Int64).alias("n_excluded_carrying_code"),
-                    pl.lit(None, pl.Int64).alias("n_excluded_only_this_code")))
-    _shipped = pl.concat([_excl_df.filter(~_has_code), _summary.select(_excl_df.columns)],
-                         how="vertical_relaxed").sort("_i")
-    print(f"  per-code detail ({_excl_df.filter(_has_code).height} rows) kept local -> "
-          f"{(INTER / 'exclusion_codes_by_step.csv').relative_to(REPO)}")
-_shipped.drop("_i").write_csv(FINAL / "exclusion_codes_by_step.csv")
-print(f"Exclusion attribution: {_shipped.height} rows -> exclusion_codes_by_step.csv")
+    pl.DataFrame({"site": [SITE], "code": [None], "n_decedents": [int(_contra_pts.height)],
+                  "n_only_this_code": [None],
+                  "description": [f"{_codes.height} distinct codes; the per-code table is in the site's local output folder"]},
+                 schema={"site": pl.Utf8, "code": pl.Utf8, "n_decedents": pl.Int64, "n_only_this_code": pl.Int64,
+                         "description": pl.Utf8}
+                 ).select("site", "code", "description", "n_decedents", "n_only_this_code").write_csv(FINAL / "contraindication_codes.csv")
+print(f"Contraindication codes: {_contra_pts.height:,} decedents, {_codes.height} codes -> contraindication_codes.csv")

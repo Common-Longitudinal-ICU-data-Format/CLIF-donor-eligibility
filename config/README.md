@@ -27,8 +27,10 @@ plain message if something is wrong:
   (a missing optional table is a warning that names the manuscript rows it costs);
 - the timestamps used for the 48-hour windows are all timezone-aware or all timezone-naive,
   not a mix;
-- `hospital_crosswalk.yaml` has rows for your `site_name` and for every `hospital_id` in your
-  `clif_adt` (matched ignoring case and surrounding spaces; blank ids are skipped);
+- `hospital_crosswalk.yaml` has rows for your `site_name`. A `hospital_id` in your `clif_adt`
+  without a row (matched ignoring case and surrounding spaces) is reported, not fatal: it is
+  treated as no hospital, decedents whose stay names no crosswalk hospital leave the cohort at
+  the excluded-hospital step, and `hospitals.csv` lists the values with their decedent counts;
 - every row of `utils/codes/icd10_contraindications.csv` is well-formed.
 
 ### The other files in this folder

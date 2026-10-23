@@ -540,5 +540,5 @@ if _problems:
     for _p in _problems:
         print(f"  - {_p}")
     raise SystemExit("The run's own counts disagree. See provenance.md.")
-print("Reconciliation passed: STROBE, CONSORT, definition_counts and Table 2 agree")
+print("Reconciliation passed: strobe, Figure 1, definition_counts, Table 2 and the hospital counts agree")
 print(f"\nwrote -> {FINAL}")

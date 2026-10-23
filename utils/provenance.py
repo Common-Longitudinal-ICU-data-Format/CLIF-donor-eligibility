@@ -54,12 +54,12 @@ def reconcile(final_dir: Path) -> list[str]:
     """Return a list of mismatches. Empty means every artifact agrees."""
     d = Path(final_dir)
     strobe = _read(d, "strobe_counts.csv")
-    consort = _read(d, "consort_counts.csv")
     counts = _read(d, "definition_counts.csv")
     stats = _read(d, "table_stats_raw.csv")
     problems: list[str] = []
 
-    missing = [n for n, v in [("strobe_counts.csv", strobe), ("consort_counts.csv", consort),
+    flow = _read(d, "figure1_counts.csv")
+    missing = [n for n, v in [("strobe_counts.csv", strobe), ("figure1_counts.csv", flow),
                               ("definition_counts.csv", counts),
                               ("table_stats_raw.csv", stats)] if v is None]
     if missing:
@@ -68,73 +68,65 @@ def reconcile(final_dir: Path) -> list[str]:
     # strobe_counts.csv is long: site, order, metric, n
     S = {r["metric"]: _int(r["n"]) for r in strobe.iter_rows(named=True)}
     C = {c: _int(counts[c][0]) for c in counts.columns}
-    consort = consort.with_columns(pl.col("n").cast(pl.Int64), pl.col("step").cast(pl.Int64))
+    F = {r["metric"]: _int(r["n"]) for r in flow.iter_rows(named=True)}
     stats = stats.with_columns(pl.col("n").cast(pl.Float64, strict=False),
                                pl.col("denom").cast(pl.Float64, strict=False))
 
-    # 1. the cohort: every CONSORT starts at the same place, and that is the
-    #    number the STROBE cascade ends on and Table 2 uses as its denominator.
+    # 1. the cohort: the STROBE cascade, Figure 1 and definition_counts end on
+    #    the same number, and Table 2 uses it as its denominator
     cohort_n = S.get("2_inpatient_decedents")
-    for defn in consort["definition"].unique().to_list():
-        step0 = consort.filter((pl.col("definition") == defn) & (pl.col("step") == 0))["n"]
-        if step0.len() and step0[0] != cohort_n:
-            problems.append(f"cohort size: CONSORT '{defn}' starts at {step0[0]:,} but "
-                            f"strobe_counts says {cohort_n:,}")
-    if C.get("n_inpatient_deaths") != cohort_n:
-        problems.append(f"cohort size: definition_counts says {C.get('n_inpatient_deaths')} "
-                        f"but strobe_counts says {cohort_n:,}")
+    for what, v in (("figure1_counts 'analytic'", F.get("analytic")),
+                    ("definition_counts 'n_inpatient_deaths'", C.get("n_inpatient_deaths"))):
+        if v != cohort_n:
+            problems.append(f"cohort size: {what} is {v} but strobe_counts says {cohort_n}")
 
-    # 2. each definition: CONSORT endpoint == definition_counts == Table 2 "N patients"
-    for defn, col in DEF_COUNT_COL.items():
-        rows = consort.filter(pl.col("definition") == defn).sort("step")
-        if not rows.height:
-            continue
-        endpoint = rows["n"][-1]
-        if C.get(col) != endpoint:
-            problems.append(f"{defn}: CONSORT ends at {endpoint:,} but definition_counts "
-                            f"'{col}' is {C.get(col)}")
+    # 2. each definition: Figure 1 == definition_counts == strobe == Table 2 "N patients"
+    for defn, col, fkey, skey in (("CLIF-donor", "clif_donor", "clif_donor", "clif_eligible_donors"),
+                                  ("CALC", "calc", "calc", "calc_qualified"),
+                                  ("Ventilated Patient", "ventilated_no_age_limit", "imv", None)):
+        n = C.get(col)
+        if F.get(fkey) != n:
+            problems.append(f"{defn}: figure1_counts '{fkey}' is {F.get(fkey)} but definition_counts '{col}' is {n}")
+        if skey and S.get(skey) is not None and S[skey] != n:
+            problems.append(f"{defn}: strobe_counts '{skey}' is {S[skey]:,} but definition_counts '{col}' is {n}")
         t2 = stats.filter((pl.col("variable") == "N patients") & (pl.col("definition") == defn))
         if t2.height:
             n_t2 = _int(t2["n"][0])
-            if n_t2 != endpoint:
-                problems.append(f"{defn}: CONSORT ends at {endpoint:,} but Table 2 "
-                                f"'N patients' is {n_t2:,}")
+            if n_t2 != n:
+                problems.append(f"{defn}: Table 2 'N patients' is {n_t2:,} but definition_counts '{col}' is {n}")
             denom = _int(t2["denom"][0])
             if denom != cohort_n:
                 problems.append(f"{defn}: Table 2 denominator is {denom:,} but the cohort "
                                 f"is {cohort_n:,}")
-        key = DEF_STROBE_KEY.get(defn)
-        if key and S.get(key) is not None and S[key] != endpoint:
-            problems.append(f"{defn}: CONSORT ends at {endpoint:,} but strobe_counts "
-                            f"'{key}' is {S[key]:,}")
 
-    # 3. a CONSORT can only ever shrink
-    for defn in consort["definition"].unique().to_list():
-        rows = consort.filter(pl.col("definition") == defn).sort("step")
-        ns = rows["n"].to_list()
-        for a, b, lab in zip(ns, ns[1:], rows["label"].to_list()[1:]):
-            if b > a:
-                problems.append(f"{defn}: step '{lab.splitlines()[0]}' goes UP, {a:,} -> {b:,}")
+    # 3. Figure 1's own identities: exclusions add up, the six criteria together
+    #    are CLIF-donor, the organ split sums to it
+    up = sum(F.get(k) or 0 for k in ("no_adt", "ed_only", "other_location", "excluded_hospital", "no_hospital", "no_age"))
+    if (F.get("in_window") or 0) - up != F.get("analytic"):
+        problems.append(f"figure1_counts: {F.get('in_window')} in the window less {up} excluded is not the cohort {F.get('analytic')}")
+    if F.get("all_six") != F.get("clif_donor"):
+        problems.append(f"figure1_counts: the six criteria together ({F.get('all_six')}) are not CLIF-donor ({F.get('clif_donor')})")
+    if (F.get("kidney_only") or 0) + (F.get("liver_only") or 0) + (F.get("both") or 0) != F.get("clif_donor"):
+        problems.append("figure1_counts: kidney only, liver only and both do not add to CLIF-donor")
 
-    # 4. the per-hospital counts cover the cohort (less the decedents with no
-    #    hospital id, which they cannot hold), and the CALC readings they carry
-    #    match the strobe rows they were counted from
+    # 4. the per-hospital counts cover the whole cohort, and the CALC readings
+    #    they carry match the strobe rows they were counted from
     hosp = _read(d, "hospital_level_counts.csv")
     if hosp is not None and cohort_n is not None:
-        n_h = sum(_int(x) or 0 for x in hosp["n_decedents"].to_list()) + (S.get("2j_decedents_without_hospital_id") or 0)
+        n_h = sum(_int(x) or 0 for x in hosp["n_decedents"].to_list())
         if n_h != cohort_n:
             problems.append(f"hospital_level_counts covers {n_h:,} decedents but the cohort is {cohort_n:,}")
         for pos in ("any", "primary", "primary_poa"):
             col, key = f"CALC_{pos}", f"calc_qualified_{pos}"
             if col in hosp.columns and S.get(key) is not None:
                 n_c = sum(_int(x) or 0 for x in hosp[col].to_list())
-                if n_c + (S.get("2j_decedents_without_hospital_id") or 0) < S[key] or n_c > S[key]:
+                if n_c != S[key]:
                     problems.append(f"hospital_level_counts '{col}' sums to {n_c:,} but strobe_counts '{key}' is {S[key]:,}")
     return problems
 
 
 def render(final_dir: Path, problems: list[str] | None = None) -> Path:
-    """Write provenance.md: cohort cascade, stage audits, CONSORT, reconciliation."""
+    """Write provenance.md: cohort cascade, Figure 1 counts, stage audits, reconciliation."""
     d = Path(final_dir)
     site = d.name
     out = ["# Provenance — " + site, "",
@@ -145,8 +137,8 @@ def render(final_dir: Path, problems: list[str] | None = None) -> Path:
     if problems:
         out += ["**FAILED** — the artifacts disagree:", ""] + [f"- {p}" for p in problems]
     else:
-        out += ["All artifacts agree: the CONSORT endpoints, `definition_counts.csv`, "
-                "`strobe_counts.csv` and the Table 2 denominators are consistent."]
+        out += ["All artifacts agree: `figure1_counts.csv`, `definition_counts.csv`, "
+                "`strobe_counts.csv`, the Table 2 denominators and the hospital-level counts are consistent."]
     out += [""]
 
     flags = _read(d, "data_quality_flags.csv")
@@ -170,16 +162,14 @@ def render(final_dir: Path, problems: list[str] | None = None) -> Path:
                        else f"| `{r['metric']}` | {r['n']} |")
         out += [""]
 
-    consort = _read(d, "consort_counts.csv")
-    if consort is not None:
-        out += ["## CONSORT by definition (step 02)", ""]
-        for defn in consort["definition"].unique(maintain_order=True).to_list():
-            out += [f"### {defn}", "", "| step | criterion | n remaining |", "|---:|---|---:|"]
-            for r in consort.filter(pl.col("definition") == defn).sort(
-                    pl.col("step").cast(pl.Int64)).iter_rows(named=True):
-                out.append(f"| {r['step']} | {r['label'].replace(chr(10), ' ')} "
-                           f"| {_int(r['n']):,} |")
-            out += [""]
+    flow = _read(d, "figure1_counts.csv")
+    if flow is not None:
+        out += ["## Figure 1 counts (step 03)", "",
+                "Exclusions before analysis, CALC in sequence, CLIF-donor's six criteria each counted "
+                "among all cohort decedents, and the organ split of the eligible.", "",
+                "| count | n |", "|---|---:|"]
+        out += [f"| `{r['metric']}` | {_int(r['n']):,} |" for r in flow.iter_rows(named=True)]
+        out += [""]
 
     cards = sorted((d / "audit").glob("*_stage_counts.csv")) if (d / "audit").is_dir() else []
     if cards:

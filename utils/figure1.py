@@ -50,6 +50,7 @@ UPSTREAM = [("no_adt", "No ADT record"),
             ("ed_only", "Died in the ED without admission"),
             ("other_location", "Died outside the study units"),
             ("excluded_hospital", "Died at an excluded hospital"),
+            ("no_hospital", "No hospital id on the stay"),
             ("no_age", "Age unknown")]
 _AGE = DONOR["age_at_death_max"]
 CRITERIA = [("no_cancer", "No contraindicating cancer diagnosis"),
@@ -74,6 +75,7 @@ LIVER_WHY = ["bilirubin_at_or_above_limit", "ast_at_or_above_limit", "alt_at_or_
 BMI_WHY = ["bmi_missing", "bmi_above_limit"]
 REASON_WORDS = {"long_term_care": "long-term acute care", "inpatient_rehabilitation": "inpatient rehabilitation",
                 "not_a_system_facility": "not a system hospital", "no_cms_number": "no CMS number",
+                "psychiatric": "psychiatric",
                 "not_in_srtr": "not in SRTR"}
 
 
@@ -94,6 +96,7 @@ def site_flow(cohort: pl.DataFrame, strobe: dict[str, int], dc: dict) -> dict[st
          "ed_only": ed_only,
          "other_location": int(strobe["2b_deaths_excluded_by_location"]) - ed_only,
          "excluded_hospital": int(strobe["2g_deaths_at_excluded_hospitals"]),
+         "no_hospital": int(strobe["2g_deaths_without_hospital_id"]),
          "no_age": int(strobe["2h_deaths_without_age"]),
          "analytic": cohort.height, "hospitals": int(dc["n_analytic_hospitals"]),
          "calc_cause": n(c(CALC_POSITIONS[POSITION])), "calc": n(c("calc_flag"))}
@@ -162,7 +165,7 @@ def excluded_text(hospitals: pl.DataFrame | None) -> str:
     if not ex.height:
         return ""
     by = (ex.group_by("reason").agg(pl.col("n_decedents").sum())
-            .sort("n_decedents", descending=True))
+            .filter(pl.col("n_decedents") > 0).sort("n_decedents", descending=True))
     return "; ".join(f"{REASON_WORDS.get(r, r.replace('_', ' '))} {int(n):,}" for r, n in by.iter_rows())
 
 
@@ -241,7 +244,7 @@ def draw_flow(ax, f: dict[str, int], excluded_line: str, n_sites: int) -> None:
                                               (f"{f['in_window']:,} decedents", True), (systems, False)],
                  INK, "white")
     grey = [(f"Excluded before analysis: {excluded:,}", True)]
-    grey += [(f"{label}: {f[k]:,}", False) for k, label in UPSTREAM]
+    grey += [(f"{label}: {f[k]:,}", False) for k, label in UPSTREAM if f[k]]   # zero rows add nothing
     if excluded_line:
         grey.append((f"({excluded_line})", False))
     _box(ax, x_grey, 1.3, w_grey, grey, BOTH, BOTH_TINT, dashed=True)

@@ -61,7 +61,7 @@ What each file holds is described in [`output/README.md`](output/README.md).
 
 ```
 code/01_cohort_and_definitions.py   cohort, then CLIF-donor / CALC / Ventilated
-code/02_build_tables.py             clinical-care flags, Tables 2-3, CONSORT
+code/02_build_tables.py             clinical-care flags, Tables 2-3, binned counts
 code/03_diagnostics.py              missingness, coverage, overlap, reconciliation
 code/coordinating/                  pooling and SRTR linkage — coordinating centre only
 config/donor_criteria.yaml          every criterion

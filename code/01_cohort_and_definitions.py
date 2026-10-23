@@ -9,7 +9,6 @@ It performs the following steps:
 2. Identify decedents
 3. Stitch encounters
 4. Apply outlier handling
-5. Create consort diagram
 """
 ################################################################################
 # Setup
@@ -154,11 +153,12 @@ if _xw_ids and _adt_file.is_file():
         pass                            # an unreadable clif_adt is already reported above
     _unknown = sorted(h for h in _adt_ids if h not in _xw_ids)
     if _unknown:
-        _problems.append(
+        _warnings.append(
             f"clif_adt has hospital_id value(s) with no row for site '{site_name}' in "
             f"config/hospital_crosswalk.yaml: "
             + ", ".join(f"'{h}' ({_adt_ids[h]:,} ADT rows)" for h in _unknown)
-            + ". Send this list to the coordinating centre so they can be added")
+            + ". They are not hospitals: a decedent whose stay names no crosswalk hospital leaves "
+            "the cohort at the excluded-hospital step, and hospitals.csv lists these values")
 
 for _w in _warnings:
     print(f"  warn  {_w}")
@@ -634,8 +634,9 @@ final_cohort_df = final_df.filter(_in_cohort)
 # excluded when its crosswalk row has include_flag false or its CMS number does
 # not resolve in SRTR (config/hospital_crosswalk.yaml); a decedent there can never
 # be matched to a donor. The hospital is the one on the last ADT row that names
-# one: a blank hospital_id is no hospital, like a null. Ids missing from the
-# crosswalk are kept here and stop the run in the hospital-identity step.
+# a crosswalk hospital: a blank, a placeholder such as 'Missing' or any value
+# without a crosswalk row is no hospital. A decedent whose stay names none leaves
+# here too, and hospitals.csv lists the values seen on those stays.
 def _hospital_in_study(row: dict) -> bool:
     return bool(row.get("include_flag") and row.get("ccn_in_srtr") and row.get("srtr_ccn_id"))
 
@@ -644,7 +645,7 @@ _excluded_ids = {str(r["hospital_id"]).lower().strip() for r in _XWALK
                  if r["site"] == site_name and not _hospital_in_study(r)}
 _terminal_hosp = (
     adt_df.filter(pl.col("hospitalization_id").is_in(final_cohort_df["hospitalization_id"].implode())
-                  & (pl.col("hospital_id").cast(pl.Utf8).str.strip_chars() != ""))
+                  & pl.col("hospital_id").cast(pl.Utf8).str.to_lowercase().str.strip_chars().is_in(list(_xw_ids)))
     .sort(["in_dttm", "hospital_id"], descending=[True, False], nulls_last=True)
     .group_by("hospitalization_id", maintain_order=True).first()
     .select(pl.col("hospitalization_id").cast(pl.Utf8),
@@ -652,12 +653,25 @@ _terminal_hosp = (
             pl.col("hospital_type").cast(pl.Utf8).str.to_lowercase().str.strip_chars().alias("hospital_type")))
 _drop = _terminal_hosp.filter(pl.col("hospital_id_key").is_in(list(_excluded_ids)))["hospitalization_id"]
 strobe_counts["2g_deaths_at_excluded_hospitals"] = int(_drop.len())
+_no_hosp = final_cohort_df.filter(~pl.col("hospitalization_id").cast(pl.Utf8)
+                                  .is_in(_terminal_hosp["hospitalization_id"].implode()))["hospitalization_id"].cast(pl.Utf8)
+strobe_counts["2g_deaths_without_hospital_id"] = int(_no_hosp.len())
+# The hospital_id values on those stays, by decedent, for hospitals.csv.
+_n_unmapped = dict(
+    adt_df.filter(pl.col("hospitalization_id").cast(pl.Utf8).is_in(_no_hosp.implode()))
+    .with_columns(pl.col("hospital_id").cast(pl.Utf8).str.strip_chars().fill_null("").replace("", "(blank)").alias("raw"))
+    .group_by("raw").agg(pl.col("hospitalization_id").n_unique()).iter_rows())
 # hospital_id_key and hospital_type (academic or community, a CLIF field) stay on
 # the cohort: the hospital where the patient died.
 final_cohort_df = (final_cohort_df.with_columns(pl.col("hospitalization_id").cast(pl.Utf8))
-                   .filter(~pl.col("hospitalization_id").is_in(_drop.implode()))
+                   .filter(~pl.col("hospitalization_id").is_in(_drop.implode())
+                           & ~pl.col("hospitalization_id").is_in(_no_hosp.implode()))
                    .join(_terminal_hosp, on="hospitalization_id", how="left"))
-print(f"Decedents at hospitals excluded from the study: {_drop.len():,}")
+print(f"Decedents at hospitals excluded from the study: {_drop.len():,}; "
+      f"with no crosswalk hospital on the stay: {_no_hosp.len():,}")
+if not final_cohort_df.height:
+    raise SystemExit(f"No decedent died at a hospital listed for site '{site_name}' in "
+                     "config/hospital_crosswalk.yaml. Check adt.hospital_id against the crosswalk and rerun.")
 # Decedents at each excluded hospital, for hospitals.csv at the identity step.
 _n_at_excluded = dict(_terminal_hosp.filter(pl.col("hospital_id_key").is_in(list(_excluded_ids)))
                       .group_by("hospital_id_key").len().iter_rows())
@@ -692,11 +706,6 @@ strobe_counts["2h_deaths_without_age"] = final_cohort_df.filter(pl.col('age_at_d
 strobe_counts["2i_age_from_age_at_admission"] = final_cohort_df.filter(
     pl.col('age_source') == 'age_at_admission').height
 final_cohort_df = final_cohort_df.filter(pl.col('age_at_death').is_not_null())
-# Decedents with no hospital_id on any ADT row stay in the cohort but cannot
-# appear in the per-hospital files; named so the reconciliation can add them
-# back when it checks hospital_level_counts.csv against the cohort.
-strobe_counts["2j_decedents_without_hospital_id"] = int(
-    final_cohort_df.filter(pl.col("hospital_id_key").is_null()).height)
 print(f"Decedents with no age at all (dropped): {strobe_counts['2h_deaths_without_age']:,}; "
       f"age from age_at_admission: {strobe_counts['2i_age_from_age_at_admission']:,}")
 
@@ -1631,12 +1640,11 @@ final_cohort_df = final_cohort_df.with_columns(
 pl.DataFrame([{"site": site_name, "srtr_ccn_id": c, "hospital_label": l} for c, l in _labels.items()]
              ).write_csv(OUTPUT_INTERMEDIATE_DIR / "hospital_label_key.csv")
 print(f"  hospital labels: {len(_labels)} -> hospital_label_key.csv (kept local)")
-# Every hospital_id in clif_adt has a crosswalk row (setup check 4), so every
-# decedent here died at a hospital the crosswalk knows.
+# Every decedent here died at a crosswalk hospital: stays naming none left at
+# the excluded-hospital step.
 _observed = {h for h in final_cohort_df["hospital_id_key"].drop_nulls().unique().to_list()}
 _in_study = {str(r["hospital_id"]).lower().strip() for r in _rows if _hospital_in_study(r)}
 _absent = sorted(_in_study - _observed)
-_n_null_hosp = int(final_cohort_df.filter(pl.col("hospital_id_key").is_null()).height)
 
 # A hospital in the study with no decedents is NOT an error. Deaths are attributed
 # to the hospital of the terminal ADT record, which is what SRTR does, so a feeder
@@ -1646,8 +1654,6 @@ _n_null_hosp = int(final_cohort_df.filter(pl.col("hospital_id_key").is_null()).h
 for _h in _absent:
     print(f"  warn  '{_h}' is in the study but no decedent died there "
           f"(transfers out, or no deaths in the window)")
-if _n_null_hosp:
-    print(f"  warn  {_n_null_hosp:,} decedents have no hospital_id in clif_adt")
 
 # No decedent attributable to any hospital means adt.hospital_id is empty, and
 # every hospital-level output would be written with no rows.
@@ -1659,8 +1665,10 @@ print(f"Hospital check passed: {len(_observed)} hospital_ids contribute decedent
       + (f"; {len(_absent)} hospital(s) in the study contributed none" if _absent else ""))
 
 # Every configured hospital and what became of it: included, with its label;
-# no decedents in the window; or excluded, and why. Ids are the crosswalk's,
-# already public beside the hospital names; the CCN stays local.
+# no decedents in the window; or excluded, and why. Then every hospital_id value
+# with no crosswalk row seen on the stays of decedents dropped for having no
+# hospital, with how many decedents carried it. Ids are the crosswalk's, already
+# public beside the hospital names; the CCN stays local.
 _n_included = dict(final_cohort_df.group_by("hospital_id_key").len().iter_rows())
 
 
@@ -1675,18 +1683,12 @@ def _hospital_row(r: dict) -> dict:
                 n_decedents=_n_included.get(key, 0))
 
 
-pl.DataFrame([{"site": site_name, "hospital_id": str(r["hospital_id"]), **_hospital_row(r)} for r in _rows],
+pl.DataFrame([{"site": site_name, "hospital_id": str(r["hospital_id"]), **_hospital_row(r)} for r in _rows]
+             + [{"site": site_name, "hospital_id": raw, "status": "not_in_crosswalk", "reason": "no_hospital_id",
+                 "hospital_label": None, "n_decedents": n} for raw, n in sorted(_n_unmapped.items())],
              schema={"site": pl.Utf8, "hospital_id": pl.Utf8, "status": pl.Utf8, "reason": pl.Utf8,
                      "hospital_label": pl.Utf8, "n_decedents": pl.Int64}
              ).write_csv(OUTPUT_FINAL_DIR / "hospitals.csv")
-
-_unmapped = sorted(final_cohort_df.filter(
-    pl.col("srtr_ccn_id").is_null() & pl.col("hospital_id_key").is_not_null()
-)["hospital_id_key"].unique().to_list())
-if _unmapped:
-    raise SystemExit(
-        f"hospital_id value(s) {_unmapped} contribute decedents but have no row for site "
-        f"'{site_name}' in config/hospital_crosswalk.yaml. Ask the coordinating centre to add them.")
 
 _audit.record("10_hospital_identity", final_cohort_df, final_cohort_df, key="patient_id",
               rule="terminal ADT hospital_id -> srtr_ccn_id via crosswalk",
