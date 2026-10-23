@@ -2,7 +2,6 @@
 """Run the three steps of the CLIF-donor pipeline, in order, from config/config.json.
 
     python run_pipeline.py                 # 01, 02, 03
-    python run_pipeline.py --steps 02 03   # only the tables and diagnostics
 
 Each step's output is shown as it runs and also written to
 output/intermediate_phi/<site>/logs/<step>.log; the run stops at the first step that fails. Results land in <site>_upload_to_box/,
@@ -14,7 +13,6 @@ of this script.
 """
 from __future__ import annotations
 
-import argparse
 import json
 import os
 import subprocess
@@ -28,11 +26,6 @@ G, R, B, X = "\033[32m", "\033[31m", "\033[1m", "\033[0m"
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--steps", nargs="*", default=None,
-                    help="run only these step prefixes, e.g. --steps 02 03")
-    a = ap.parse_args()
-
     config = REPO / "config/config.json"
     if not config.is_file():
         print(f"{R}config/config.json not found{X}: copy config/config_template.json and fill it in")
@@ -42,7 +35,7 @@ def main() -> int:
     logdir.mkdir(parents=True, exist_ok=True)
     env = {**os.environ, "PYTHONUNBUFFERED": "1"}
 
-    todo = [s for s in STEPS if a.steps is None or s[:2] in a.steps]
+    todo = STEPS
     print(f"{B}{site}{X}")
     for i, script in enumerate(todo, 1):
         log = logdir / f"{script.replace('.py', '')}.log"

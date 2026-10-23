@@ -65,7 +65,7 @@ def reconcile(final_dir: Path) -> list[str]:
     if missing:
         return [f"cannot reconcile: {', '.join(missing)} not found in {d}"]
 
-    # strobe_counts.csv is long: site, order, metric, value, n
+    # strobe_counts.csv is long: site, order, metric, n
     S = {r["metric"]: _int(r["n"]) for r in strobe.iter_rows(named=True)}
     C = {c: _int(counts[c][0]) for c in counts.columns}
     consort = consort.with_columns(pl.col("n").cast(pl.Int64), pl.col("step").cast(pl.Int64))
@@ -81,7 +81,7 @@ def reconcile(final_dir: Path) -> list[str]:
             problems.append(f"cohort size: CONSORT '{defn}' starts at {step0[0]:,} but "
                             f"strobe_counts says {cohort_n:,}")
     if C.get("n_inpatient_deaths") != cohort_n:
-        problems.append(f"cohort size: definition_counts says {C.get('n_inpatient_deaths'):,} "
+        problems.append(f"cohort size: definition_counts says {C.get('n_inpatient_deaths')} "
                         f"but strobe_counts says {cohort_n:,}")
 
     # 2. each definition: CONSORT endpoint == definition_counts == Table 2 "N patients"
@@ -92,7 +92,7 @@ def reconcile(final_dir: Path) -> list[str]:
         endpoint = rows["n"][-1]
         if C.get(col) != endpoint:
             problems.append(f"{defn}: CONSORT ends at {endpoint:,} but definition_counts "
-                            f"'{col}' is {C.get(col):,}")
+                            f"'{col}' is {C.get(col)}")
         t2 = stats.filter((pl.col("variable") == "N patients") & (pl.col("definition") == defn))
         if t2.height:
             n_t2 = _int(t2["n"][0])
@@ -115,6 +115,21 @@ def reconcile(final_dir: Path) -> list[str]:
         for a, b, lab in zip(ns, ns[1:], rows["label"].to_list()[1:]):
             if b > a:
                 problems.append(f"{defn}: step '{lab.splitlines()[0]}' goes UP, {a:,} -> {b:,}")
+
+    # 4. the per-hospital counts cover the cohort (less the decedents with no
+    #    hospital id, which they cannot hold), and the CALC readings they carry
+    #    match the strobe rows they were counted from
+    hosp = _read(d, "hospital_level_counts.csv")
+    if hosp is not None and cohort_n is not None:
+        n_h = sum(_int(x) or 0 for x in hosp["n_decedents"].to_list()) + (S.get("2j_decedents_without_hospital_id") or 0)
+        if n_h != cohort_n:
+            problems.append(f"hospital_level_counts covers {n_h:,} decedents but the cohort is {cohort_n:,}")
+        for pos in ("any", "primary", "primary_poa"):
+            col, key = f"CALC_{pos}", f"calc_qualified_{pos}"
+            if col in hosp.columns and S.get(key) is not None:
+                n_c = sum(_int(x) or 0 for x in hosp[col].to_list())
+                if n_c + (S.get("2j_decedents_without_hospital_id") or 0) < S[key] or n_c > S[key]:
+                    problems.append(f"hospital_level_counts '{col}' sums to {n_c:,} but strobe_counts '{key}' is {S[key]:,}")
     return problems
 
 
@@ -152,7 +167,7 @@ def render(final_dir: Path, problems: list[str] | None = None) -> Path:
         for r in strobe.iter_rows(named=True):
             v = _int(r["n"])
             out.append(f"| `{r['metric']}` | {v:,} |" if v is not None
-                       else f"| `{r['metric']}` | {r['value']} |")
+                       else f"| `{r['metric']}` | {r['n']} |")
         out += [""]
 
     consort = _read(d, "consort_counts.csv")
@@ -171,7 +186,8 @@ def render(final_dir: Path, problems: list[str] | None = None) -> Path:
         out += ["## Stage audit", "", "| stage | in | out | dropped | rule |", "|---|---:|---:|---:|---|"]
         for f in cards:
             for r in pl.read_csv(f, infer_schema_length=0).iter_rows(named=True):
-                if _int(r["n_in"]):
+                # a note (audit.note) has no patients but carries its message in `rule`
+                if _int(r["n_in"]) or (r.get("rule") or "").strip():
                     out.append(f"| `{r['stage']}` | {_int(r['n_in']):,} | {_int(r['n_out']):,} "
                                f"| {_int(r['n_dropped']):,} | {r['rule']} |")
         out += [""]

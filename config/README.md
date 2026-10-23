@@ -10,7 +10,6 @@ Site settings live in `config/config.json`. It is git-ignored and never leaves y
 | `site_name` | Your site's short name: lowercase letters, digits and underscores, e.g. `ucmc`, `nu`, `rush`. It names your output folder and must match your site's rows in `hospital_crosswalk.yaml`. |
 | `tables_path` | Absolute path to the folder holding your CLIF tables (`clif_patient.parquet`, `clif_adt.parquet`, …). |
 | `timezone` | The timezone your hospital is in: `US/Eastern`, `US/Central`, `US/Mountain`, `US/Arizona`, `US/Pacific`, `US/Alaska` or `US/Hawaii`. It places admissions, discharges and deaths in the right calendar year, and it decides which death times count as date-only (exactly midnight at your hospital). Not `UTC`, even though CLIF stores timestamps in UTC. |
-| `project_root` | Absolute path to this repository on your machine. |
 
 Your hospitals are not listed here. They come from your site's rows in `hospital_crosswalk.yaml`,
 which the coordinating centre builds from the `hospital_id` values you confirm in your `clif_adt`.
@@ -30,8 +29,7 @@ plain message if something is wrong:
   not a mix;
 - `hospital_crosswalk.yaml` has rows for your `site_name` and for every `hospital_id` in your
   `clif_adt` (matched ignoring case and surrounding spaces; blank ids are skipped);
-- every row of `utils/codes/icd10_contraindications.csv` is well-formed (see
-  [`../guides/contraindications.md`](../guides/contraindications.md)).
+- every row of `utils/codes/icd10_contraindications.csv` is well-formed.
 
 ### The other files in this folder
 

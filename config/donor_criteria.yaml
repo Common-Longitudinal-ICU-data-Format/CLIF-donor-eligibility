@@ -62,8 +62,7 @@ clif_donor:
   # read as "not on dialysis".
   contraindications:
     # The excluding ICD-10-CM codes, one prefix per row (C34 covers C34.11).
-    # Follows the OPTN eligible-death cancer exclusions; what is not excluded,
-    # and why, is in guides/contraindications.md.
+    # Follows the OPTN eligible-death cancer exclusions, as decided with the PIs.
     icd10_file: utils/codes/icd10_contraindications.csv
     # A code counts at any diagnosis position, present on admission or not.
     positive_blood_culture_hours: 48
@@ -127,8 +126,7 @@ clinical_care:
     - treponema_syphilis
     - hepatitis_serology
     # HIV serology is not capturable either, but HIV disease is (ICD-10 B20).
-    # It is not an exclusion: CLIF-donor excludes on cancer only
-    # (guides/contraindications.md).
+    # It is not an exclusion: CLIF-donor excludes on cancer only.
     - hiv_serology
 
 # ── Reporting lists ──────────────────────────────────────────────────────────

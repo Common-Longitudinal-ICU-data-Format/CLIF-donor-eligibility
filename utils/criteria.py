@@ -6,6 +6,13 @@ from pathlib import Path
 
 _ICD3 = re.compile(r"^[A-Za-z][0-9]{2}$")
 
+# The three definitions as reported everywhere: name -> flag column on the cohort.
+DEFS = [("CLIF-donor", "clif_eligible_donors"), ("CALC", "calc_flag"),
+        ("Ventilated Patient", "ventilated_patient_no_age_limit")]
+# CALC's cause-of-death readings (calc.diagnosis_position) -> flag column.
+CALC_POSITIONS = {"any": "calc_cause_any", "primary": "calc_cause_primary",
+                  "primary_poa": "calc_cause_primary_poa"}
+
 
 def icd_range_sql(col: str, lo: str, hi: str) -> str:
     """SQL predicate: `col` falls in the ICD-10 category range lo..hi inclusive.
@@ -32,8 +39,8 @@ def icd_range_sql(col: str, lo: str, hi: str) -> str:
 # The ICD-10-CM codes that exclude a patient, one prefix per row: 'C34' covers
 # C34.11 without listing it. `source` says why each is on the list: OPTN 1.2
 # (OPTN eligible-death definition), CMS-3380-P (the 2019 proposed rule's list),
-# or study decision. What is deliberately not excluded, and why, is in
-# guides/contraindications.md.
+# or study decision. What is deliberately not excluded, and why, is recorded
+# in the coordinating centre's notes.
 _PREFIX = re.compile(r"^[a-z][0-9a-z]{2,6}$")
 
 

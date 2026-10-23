@@ -33,8 +33,8 @@ sys.path.insert(0, str(REPO))
 from utils.audit import StageAudit
 from utils.dtypes import write_parquet                      
 from utils.config import config                    
-from utils.criteria import (contraindication_prefix, contraindication_sql,  
-                            load_contraindications)
+from utils.criteria import (CALC_POSITIONS, DEFS, contraindication_prefix,
+                            contraindication_sql, load_contraindications)
 
 SITE = config["site_name"]
 TABLES = Path(config["tables_path"])
@@ -93,7 +93,7 @@ def add_flag(name: str, table: str, sql: str) -> None:
         return
     try:
         f = con.sql(sql.format(p=tbl(table))).pl()
-    except Exception as e:                       # a missing column, not a missing table
+    except duckdb.BinderException as e:          # a missing or renamed column; anything else stops the run
         cohort = cohort.with_columns(pl.lit(None, pl.Boolean).alias(name))
         audit.note(f"var_{name}", f"UNAVAILABLE — {type(e).__name__}: {str(e)[:120]}")
         print(f"  {name:34s} SKIPPED ({type(e).__name__})")
@@ -232,9 +232,7 @@ cohort = cohort.with_columns(
 
 write_parquet(cohort, INTER / "cohort_with_variables.parquet", config["timezone"])
 
-# ── definition columns ───────────────────────────────────────────────────────
-DEFS = [("CLIF-donor", "clif_eligible_donors"), ("CALC", "calc_flag"),
-        ("Ventilated Patient", "ventilated_patient_no_age_limit")]
+# ── definition columns: DEFS, from utils.criteria ────────────────────────────
 
 
 def mask(col: str) -> pl.Series:
@@ -431,8 +429,10 @@ print(f"Table S2: {len(miss)} rows -> tableS2_missingness.csv")
 
 # ── hospital-level (Will, 2026-08-20) ────────────────────────────────────────
 hosp = (cohort.filter(pl.col("hospital_label").is_not_null())
-        .group_by(["hospital_label", "srtr_ccn_id", "hospital_type"])
+        .group_by(["hospital_label", "srtr_ccn_id"])
         .agg([pl.col("patient_id").n_unique().alias("n_decedents"),
+              # one row per hospital even when some ADT rows lack the type
+              pl.col("hospital_type").drop_nulls().first().alias("hospital_type"),
               *[pl.col(c).fill_null(False).sum().alias(d.replace(" ", "_").replace("-", "_"))
                 for d, c in DEFS],
               # CALC under each diagnosis-position reading, so the pooled figures
@@ -467,18 +467,13 @@ print(f"\nall outputs -> {FINAL}")
 # and no_positive_culture_48hrs are evaluated on every decedent, so reading them
 # as successive steps makes the funnel go up. Applied cumulatively here instead,
 # for each definition, so the report can show a CONSORT per definition.
-_CALC_CAUSE_COL = {"any": "calc_cause_any", "primary": "calc_cause_primary",
-                   "primary_poa": "calc_cause_primary_poa"}[
-    str(CRIT["calc"].get("diagnosis_position", "any")).lower()]
+_CALC_CAUSE_COL = CALC_POSITIONS[str(CRIT["calc"]["diagnosis_position"]).lower()]
 
 cohort = cohort.with_columns(
     (~pl.col("icd10_contraindication").fill_null(False)).alias("no_icd10_contraindication"),
     # CALC's cause flag is built in 01 in three diagnosis-position variants;
-    # calc.diagnosis_position in config/donor_criteria.yaml picks which one is
-    # the analysis. Falls back to the any-position flag for older cohorts.
-    (pl.col(_CALC_CAUSE_COL) if _CALC_CAUSE_COL in cohort.columns
-     else (pl.col("icd10_ischemic") | pl.col("icd10_cerebro") | pl.col("icd10_external"))
-     ).fill_null(False).alias("calc_cause"),
+    # calc.diagnosis_position in config/donor_criteria.yaml picks the analysis.
+    pl.col(_CALC_CAUSE_COL).fill_null(False).alias("calc_cause"),
 )
 
 # the criteria the definitions SHARE come
@@ -500,7 +495,7 @@ CASCADES = {
         (f"No positive blood culture within {_CX_H} h", "no_positive_culture_48hrs",
          f"Positive blood culture within {_CX_H} h"),
         ("Passed organ quality assessment\n(CLIF-donor eligible)", "organ_check_pass",
-         "Failed kidney, liver, and BMI assessment"),
+         "Failed both kidney and liver criteria, or BMI"),
     ],
     # Kallan SAS seven-step cascade (Goldberg AJT 2017), reordered to share the
     # prefix above; the SAS step numbers are unchanged in DECISIONS.
@@ -532,41 +527,11 @@ for _defn, _steps in CASCADES.items():
         f"{r['n']:,}" for r in _flow if r["definition"] == _defn))
 pl.DataFrame(_flow).write_csv(FINAL / "consort_counts.csv")
 
-# consort.png: the three cascades side by side, for a look without the pooled
-# report. The same numbers as consort_counts.csv, nothing more.
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt   # noqa: E402
-_flow_df = pl.DataFrame(_flow)
-_defs = list(dict.fromkeys(_flow_df["definition"].to_list()))
-_fig, _axes = plt.subplots(1, len(_defs), figsize=(5.6 * len(_defs), 7.5))
-_depth = max(_flow_df.group_by("definition").len()["len"].to_list())   # every column starts at the top
-for _ax, _d in zip(_axes, _defs):
-    _rows = _flow_df.filter(pl.col("definition") == _d).sort("step").to_dicts()
-    _n = _depth
-    _ax.set_xlim(0, 1.6); _ax.set_ylim(0, _n); _ax.axis("off")
-    _ax.set_title(_d, fontsize=12, weight="bold")
-    for _i, _r in enumerate(_rows):
-        _y = _n - _i - 0.5
-        _ax.text(0.45, _y, f"{_r['label']}\n{_r['n']:,}", ha="center", va="center", fontsize=9,
-                 bbox=dict(boxstyle="round,pad=0.4", fc="#eef3f2", ec="#5f8f88"))
-        if _i < len(_rows) - 1:
-            _nxt = _rows[_i + 1]
-            _ax.annotate("", xy=(0.45, _y - 0.78), xytext=(0.45, _y - 0.3),
-                         arrowprops=dict(arrowstyle="->", color="#5f8f88"))
-            _ax.text(0.92, _y - 0.5, f"{_nxt['excluded_label']}\n{_r['n'] - _nxt['n']:,} excluded",
-                     ha="left", va="center", fontsize=8, color="#7a4a1f")
-_fig.suptitle(f"{SITE.upper()}: cohort selection by definition", fontsize=13)
-_fig.tight_layout()
-_fig.savefig(FINAL / "consort.png", dpi=150)
-plt.close(_fig)
-print("CONSORT figure -> consort.png")
-
 # ── academic vs community ────────────────────────────────────────────────────
 # The manuscript compares academic and community hospitals but nothing was ever
 # computed for it. hospital_type comes from the terminal ADT record (CLIF field),
 # not the crosswalk, which carries no such column. Counts only, so they pool.
-_by_type = (cohort.filter(pl.col("hospital_type").is_not_null())
+_by_type = (cohort.with_columns(pl.col("hospital_type").fill_null("unknown"))
             .group_by("hospital_type")
             .agg([pl.col("patient_id").n_unique().alias("n_decedents"),
                   pl.col("hospital_label").n_unique().alias("n_hospitals"),
@@ -591,17 +556,14 @@ print("hospital_type: " + ", ".join(
 #             codes the SURVIVORS had, which is the useful diagnostic there.
 _CODE_STEPS = {
     # Keyed on the flag the CLIF-donor cascade uses.
-    ("CLIF-donor", "no_icd10_contraindication"):
-        ("presence", "contraindication", None),
-    ("CALC", "calc_cause"):
-        ("absence", "calc_cause", None),
+    ("CLIF-donor", "no_icd10_contraindication"): ("presence", "contraindication"),
+    ("CALC", "calc_cause"): ("absence", "calc_cause"),
 }
 
 # A code is attributed when it matches the same prefixes, normalised the same
 # way, as step 01's icd10_contraindication. Its description is the prefix's.
 _SETS = {
     "contraindication": contraindication_sql("x.code", CONTRA_CODES),
-    "calc_cause": "FALSE",
 }
 
 con.register("dx_all", con.sql(f"""
@@ -628,7 +590,7 @@ for _defn, _steps in CASCADES.items():
                           "code": None, "description": None,
                           "n_excluded_carrying_code": None, "n_excluded_only_this_code": None})
             continue
-        kind, setname, _ = spec
+        kind, setname = spec
         if kind == "absence" or not n_drop:
             _excl.append({**base, "criterion_type": f"{kind} (no code to attribute)",
                           "code": None, "description": None,

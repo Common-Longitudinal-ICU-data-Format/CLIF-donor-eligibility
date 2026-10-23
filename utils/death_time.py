@@ -101,7 +101,10 @@ def add_death_anchor(df: pl.DataFrame, site_tz: str, max_hours_after_discharge: 
 
     recorded_long_after = (dth - disc).dt.total_seconds() > max_hours_after_discharge * 3600
     if admission and admission in df.columns:
-        recorded_before_admission = dth < comparable(admission, df.schema[admission], d_ty)
+        # A date-only death is before admission only if its whole day is: its
+        # stored midnight precedes any admission later that same day.
+        recorded_before_admission = (pl.when(date_only).then(end).otherwise(dth)
+                                     < comparable(admission, df.schema[admission], d_ty))
     else:
         recorded_before_admission = pl.lit(False)
 

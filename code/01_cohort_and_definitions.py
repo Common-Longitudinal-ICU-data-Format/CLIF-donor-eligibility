@@ -19,15 +19,13 @@ import sys
 import duckdb
 import polars as pl
 import pandas as pd
-import re
 import yaml
 from utils.config import config
-from utils.io import read_data
 from clifpy.utils.stitching_encounters import stitch_encounters
 from utils.outlier_handler import outlier_range
 from utils.checks import mixed_tz_awareness, usable_number_sql
 from utils.dtypes import align_time_zone, hours_between
-from utils.death_time import (SOURCES as DEATH_TIME_SOURCES, add_death_anchor, comparable, has_time_of_day,
+from utils.death_time import (SOURCES as DEATH_TIME_SOURCES, add_death_anchor, has_time_of_day,
                               midnight_shares)
 from utils.windows import imv_before_death_sql
 from utils.progress import Progress
@@ -48,19 +46,10 @@ sys.stdout.reconfigure(encoding='utf-8')
 site_name = config['site_name']
 tables_path = config['tables_path']
 file_type = "parquet"                  # CLIF tables are read as parquet only
-project_root = config['project_root']
-sys.path.insert(0, project_root)
 print(f"Site Name: {site_name}")
 print(f"Tables Path: {tables_path}")
 from pathlib import Path
-PROJECT_ROOT = Path(config['project_root'])
-# SANITY CHECK: Checked here, before anything is read from it: every code list, criteria file
-# and output path hangs off this, so a wrong value gives a FileNotFoundError
-_REPO_HERE = Path(__file__).resolve().parent.parent
-if PROJECT_ROOT.expanduser().resolve() != _REPO_HERE:
-    raise SystemExit(
-        f"config.json: project_root is '{PROJECT_ROOT}', which is not the folder "
-        f"this code is in ({_REPO_HERE}). Set project_root to that path and rerun.")
+PROJECT_ROOT = Path(__file__).resolve().parent.parent   # the repository: every code list and output path hangs off it
 # PHI split: output/intermediate_phi/<site>/ never leaves the site;
 # <site>_upload_to_box/ holds aggregate, shareable output. Per-site subfolders so
 # three sites can be run on one machine without clobbering each other.
@@ -86,7 +75,7 @@ _problems, _warnings = [], []
 _TIMESTAMPS_NAIVE = False
 
 # 1. config
-for _k in ("site_name", "tables_path", "timezone", "project_root"):
+for _k in ("site_name", "tables_path", "timezone"):
     if config.get(_k) in (None, "", []):
         _problems.append(f"config.json: '{_k}' is missing or empty")
 
@@ -227,7 +216,6 @@ AGE_MIN, AGE_MAX = outlier_range("hospitalization", "age_at_admission", None, OU
 GCS_MIN, GCS_MAX = outlier_range("patient_assessments", "numerical_value", "gcs_total", OUTLIER_CONFIG)
 RASS_MIN, RASS_MAX = outlier_range("patient_assessments", "numerical_value", "rass", OUTLIER_CONFIG)
 
-OUTPUT_DIR = PROJECT_ROOT / "output"
 OUTPUT_FINAL_DIR = Path(config["output_final"])
 OUTPUT_INTERMEDIATE_DIR = Path(config["output_intermediate"])
 OUTPUT_FINAL_DIR.mkdir(parents=True, exist_ok=True)
@@ -290,9 +278,9 @@ _progress.mark("Setup checks")
 adt_filepath = f"{tables_path}/clif_adt.{file_type}"
 hospitalization_filepath = f"{tables_path}/clif_hospitalization.{file_type}"
 patient_filepath = f"{tables_path}/clif_patient.{file_type}"
-adt_df = read_data(adt_filepath, file_type)
-hospitalization_df = read_data(hospitalization_filepath, file_type)
-patient_df = read_data(patient_filepath, file_type)
+adt_df = pl.read_parquet(adt_filepath)
+hospitalization_df = pl.read_parquet(hospitalization_filepath)
+patient_df = pl.read_parquet(patient_filepath)
 
 # Informational baseline (entire CLIF dataset at this site, all years)
 total_patients = patient_df["patient_id"].n_unique()
@@ -397,7 +385,7 @@ adt_df_subset = adt_df.filter(
     pl.col("hospitalization_id").is_in(all_decedent_hosp_ids)
 )
 
-hosp_stitched, adt_stitched, encounter_mapping = stitch_encounters(
+hosp_stitched, adt_stitched, _ = stitch_encounters(
       hospitalization=hospitalization_df_subset.to_pandas(),
       adt=adt_df_subset.to_pandas(),
       time_interval=STUDY['encounter_stitch_hours']
@@ -417,15 +405,11 @@ adt_stitched = adt_stitched.with_columns(
 # Only stays with an ADT row go on: without one there is no location and no hospital.
 hosp_stitched = hosp_stitched.filter(
     pl.col("hospitalization_id").is_in(adt_stitched["hospitalization_id"].unique()))
-encounter_mapping = pl.from_pandas(encounter_mapping)
-encounter_mapping = encounter_mapping.with_columns(
-    pl.col("encounter_block").cast(pl.Int32)
-)
 
 
 # Identify expired encounters
 decedents_df = hosp_stitched.filter(
-    pl.col('discharge_category').str.to_lowercase() == 'expired'
+    pl.col('discharge_category').str.to_lowercase() == _death_category
 )
 
 # Make hospitalization subset for expired
@@ -472,7 +456,7 @@ death_encounters_per_patient = (
     final_df
     .group_by('patient_id')
     .agg([
-        pl.count().alias('death_encounter_count'),
+        pl.len().alias('death_encounter_count'),
         pl.col('encounter_block').alias('encounter_blocks'),
         pl.col('discharge_dttm').alias('discharge_times'),
     ])
@@ -540,7 +524,16 @@ _progress.mark("Stitch Encounters")
 # and a death recorded long after discharge is disregarded in favour of
 # discharge. The last recorded vital is not used; discharge_vs_death_timing.csv
 # and vitals_timing.csv, written at the end of this step, are the evidence.
-final_df = add_death_anchor(final_df, SITE_TZ, STUDY['death_time']['max_hours_after_discharge'])
+# The before-admission test uses the block's first admission, not the death
+# stay's: a patient declared dead at one stay and moved to a linked stay for
+# organ recovery has a real death time before that second admission.
+final_df = (
+    final_df.join(hosp_stitched.group_by("encounter_block")
+                  .agg(pl.col("admission_dttm").min().alias("block_admission_dttm")),
+                  on="encounter_block", how="left")
+    .pipe(add_death_anchor, SITE_TZ, STUDY['death_time']['max_hours_after_discharge'],
+          admission="block_admission_dttm")
+    .drop("block_admission_dttm"))
 
 # Dates stored as timestamps at UTC midnight are a different encoding of a
 # date-only death, which the rule above does not recognise. A real death lands
@@ -580,7 +573,9 @@ else:
 last_location_per_hosp = (
       adt_df
       .filter(pl.col('hospitalization_id').is_in(all_decedent_hosp_ids))
-      .sort('out_dttm', descending=True, nulls_last=True)
+      # The row that started last is the terminal one. out_dttm is null on the
+      # bed the patient died in and on placeholder rows, so it cannot order them.
+      .sort('in_dttm', descending=True, nulls_last=True)
       .group_by('hospitalization_id')
       .agg([
           pl.col('location_category').first().alias('last_location_category'),
@@ -650,7 +645,7 @@ _excluded_ids = {str(r["hospital_id"]).lower().strip() for r in _XWALK
 _terminal_hosp = (
     adt_df.filter(pl.col("hospitalization_id").is_in(final_cohort_df["hospitalization_id"].implode())
                   & (pl.col("hospital_id").cast(pl.Utf8).str.strip_chars() != ""))
-    .sort(["out_dttm", "hospital_id"], descending=[True, False], nulls_last=True)
+    .sort(["in_dttm", "hospital_id"], descending=[True, False], nulls_last=True)
     .group_by("hospitalization_id", maintain_order=True).first()
     .select(pl.col("hospitalization_id").cast(pl.Utf8),
             pl.col("hospital_id").cast(pl.Utf8).str.to_lowercase().str.strip_chars().alias("hospital_id_key"),
@@ -679,7 +674,8 @@ _birth = align_time_zone('birth_date', patient_df.schema['birth_date'],
 final_cohort_df = (
     final_cohort_df
     .join(patient_df.select(['patient_id', 'birth_date']), on='patient_id', how='left')
-    .with_columns(((pl.col('final_death_dttm') - _birth).dt.total_days() / 365.25).alias('_age_from_birth'))
+    # Completed years, like age_at_admission, so "75 or under" means the same from both sources.
+    .with_columns(((pl.col('final_death_dttm') - _birth).dt.total_days() / 365.25).floor().alias('_age_from_birth'))
     # An age outside the plausible range, from either source, is no age: some
     # extracts record an unknown birth date as 1900-01-01 and carry the patient at 120+.
     .with_columns(
@@ -696,6 +692,11 @@ strobe_counts["2h_deaths_without_age"] = final_cohort_df.filter(pl.col('age_at_d
 strobe_counts["2i_age_from_age_at_admission"] = final_cohort_df.filter(
     pl.col('age_source') == 'age_at_admission').height
 final_cohort_df = final_cohort_df.filter(pl.col('age_at_death').is_not_null())
+# Decedents with no hospital_id on any ADT row stay in the cohort but cannot
+# appear in the per-hospital files; named so the reconciliation can add them
+# back when it checks hospital_level_counts.csv against the cohort.
+strobe_counts["2j_decedents_without_hospital_id"] = int(
+    final_cohort_df.filter(pl.col("hospital_id_key").is_null()).height)
 print(f"Decedents with no age at all (dropped): {strobe_counts['2h_deaths_without_age']:,}; "
       f"age from age_at_admission: {strobe_counts['2i_age_from_age_at_admission']:,}")
 
@@ -713,7 +714,6 @@ print(f"Cohort locations {COHORT_LOCATIONS}: {final_df.height:,} -> "
       f"{final_cohort_df.height:,} hospitalizations")
 
 all_decedent_inpatient_patient_ids = final_cohort_df.select('patient_id').to_series().to_list()
-all_decedent_inpatient_hosp_ids = final_cohort_df.select('hospitalization_id').to_series().to_list()
 strobe_counts["2_inpatient_decedents"] = len(all_decedent_inpatient_patient_ids)
 
 # Every criterion with a clock on it, every lab, culture and diagnosis, is taken
@@ -876,7 +876,7 @@ print(f"Decedents with a diagnosis row in any stay of their encounter block: "
 
 # ---- 0) Load the contraindication list ----
 # Code prefixes: C34 covers C34.11. The list follows the OPTN eligible-death
-# cancer exclusions; see guides/contraindications.md. Sepsis is not on it and
+# cancer exclusions, as decided with the PIs. Sepsis is not on it and
 # excludes no one (settled 2026-09-19).
 _CONTRA_SQL = contraindication_sql("dx_norm", CONTRA_CODES)
 print(f"Contraindication list: {len(CONTRA_CODES)} code prefixes")
@@ -924,8 +924,10 @@ WITH hospital_dx_normalized AS (
         -- every row at a site writing 'ICD-10-CM', taking CALC, the
         -- contraindications and the comorbidities to zero with no error.
         REGEXP_REPLACE(LOWER(CAST(diagnosis_code_format AS VARCHAR)), '[^a-z0-9]', '', 'g') AS sys,
-        LOWER(CAST(diagnosis_primary AS VARCHAR)) IN ('1','true','t','y','yes') AS is_primary,
-        LOWER(CAST(poa_present AS VARCHAR)) IN ('1','true','t','y','yes') AS is_poa
+        -- 0/1 integers in the CLIF schema. TRY_CAST also reads a column stored
+        -- as 1.0 or '1', which a text match on '1' silently would not.
+        COALESCE(TRY_CAST(diagnosis_primary AS DOUBLE) = 1, false) AS is_primary,
+        COALESCE(TRY_CAST(poa_present AS DOUBLE) = 1, false) AS is_poa
     FROM read_parquet('{hospial_dx_filepath}')
     WHERE CAST(hospitalization_id AS VARCHAR) IN (SELECT hospitalization_id FROM block_ids_df)
 ),
@@ -1028,12 +1030,13 @@ _POSITION = str(CALC_CFG['diagnosis_position']).lower()
 
 # CALC cause of death, all three diagnosis-position variants, before age is
 # applied. Reported every run so the sensitivity analyses need no re-run.
-CALC_POSITIONS = {"any": "calc_cause_any",
-                  "primary": "calc_cause_primary",
-                  "primary_poa": "calc_cause_primary_poa"}
+from utils.criteria import CALC_POSITIONS   # noqa: E402
 for _name, _col in CALC_POSITIONS.items():
     strobe_counts[f"calc_cause_{_name}"] = (
         final_cohort_df.filter(pl.col(_col))["patient_id"].n_unique())
+if strobe_counts["calc_cause_any"] and not strobe_counts["calc_cause_primary"]:
+    raise SystemExit("hospital_diagnosis.diagnosis_primary is never 1 although qualifying cause codes exist, "
+                     "so CALC would be zero. The column must be 0/1 (CLIF schema); fix the extract and rerun.")
 strobe_counts["calc_cause"] = strobe_counts[f"calc_cause_{_POSITION}"]   # the configured reading
 
 _progress.mark("ICD Codes")
@@ -1598,7 +1601,6 @@ _audit = StageAudit(site_name, OUTPUT_FINAL_DIR, label="definitions")
 final_cohort_df = final_cohort_df.with_columns([
     pl.col("imv_48hr_expire").alias("ventilated_patient_no_age_limit"),
     (pl.col("imv_48hr_expire") & pl.col("age_75_less")).alias("ventilated_patient_age_le75"),
-    pl.col("imv_48hr_expire").alias("ventilated_patient"),
 ])
 _audit.record("20_ventilated_no_age_limit", final_cohort_df,
               final_cohort_df.filter(pl.col("ventilated_patient_no_age_limit")),
@@ -1619,9 +1621,9 @@ final_cohort_df = final_cohort_df.join(
                    "srtr_ccn_id": r.get("srtr_ccn_id")} for r in _rows]),
     on="hospital_id_key", how="left")
 
-# Anonymous labels for anything that leaves the site, numbered by CCN ascending
-# so the mapping is deterministic across runs. The real CCN never appears in
-# shareable output; the site keeps the key locally.
+# Anonymous labels, numbered by CCN ascending so the mapping is deterministic
+# across runs. The CCN itself travels in hospital_level_counts.csv and srtr_ref/
+# for the SRTR linkage; the hospital_id -> label key stays local.
 _ccns = sorted({c for c in final_cohort_df["srtr_ccn_id"].drop_nulls().unique().to_list()})
 _labels = {c: f"{site_name}_hospital_{i}" for i, c in enumerate(_ccns, 1)}
 final_cohort_df = final_cohort_df.with_columns(
@@ -1877,7 +1879,10 @@ _cov = final_cohort_df.select(
 # Year of death only. The earliest and latest death timestamps are dates tied to
 # two individual patients, which may not leave the site; SRTR linkage needs the
 # calendar years covered and nothing finer.
-_cov = _cov.with_columns(_year_local(_cov, "final_death_dttm").alias("death_year"))
+# A death anchored just past the window (a date-only 1 January death after a
+# 31 December discharge) is counted in the window's last year, not a new one.
+_cov = _cov.with_columns(_year_local(_cov, "final_death_dttm")
+                         .clip(WINDOW_START_YEAR, WINDOW_END_YEAR).alias("death_year"))
 
 (_cov.rename({"death_year": "year"})
  .group_by(["hospital_id_key", "hospital_label", "srtr_ccn_id", "year"])

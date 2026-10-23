@@ -1,12 +1,10 @@
 {
-    "_instructions": "Copy this file to config/config.json and replace every value below. Then run: python code/01_cohort_and_definitions.py",
+    "_instructions": "Copy this file to config/config.json and replace every value below. Then run: uv run python run_pipeline.py",
     "site_name": "your_site_name",
     "tables_path": "/absolute/path/to/your/clif/parquet/tables",
     "timezone": "US/Central",
-    "project_root": "/absolute/path/to/CLIF-donor-eligibility",
     "_notes": {
         "site_name": "lowercase, e.g. ucmc, nu, rush",
-        "timezone": "The timezone your hospital is in. One of: US/Eastern, US/Central, US/Mountain, US/Arizona, US/Pacific, US/Alaska, US/Hawaii. Not UTC",
-        "project_root": "the folder this repository is in"
+        "timezone": "The timezone your hospital is in. One of: US/Eastern, US/Central, US/Mountain, US/Arizona, US/Pacific, US/Alaska, US/Hawaii. Not UTC"
     }
 }

@@ -22,7 +22,7 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt                                # noqa: E402
-from matplotlib.patches import FancyBboxPatch, Rectangle       # noqa: E402
+from matplotlib.patches import FancyBboxPatch                  # noqa: E402
 from matplotlib.ticker import FuncFormatter, MaxNLocator       # noqa: E402
 import polars as pl                                            # noqa: E402
 import yaml                                                    # noqa: E402
@@ -31,8 +31,7 @@ REPO = Path(__file__).resolve().parents[1]
 CRIT = yaml.safe_load((REPO / "config/donor_criteria.yaml").read_text())
 STUDY, DONOR, CALC_CFG = CRIT["study"], CRIT["clif_donor"], CRIT["calc"]
 WINDOW = f"{STUDY['window_start_year']}–{STUDY['window_end_year']}"
-CALC_POSITIONS = {"any": "calc_cause_any", "primary": "calc_cause_primary",
-                  "primary_poa": "calc_cause_primary_poa"}
+from utils.criteria import CALC_POSITIONS                      # noqa: E402
 POSITION = str(CALC_CFG["diagnosis_position"]).lower()
 POSITION_WORD = {"any": "any", "primary": "principal",
                  "primary_poa": "principal, present-on-admission"}[POSITION]
@@ -412,7 +411,11 @@ def render(flow: dict[str, int], organ: dict[str, int], excluded_line: str, n_si
     _style()
     fig = plt.figure(figsize=(W, H))
     draw_flow(fig.add_axes([0, HB / H, 1, HA / H]), flow, excluded_line, n_sites)
-    draw_organ(fig, organ)
+    if organ["n_patients"]:
+        draw_organ(fig, organ)
+    else:   # a site with no eligible decedent has no organ assessment to draw
+        fig.text(0.30 / W, (HB - 0.08) / H, "No CLIF-donor eligible decedents; the organ assessment is not drawn",
+                 ha="left", va="top", color=INK, fontsize=7.5, fontweight="bold")
     for label, y in (("A", H - 0.05), ("B", HB + 0.02)):
         fig.text(0.04 / W, y / H, label, fontsize=12, fontweight="bold", va="top", color=INK)
     stem.parent.mkdir(parents=True, exist_ok=True)

@@ -45,7 +45,8 @@ import polars as pl
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 from utils.audit import StageAudit       
-from utils.config import config         
+from utils.config import config
+from utils.criteria import DEFS
 
 SITE = config["site_name"]
 INTER = Path(config["output_intermediate"])
@@ -71,8 +72,7 @@ REQUIREMENTS = {
         event=["icd10_ischemic", "icd10_cerebro", "icd10_external", "icd10_contraindication"]),
     "Ventilated Patient": dict(measured=[], event=["imv_48hr_expire"]),
 }
-DEFCOL = {"CLIF-donor": "clif_eligible_donors", "CALC": "calc_flag",
-          "Ventilated Patient": "ventilated_patient_no_age_limit"}
+DEFCOL = dict(DEFS)
 
 # Reporting fields that are not definition inputs but appear in Table 2.
 REPORTING = ["gcs_total_value", "rass_value", "first_icu_los_days",
@@ -282,7 +282,8 @@ def _probe(concept: str, group: str, table: str, col: str,
 
 if "hospitalization_id" in cohort.columns:
     # neuro procedures, by concept, across both vocabularies
-    _np = pl.read_csv(REPO / _CRIT["clinical_care"]["procedures_file"], comment_prefix="#")
+    _np = pl.read_csv(REPO / _CRIT["clinical_care"]["procedures_file"], comment_prefix="#",
+                      infer_schema_length=0)
     for concept in sorted(set(_np["concept"])):
         rows = _np.filter(pl.col("concept") == concept)
         ex = [str(v) for v in rows.filter(pl.col("match_type") == "exact")["pattern"]]
@@ -324,7 +325,7 @@ if "hospitalization_id" in cohort.columns:
     # fungemia and the contraindication organisms
     _fg = _CRIT["clinical_care"]["fungemia"]
     _probe("fungemia organisms", "contraindication", "microbiology_culture", "organism_category",
-           regexes=[_fg["organism_regex"].replace("|", "|")])
+           regexes=[_fg["organism_regex"]])
     for org in _CRIT["clinical_care"]["contraindications_not_in_clif"]:
         _probe(org, "contraindication", "microbiology_culture", "organism_category",
                regexes=[org.split("_")[0]])
@@ -400,8 +401,6 @@ for r, d in enumerate(NAMES):
     axm.scatter(list(range(ncols)), [y] * ncols, s=52, color="#d5ddda", zorder=1)
     if on:
         axm.scatter(on, [y] * len(on), s=52, color="#16262a", zorder=2)
-        if len(on) > 1:
-            pass
 for i in range(ncols):
     ys = [nrows - 1 - r for r, d in enumerate(NAMES) if top[d][i]]
     if len(ys) > 1:
