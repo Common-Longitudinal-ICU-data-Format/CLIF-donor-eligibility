@@ -8,9 +8,9 @@ Three scripts, run in order. Each reads `config/config.json` (see
 
 | script | what it does | main outputs |
 |---|---|---|
-| `01_cohort_and_definitions.py` | Setup checks, then the cohort of in-hospital deaths and the three definitions (CLIF-donor, CALC, Ventilated Patient). | `strobe_counts.csv`, `definition_counts.csv`, `decedents_by_location.csv`, `data_quality_flags.csv`, `srtr_ref/`, `run_log.txt` |
-| `02_build_tables.py` | Clinical-care variables from the optional tables, the manuscript tables, and binned counts for exact pooled medians. | `table2_characteristics.csv`, `table3_clinical_care.csv`, `tableS2_missingness.csv`, `table_stats_raw.csv`, `value_bins.csv`, `hospital_level_counts.csv`, `contraindication_codes.csv` (step totals; per-code detail stays local) |
-| `03_diagnostics.py` | Missingness, data-element coverage and definition overlap, then a reconciliation of the counts above and `provenance.md`. | `missingness_*.csv`, `element_coverage.csv`, `definition_overlap_upset.*`, `provenance.md` |
+| `01_cohort_and_definitions.py` | Setup checks, then the cohort of in-hospital deaths and the three definitions (CLIF-donor, CALC, Ventilated Patient). | `strobe_counts.csv`, `definition_counts.csv`, `hospitals.csv`, `decedents_by_location.csv`, `data_quality_flags.csv`, `srtr_ref/`, `run_log.txt` |
+| `02_build_tables.py` | Clinical-care variables from the optional tables, the manuscript tables, and binned counts for exact pooled medians. | `table2_characteristics.csv`, `table3_clinical_care.csv`, `tableS2_missingness.csv`, `table_stats_raw.csv`, `value_bins.csv`, `hospital_level_counts.csv`, `calc_vs_clif.csv`, `calc_vs_clif_upset.csv`, `contraindication_codes.csv` (step totals; per-code detail stays local) |
+| `03_diagnostics.py` | Missingness, data-element coverage and definition overlap, then a reconciliation of the counts above and `provenance.md`. | `missingness_*.csv`, `element_coverage.csv`, `element_coverage_by_hospital.csv`, `definition_overlap_upset.*`, `figure1_cohort.png`, `figure1_counts.csv`, `provenance.md` |
 
 ```bash
 uv sync
