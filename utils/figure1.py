@@ -51,6 +51,8 @@ UPSTREAM = [("no_adt", "No ADT record"),
             ("other_location", "Died outside the study units"),
             ("excluded_hospital", "Died at an excluded hospital"),
             ("no_hospital", "No hospital id on the stay"),
+            ("partial_year", "Died in a partial calendar year"),
+            ("small_hospital", f"Hospital with under {STUDY['min_hospital_decedents']} decedents"),
             ("no_age", "Age unknown")]
 _AGE = DONOR["age_at_death_max"]
 CRITERIA = [("no_cancer", "No contraindicating cancer diagnosis"),
@@ -97,6 +99,8 @@ def site_flow(cohort: pl.DataFrame, strobe: dict[str, int], dc: dict) -> dict[st
          "other_location": int(strobe["2b_deaths_excluded_by_location"]) - ed_only,
          "excluded_hospital": int(strobe["2g_deaths_at_excluded_hospitals"]),
          "no_hospital": int(strobe["2g_deaths_without_hospital_id"]),
+         "partial_year": int(strobe["2k_deaths_in_partial_calendar_years"]),
+         "small_hospital": int(strobe["2l_deaths_at_hospitals_below_minimum"]),
          "no_age": int(strobe["2h_deaths_without_age"]),
          "analytic": cohort.height, "hospitals": int(dc["n_analytic_hospitals"]),
          "calc_cause": n(c(CALC_POSITIONS[POSITION])), "calc": n(c("calc_flag"))}
@@ -158,10 +162,12 @@ def all_problems(f: dict[str, int], o: dict[str, int]) -> list[str]:
 
 
 def excluded_text(hospitals: pl.DataFrame | None) -> str:
-    """'long-term acute care 60; inpatient rehabilitation 35' from hospitals.csv rows."""
+    """'long-term acute care 60; inpatient rehabilitation 35' from hospitals.csv rows.
+    Hospitals excluded for their size have their own UPSTREAM line, so they are not repeated here."""
     if hospitals is None or not hospitals.height:
         return ""
-    ex = hospitals.filter(pl.col("status") == "excluded")
+    ex = hospitals.filter((pl.col("status") == "excluded")
+                          & ~pl.col("reason").is_in(["below_minimum_size", "no_complete_year"]))
     if not ex.height:
         return ""
     by = (ex.group_by("reason").agg(pl.col("n_decedents").sum())
@@ -436,8 +442,9 @@ def caption(flow: dict[str, int], organ: dict[str, int], n_sites: int) -> str:
 
 (A) Decedents in {systems} ({flow['hospitals']} hospitals), {WINDOW}. Decedents with no ADT
 record, deaths in the emergency department without admission, deaths outside the study units,
-deaths at hospitals excluded from the study and decedents without a known age are excluded before
-analysis; the analytic cohort of {flow['analytic']:,} decedents is the inpatient deaths, the
+deaths at hospitals excluded from the study, deaths in a calendar year the hospital covers only
+in part, deaths at hospitals with fewer than {STUDY['min_hospital_decedents']} decedents and
+decedents without a known age are excluded before analysis; the analytic cohort of {flow['analytic']:,} decedents is the inpatient deaths, the
 denominator CMS uses for CALC. CALC is applied in sequence: a {POSITION_WORD} diagnosis of
 {CODES}, then age ≤{_AGE} at death; location is the cohort entry; no contraindications are
 applied (42 CFR 486.302). CLIF-donor's six criteria are applied in parallel, each counted among
