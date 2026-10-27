@@ -75,7 +75,7 @@ REQUIREMENTS = {
 DEFCOL = dict(DEFS)
 
 # Reporting fields that are not definition inputs but appear in Table 2.
-REPORTING = ["gcs_total_value", "rass_value", "first_icu_los_days",
+REPORTING = ["gcs_total_value", "rass_value", "first_icu_los_days", "pf_ratio",
              "race_category", "ethnicity_category", "sex_category"]
 
 # ── 1. missingness by definition ─────────────────────────────────────────────
@@ -167,154 +167,95 @@ if "hospital_label" in cohort.columns:
 pl.DataFrame(hrows).sort(["hospital_label", "field"]).write_csv(FINAL / "missingness_by_hospital.csv")
 print(f"\n2b. missingness by hospital -> {len(hrows)} field-hospital rows")
 
-# ── 2c. data availability, by hospital ───────────────────────────────────────
-# How much of each source actually exists for these decedents, so a low
-# eligibility count can be told apart from a thin extract. Diagnosis coverage is
-# reported alongside the measurement fields because the CALC definition rests
-# entirely on ICD codes: a hospital with sparse coding cannot
-# qualify anyone, and that is a data property, not a clinical one.
+# ── 2c. element coverage: absent from the data, or absent from the cohort? ───
+# A zero in Table 2 or Table 3 has two very different causes. Either the site
+# never records that concept at all (a vocabulary gap — the row should be
+# footnoted, not reported as 0%), or the site records it and no decedent had it
+# (a real clinical finding). Those are indistinguishable in the tables, so each
+# concept is probed site-wide and in the cohort (element_coverage.csv), and, for
+# the missingness heatmap, as the share of cohort decedents with a record at
+# each hospital (element_coverage_by_hospital.csv): every lab, vital, assessment,
+# IMV and CRRT record, blood cultures, each diagnosis arm, each medication
+# category, each procedure concept and prone positioning.
 import duckdb  # noqa: E402
+import re as _re                                                     # noqa: E402
+import yaml as _yaml                                                 # noqa: E402
+from utils.checks import usable_number_sql                           # noqa: E402
+from utils.criteria import contraindication_sql, icd_range_sql, load_contraindications   # noqa: E402
 
 TABLES = Path(config["tables_path"])
 FT = config.get("file_type", "parquet")
 con = duckdb.connect()
-avail_rows = []
+_CRIT = _yaml.safe_load((REPO / "config/donor_criteria.yaml").read_text())
+_DX_NORM = "lower(regexp_replace(CAST(diagnosis_code AS VARCHAR),'[^0-9A-Za-z]','','g'))"
+_DX_ICD10 = "regexp_replace(lower(CAST(diagnosis_code_format AS VARCHAR)),'[^a-z0-9]','','g') IN ('icd10','icd10cm')"
+elem_rows: list[dict] = []
+elem_hosp_rows: list[dict] = []
+_hosp_n: dict[str, int] = {}
 if "hospital_label" in cohort.columns and "hospitalization_id" in cohort.columns:
-    # Every stay in each decedent's encounter block, counted per patient.
+    # Every stay in each decedent's encounter block, with the decedent's hospital.
     ids = (pl.read_parquet(INTER / "encounter_block_members.parquet")
            .with_columns(pl.col("hospitalization_id").cast(pl.Utf8))
            .join(cohort.select(["patient_id", "hospital_label"]), on="patient_id", how="inner")
            .to_pandas())
     con.register("ids_df", ids)
-
-    def coverage(table: str, label: str, extra_select: str = "") -> None:
-        f = TABLES / f"clif_{table}.{FT}"
-        if not f.exists():
-            for h in sorted(set(ids.hospital_label.dropna())):
-                avail_rows.append({"site": SITE, "hospital_label": h, "source": label,
-                                   "n_decedents": None, "n_with_data": 0, "pct_with_data": 0.0,
-                                   "mean_rows_per_decedent": None})
-            return
-        q = con.sql(f"""
-            SELECT i.hospital_label,
-                   count(DISTINCT i.patient_id) AS n_decedents,
-                   count(DISTINCT CASE WHEN t.hospitalization_id IS NOT NULL
-                                       THEN i.patient_id END) AS n_with_data,
-                   COALESCE(count(t.hospitalization_id),0) AS n_rows
-                   {extra_select}
-            FROM ids_df i
-            LEFT JOIN read_parquet('{f}') t
-              ON CAST(t.hospitalization_id AS VARCHAR) = i.hospitalization_id
-            GROUP BY 1""").df()
-        for r in q.itertuples():
-            if not r.hospital_label:
-                continue
-            avail_rows.append({"site": SITE, "hospital_label": r.hospital_label, "source": label,
-                               "n_decedents": int(r.n_decedents),
-                               "n_with_data": int(r.n_with_data),
-                               "pct_with_data": round(100 * r.n_with_data / r.n_decedents, 1)
-                               if r.n_decedents else 0.0,
-                               "mean_rows_per_decedent": round(r.n_rows / r.n_decedents, 1)
-                               if r.n_decedents else None})
-
-    for _tbl, _lab in [("hospital_diagnosis", "ICD diagnosis codes"),
-                       ("labs", "laboratory results"),
-                       ("respiratory_support", "respiratory support"),
-                       ("microbiology_culture", "cultures"),
-                       ("patient_procedures", "procedures"),
-                       ("medication_admin_intermittent", "medications (intermittent)"),
-                       ("medication_admin_continuous", "medications (continuous)"),
-                       ("patient_assessments", "GCS / RASS assessments"),
-                       ("vitals", "vitals"),
-                       ("position", "position"),
-                       ("crrt_therapy", "CRRT")]:
-        coverage(_tbl, _lab)
-
-pl.DataFrame(avail_rows).sort(["hospital_label", "source"]).write_csv(FINAL / "data_availability_by_hospital.csv")
-print(f"\n2c. data availability -> {len(avail_rows)} source-hospital rows")
-
-# ── 2d. element coverage: absent from the data, or absent from the cohort? ───
-# A zero in Table 2 or Table 3 has two very different causes. Either the site
-# never records that concept at all (a vocabulary gap — the row should be
-# footnoted, not reported as 0%), or the site records it and no decedent had it
-# (a real clinical finding). Those are indistinguishable in the tables, so each
-# concept is probed twice: site-wide, and restricted to cohort decedents.
-import re as _re                                                     
-import yaml as _yaml                                                
-_CRIT = _yaml.safe_load((REPO / "config/donor_criteria.yaml").read_text())
-elem_rows = []
+    _hosp_n = dict(cohort.drop_nulls("hospital_label").group_by("hospital_label").len().iter_rows())
 
 
-def _probe(concept: str, group: str, table: str, col: str,
+def _probe(concept: str, group: str, table: str, col: str | None = None,
            values: list[str] | None = None, regexes: list[str] | None = None,
-           extra: str = "") -> None:
-    """Count hospitalizations matching a concept site-wide and in the cohort."""
+           extra: str = "", cond: str | None = None) -> None:
+    """Count hospitalizations matching a concept site-wide and in the cohort, and
+    cohort decedents with one at each hospital. The concept is `col` in `values`
+    (case and spaces ignored), `col` matching a regex once punctuation is stripped,
+    either, or a `cond` written out; `extra` narrows any of them."""
     f = TABLES / f"clif_{table}.{FT}"
-    if not f.exists():
-        elem_rows.append({"site": SITE, "group": group, "concept": concept,
-                          "source_table": table, "status": "table absent",
-                          "n_hosp_site_wide": 0, "n_hosp_in_cohort": 0})
-        return
-    if values:
-        vals = ", ".join("'" + str(v).lower().replace("'", "''") + "'" for v in values)
-        cond = f"lower(trim(CAST({col} AS VARCHAR))) IN ({vals})"
-    else:
-        pats = " OR ".join("regexp_matches(lower(REGEXP_REPLACE(CAST("
-                           f"{col} AS VARCHAR), '[^0-9A-Za-z]', '', 'g')), "
-                           "'" + r.lower().replace("'", "''") + "')" for r in (regexes or []))
-        cond = f"({pats})"
+    if cond is None:
+        parts = []
+        if values:
+            vals = ", ".join("'" + str(v).lower().replace("'", "''") + "'" for v in values)
+            parts.append(f"lower(trim(CAST({col} AS VARCHAR))) IN ({vals})")
+        if regexes:
+            parts += ["regexp_matches(lower(REGEXP_REPLACE(CAST("
+                      f"{col} AS VARCHAR), '[^0-9A-Za-z]', '', 'g')), "
+                      "'" + r.lower().replace("'", "''") + "')" for r in regexes]
+        cond = " OR ".join(parts)
     if extra:
         cond = f"({cond}) AND ({extra})"
-    q = con.sql(f"""
-        SELECT count(DISTINCT CAST(t.hospitalization_id AS VARCHAR)) AS site_wide,
-               count(DISTINCT CASE WHEN i.hospitalization_id IS NOT NULL
-                                   THEN CAST(t.hospitalization_id AS VARCHAR) END) AS in_cohort
-        FROM read_parquet('{f}') t
-        LEFT JOIN ids_df i ON CAST(t.hospitalization_id AS VARCHAR) = i.hospitalization_id
-        WHERE {cond}""").df().iloc[0]
-    sw, ic = int(q.site_wide), int(q.in_cohort)
-    elem_rows.append({
-        "site": SITE, "group": group, "concept": concept, "source_table": table,
-        "status": ("not recorded at this site" if sw == 0 else
-                   "recorded, absent in decedents" if ic == 0 else "present"),
-        "n_hosp_site_wide": sw, "n_hosp_in_cohort": ic})
+    q, status = None, "table absent"
+    if f.exists():
+        try:
+            q = con.sql(f"""
+                SELECT i.hospital_label, count(DISTINCT CAST(t.hospitalization_id AS VARCHAR)) AS n_hosp,
+                       count(DISTINCT i.patient_id) AS n_pat
+                FROM read_parquet('{f}') t
+                LEFT JOIN ids_df i ON CAST(t.hospitalization_id AS VARCHAR) = i.hospitalization_id
+                WHERE {cond} GROUP BY 1""").df()
+        except duckdb.BinderException:          # a column this extract does not carry
+            status = "column absent"
+    sw = int(q.n_hosp.sum()) if q is not None else 0
+    ic = int(q.n_hosp[q.hospital_label.notna()].sum()) if q is not None else 0
+    by = {r.hospital_label: int(r.n_pat) for r in q.itertuples() if r.hospital_label} if q is not None else {}
+    if q is not None:
+        status = ("not recorded at this site" if sw == 0 else
+                  "recorded, absent in decedents" if ic == 0 else "present")
+    elem_rows.append({"site": SITE, "group": group, "concept": concept, "source_table": table,
+                      "status": status, "n_hosp_site_wide": sw, "n_hosp_in_cohort": ic})
+    elem_hosp_rows.extend({"site": SITE, "hospital_label": h, "group": group, "concept": concept,
+                           "source_table": table, "n_decedents": n, "n_with_record": by.get(h, 0),
+                           "pct_with_record": round(100 * by.get(h, 0) / n, 1)} for h, n in _hosp_n.items())
 
 
 if "hospitalization_id" in cohort.columns:
-    # neuro procedures, by concept, across both vocabularies
+    # neuro procedures, by concept, across both vocabularies (exact codes and
+    # anchored PCS patterns are OR-ed)
     _np = pl.read_csv(REPO / _CRIT["clinical_care"]["procedures_file"], comment_prefix="#",
                       infer_schema_length=0)
     for concept in sorted(set(_np["concept"])):
         rows = _np.filter(pl.col("concept") == concept)
-        ex = [str(v) for v in rows.filter(pl.col("match_type") == "exact")["pattern"]]
-        rx = [str(v) for v in rows.filter(pl.col("match_type") != "exact")["pattern"]]
-        if not (ex and rx):
-            _probe(concept, "neurologic procedure", "patient_procedures",
-                   "procedure_code", values=ex or None, regexes=rx or None)
-            continue
-        # exact codes and anchored PCS patterns are OR-ed, so probe together
-        vals = ", ".join("'" + v.lower() + "'" for v in ex)
-        pats = " OR ".join("regexp_matches(lower(REGEXP_REPLACE(CAST(procedure_code AS "
-                           "VARCHAR), '[^0-9A-Za-z]', '', 'g')), '" + r.lower() + "')"
-                           for r in rx)
-        f = TABLES / f"clif_patient_procedures.{FT}"
-        if not f.exists():
-            continue
-        q = con.sql(f"""
-            SELECT count(DISTINCT CAST(t.hospitalization_id AS VARCHAR)) AS site_wide,
-                   count(DISTINCT CASE WHEN i.hospitalization_id IS NOT NULL
-                         THEN CAST(t.hospitalization_id AS VARCHAR) END) AS in_cohort
-            FROM read_parquet('{f}') t
-            LEFT JOIN ids_df i ON CAST(t.hospitalization_id AS VARCHAR) = i.hospitalization_id
-            WHERE lower(REGEXP_REPLACE(CAST(procedure_code AS VARCHAR),
-                  '[^0-9A-Za-z]', '', 'g')) IN ({vals}) OR {pats}""").df().iloc[0]
-        sw, ic = int(q.site_wide), int(q.in_cohort)
-        elem_rows.append({"site": SITE, "group": "neurologic procedure",
-                          "concept": concept, "source_table": "patient_procedures",
-                          "status": ("not recorded at this site" if sw == 0 else
-                                     "recorded, absent in decedents" if ic == 0
-                                     else "present"),
-                          "n_hosp_site_wide": sw, "n_hosp_in_cohort": ic})
+        _probe(concept, "neurologic procedure", "patient_procedures", "procedure_code",
+               values=[str(v) for v in rows.filter(pl.col("match_type") == "exact")["pattern"]] or None,
+               regexes=[str(v) for v in rows.filter(pl.col("match_type") != "exact")["pattern"]] or None)
 
     # medications, per mCIDE category, in whichever table carries them
     for grp, meds in _CRIT["clinical_care"]["medications"].items():
@@ -322,19 +263,34 @@ if "hospitalization_id" in cohort.columns:
                           ("intermittent", "medication_admin_intermittent")]:
             _probe(f"{grp} [{route}]", "medication", tb, "med_category", values=meds)
 
-    # fungemia and the contraindication organisms
+    # cultures: fungemia and the contraindication organisms, and blood cultures at all
     _fg = _CRIT["clinical_care"]["fungemia"]
     _probe("fungemia organisms", "contraindication", "microbiology_culture", "organism_category",
            regexes=[_fg["organism_regex"]])
     for org in _CRIT["clinical_care"]["contraindications_not_in_clif"]:
         _probe(org, "contraindication", "microbiology_culture", "organism_category",
                regexes=[org.split("_")[0]])
+    _probe("blood culture obtained", "culture", "microbiology_culture", "fluid_category", values=["blood_buffy"])
 
-    # prone positioning
+    # the diagnosis arms every definition reads
+    for name, (lo, hi) in _CRIT["calc"]["cause_icd10_prefixes"].items():
+        _probe(f"{name.replace('_', ' ')} ({lo}-{hi})", "diagnosis", "hospital_diagnosis",
+               cond=icd_range_sql(_DX_NORM, lo, hi), extra=_DX_ICD10)
+    _CONTRA = load_contraindications(REPO / _CRIT["clif_donor"]["contraindications"]["icd10_file"])
+    _probe("contraindicating cancer code", "diagnosis", "hospital_diagnosis",
+           cond=contraindication_sql(_DX_NORM, _CONTRA), extra=_DX_ICD10)
+    _probe("any ICD-10 code", "diagnosis", "hospital_diagnosis", cond="diagnosis_code IS NOT NULL", extra=_DX_ICD10)
+
+    # events and measurements the criteria and Table 2 depend on
+    _probe("invasive mechanical ventilation", "respiratory support", "respiratory_support", "device_category",
+           values=["imv"])
+    _probe("fio2_set", "respiratory support", "respiratory_support", cond=usable_number_sql("fio2_set"))
+    _probe("any CRRT record", "renal replacement", "crrt_therapy", cond="TRUE")
     _probe("prone", "positioning", "position", "position_category", values=["prone"])
-
-    # measurement vocabularies the tables depend on
-    for lab in ["creatinine", "bilirubin_total", "ast", "alt", "platelet_count", "lactate"]:
+    for v in ["weight_kg", "height_cm"]:
+        _probe(v, "vitals", "vitals", "vital_category", values=[v])
+    for lab in ["creatinine", "bilirubin_total", "ast", "alt", "bun", "sodium", "po2_arterial",
+                "platelet_count", "lactate"]:
         _probe(lab, "laboratory", "labs", "lab_category", values=[lab])
     for asm in ["gcs_total", "RASS"]:
         _probe(asm, "assessment", "patient_assessments", "assessment_category", values=[asm])
@@ -344,11 +300,16 @@ if _ec.height:
     _ec = _ec.sort(["group", "concept"])
     _ec.write_csv(FINAL / "element_coverage.csv")
     _bad = _ec.filter(pl.col("status") != "present")
-    print(f"\n2d. element coverage -> {_ec.height} concepts; "
+    print(f"\n2c. element coverage -> {_ec.height} concepts; "
           f"{_bad.height} not present ("
           f"{_ec.filter(pl.col('status') == 'not recorded at this site').height} vocabulary gaps)")
     for r in _bad.iter_rows(named=True):
         print(f"     {r['status']:30s} {r['group']}: {r['concept']}")
+pl.DataFrame(elem_hosp_rows, schema={"site": pl.Utf8, "hospital_label": pl.Utf8, "group": pl.Utf8, "concept": pl.Utf8,
+                                     "source_table": pl.Utf8, "n_decedents": pl.Int64, "n_with_record": pl.Int64,
+                                     "pct_with_record": pl.Float64}
+             ).sort(["hospital_label", "group", "concept"]).write_csv(FINAL / "element_coverage_by_hospital.csv")
+print(f"    by hospital -> {len(elem_hosp_rows)} concept-hospital rows")
 
 # ── 3. UpSet over the definitions ────────────────────────────────────────────
 NAMES = list(DEFCOL)
