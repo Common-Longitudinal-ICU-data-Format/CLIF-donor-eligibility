@@ -20,6 +20,8 @@ from pathlib import Path
 
 import polars as pl
 
+from utils.figure1 import flow_problems
+
 # CONSORT definition name -> column in definition_counts.csv
 DEF_COUNT_COL = {
     "CLIF-donor": "clif_donor",
@@ -99,15 +101,8 @@ def reconcile(final_dir: Path) -> list[str]:
                 problems.append(f"{defn}: Table 2 denominator is {denom:,} but the cohort "
                                 f"is {cohort_n:,}")
 
-    # 3. Figure 1's own identities: exclusions add up, the six criteria together
-    #    are CLIF-donor, the organ split sums to it
-    up = sum(F.get(k) or 0 for k in ("no_adt", "ed_only", "other_location", "excluded_hospital", "no_hospital", "no_age"))
-    if (F.get("in_window") or 0) - up != F.get("analytic"):
-        problems.append(f"figure1_counts: {F.get('in_window')} in the window less {up} excluded is not the cohort {F.get('analytic')}")
-    if F.get("all_six") != F.get("clif_donor"):
-        problems.append(f"figure1_counts: the six criteria together ({F.get('all_six')}) are not CLIF-donor ({F.get('clif_donor')})")
-    if (F.get("kidney_only") or 0) + (F.get("liver_only") or 0) + (F.get("both") or 0) != F.get("clif_donor"):
-        problems.append("figure1_counts: kidney only, liver only and both do not add to CLIF-donor")
+    # 3. Figure 1's own identities, re-checked on the file as written
+    problems += [f"figure1_counts: {p}" for p in flow_problems(F)]
 
     # 4. the per-hospital counts cover the whole cohort, and the CALC readings
     #    they carry match the strobe rows they were counted from
