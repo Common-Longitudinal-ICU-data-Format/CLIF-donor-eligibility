@@ -35,9 +35,17 @@ cp config/config_template.json config/config.json
 #    Fill in ALL of: site_name, tables_path, timezone.
 #    timezone is your hospital's, e.g. US/Central (not UTC).
 #    Your hospitals come from config/hospital_crosswalk.yaml, which the
-#    coordinating centre keeps. The run stops if clif_adt holds a hospital_id
-#    with no row there. A hospital in the study that contributes no decedents
-#    is reported as a warning.
+#    coordinating centre keeps. A site with no rows there stops at the setup
+#    check. Before you run, list your hospital ids and check each against
+#    your site's rows:
+#        SELECT DISTINCT hospital_id FROM clif_adt
+#    A value with no row is reported as a warning; a decedent whose stay names
+#    no crosswalk hospital leaves the cohort at the no-hospital step, and
+#    hospitals.csv lists the value with its decedent count. A blank or a
+#    placeholder such as 'Missing' needs no row. Send any real hospital that
+#    is missing to the coordinating centre before you run: a bundle that
+#    dropped decedents at an unlisted hospital cannot be pooled. A hospital
+#    in the study that contributes no decedents is reported as a warning.
 
 # 2. Install (Python 3.12; uv installs it if needed)
 uv sync
@@ -83,8 +91,8 @@ the manuscript rows it costs, and the run continues.
 | `hospitalization` | `patient_id`, `hospitalization_id`, `admission_dttm`, `discharge_dttm`, `discharge_category`, `age_at_admission`, `admission_type_category` | `discharge_category`: `expired` | in-hospital deaths, linked stays, time of death when `death_dttm` is date-only or missing, age when `birth_date` is missing, length of stay |
 | `adt` | `hospitalization_id`, `hospital_id`, `hospital_type`, `in_dttm`, `out_dttm`, `location_category` | `location_category`: `ed`, `ward`, `stepdown`, `icu`, `hospice`; `hospital_type`: `academic`, `community` | cohort locations, hospital of death, ICU length of stay |
 | `hospital_diagnosis` | `hospitalization_id`, `diagnosis_code`, `diagnosis_code_format`, `diagnosis_primary`, `poa_present` | `diagnosis_code_format`: `icd10cm` | CALC cause of death, cancer contraindication, Table 2 comorbidities |
-| `labs` | `hospitalization_id`, `lab_category`, `lab_value_numeric`, `lab_collect_dttm` | `lab_category`: `creatinine`, `bilirubin_total`, `ast`, `alt`, `bun`, `sodium` | organ quality, Table 2 |
-| `respiratory_support` | `hospitalization_id`, `recorded_dttm`, `device_category` | `device_category`: `imv` | IMV within 48 h of death |
+| `labs` | `hospitalization_id`, `lab_category`, `lab_value_numeric`, `lab_collect_dttm` | `lab_category`: `creatinine`, `bilirubin_total`, `ast`, `alt`, `bun`, `sodium`, `po2_arterial` | organ quality, Table 2, PaO2/FiO2 descriptor |
+| `respiratory_support` | `hospitalization_id`, `recorded_dttm`, `device_category`; `fio2_set` (optional) | `device_category`: `imv` | IMV within 48 h of death; PaO2/FiO2 descriptor (not reported when `fio2_set` is absent) |
 | `vitals` | `hospitalization_id`, `recorded_dttm`, `vital_category`, `vital_value` | `vital_category`: `weight_kg`, `height_cm`, `heart_rate` | BMI, death-time diagnostics |
 | `crrt_therapy` | `hospitalization_id`, `recorded_dttm` | any row | CRRT within 48 h of death |
 | `microbiology_culture` | `hospitalization_id`, `collect_dttm`, `fluid_category`, `method_category`, `organism_category` | `fluid_category`: `blood_buffy`; `method_category`: `culture`; `organism_category`: `no_growth` against any organism | positive blood culture within 48 h of death, Table 3 organism rows |
