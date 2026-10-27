@@ -342,7 +342,8 @@ for _d, _c in DEFS:
                        ("Terminal sodium [mmol/L]", "sodium_value"),
                        ("Terminal GCS", "gcs_total_value"), ("Terminal RASS", "rass_value"),
                        ("Hospital LOS [days]", "hospital_length_of_stay_days"),
-                       ("First ICU LOS [days]", "first_icu_los_days")]:
+                       ("First ICU LOS [days]", "first_icu_los_days"),
+                       ("Last PaO2/FiO2 [mmHg]", "pf_ratio")]:
         if _col in cohort.columns:
             raw_median("table2", _lbl, _d, _m, _col)
     raw_count("table2", "Male sex", _d, _m, pl.col("sex_category").str.to_lowercase() == "male")
@@ -400,7 +401,7 @@ _BINS = [("Age at death", "age_at_death", 1), ("Weight [kg]", "last_weight_kg", 
          ("Terminal BUN [mg/dL]", "bun_value", 1), ("Terminal sodium [mmol/L]", "sodium_value", 1),
          ("Terminal GCS", "gcs_total_value", 1), ("Terminal RASS", "rass_value", 1),
          ("Hospital LOS [days]", "hospital_length_of_stay_days", .5),
-         ("First ICU LOS [days]", "first_icu_los_days", .5)]
+         ("First ICU LOS [days]", "first_icu_los_days", .5), ("Last PaO2/FiO2 [mmHg]", "pf_ratio", 10)]
 _bins: list[dict] = []
 for _d, _c in DEFS:
     _m = mask(_c)
@@ -542,3 +543,56 @@ else:
                          "description": pl.Utf8}
                  ).select("site", "code", "description", "n_decedents", "n_only_this_code").write_csv(FINAL / "contraindication_codes.csv")
 print(f"Contraindication codes: {_contra_pts.height:,} decedents, {_codes.height} codes -> contraindication_codes.csv")
+
+# ── CALC-eligible decedents who are not CLIF-donor eligible (Will, 2026-10-26) ─
+# Which CLIF-donor criteria the CALC-eligible fail, under the configured reading
+# (CALC) and the any-position reading (CALC_any). Criteria overlap, so the
+# failure columns add to more than n_not_clif_donor; organ_only is the decedents
+# failing nothing but the kidney-or-liver check. Age cannot fail: CALC requires it.
+# Site level ships; the by-hospital file stays local.
+_f = lambda c: pl.col(c).fill_null(False)   # noqa: E731
+_FAILS = {"not_ventilated_48h": ~_f("ventilated_patient_no_age_limit"),
+          "contraindicating_cancer": _f("icd10_contraindication"),
+          "positive_culture_48h": ~_f("no_positive_culture_48hrs"),
+          "bmi_above_limit_or_missing": ~_f("bmi_eligible"),
+          "no_organ_criteria_met": ~(_f("kidney_eligible") | _f("liver_eligible"))}
+_READINGS = {"CALC": _f("calc_flag"), "CALC_any": _f("calc_cause_any") & _f("age_75_less")}
+
+
+def _calc_vs_clif(by: list[str]) -> pl.DataFrame:
+    out = []
+    for name, calc in _READINGS.items():
+        not_clif = calc & ~_f("clif_eligible_donors")
+        other = pl.any_horizontal([e for k, e in _FAILS.items() if k != "no_organ_criteria_met"])
+        out.append(cohort.with_columns(pl.lit(SITE).alias("site")).group_by(by, maintain_order=True)
+                   .agg(calc.sum().alias("n_calc"), (calc & _f("clif_eligible_donors")).sum().alias("n_clif_donor"),
+                        not_clif.sum().alias("n_not_clif_donor"),
+                        *[(not_clif & e).sum().alias(k) for k, e in _FAILS.items()],
+                        (not_clif & _FAILS["no_organ_criteria_met"] & ~other).sum().alias("organ_only"))
+                   .with_columns(pl.lit(name).alias("calc_reading")))
+    return pl.concat(out).select("calc_reading", *by, pl.exclude("calc_reading", *by))
+
+
+_cv = _calc_vs_clif(["site"])
+_cv.write_csv(FINAL / "calc_vs_clif.csv")
+_calc_vs_clif(["site", "hospital_label"]).sort("calc_reading", "hospital_label").write_csv(INTER / "calc_vs_clif_by_hospital.csv")
+print("CALC vs CLIF-donor: " + "; ".join(f"{r['calc_reading']} {r['n_calc']:,} eligible, {r['n_not_clif_donor']:,} not "
+                                        f"CLIF-donor, {r['organ_only']:,} on organ function only"
+                                        for r in _cv.iter_rows(named=True)) + " -> calc_vs_clif.csv")
+# The same decedents by the exact combination of criteria they fail, so the
+# overlap above is resolved: combinations are disjoint and add across sites.
+_combos = []
+for _name, _calc in _READINGS.items():
+    _g = (cohort.filter(_calc & ~_f("clif_eligible_donors")).select([e.alias(k) for k, e in _FAILS.items()])
+          .group_by(list(_FAILS)).len().sort("len", descending=True))
+    for r in _g.iter_rows(named=True):
+        _members = [k for k in _FAILS if r[k]]
+        assert _members, "a CALC-eligible decedent failed CLIF-donor on no criterion"
+        _combos.append({"site": SITE, "calc_reading": _name, "members": " ∩ ".join(_members),
+                        "n_failed": len(_members), "n_patients": r["len"], **{k: r[k] for k in _FAILS}})
+    assert sum(c["n_patients"] for c in _combos if c["calc_reading"] == _name) == int(
+        _cv.filter(pl.col("calc_reading") == _name)["n_not_clif_donor"].sum())
+pl.DataFrame(_combos, schema={"site": pl.Utf8, "calc_reading": pl.Utf8, "members": pl.Utf8, "n_failed": pl.Int64,
+                              "n_patients": pl.Int64, **{k: pl.Boolean for k in _FAILS}}
+             ).write_csv(FINAL / "calc_vs_clif_upset.csv")
+print(f"  failed-criteria combinations: {len(_combos)} rows -> calc_vs_clif_upset.csv")
