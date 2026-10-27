@@ -85,8 +85,6 @@ hospitals:
   # ── ohsu ────────────────────────────────────────────────────────────────
   - {site: ohsu, hospital_id: "ohsu", hospital_ccn_id: "380009", srtr_ccn_id: "380009", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: ohsu_380009, hospital_full_name: "Oregon Health & Science University Hospital"}
   - {site: ohsu, hospital_id: "hmc", hospital_ccn_id: "380021", srtr_ccn_id: "380021", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: ohsu_380021, hospital_full_name: "Hillsboro Medical Center"}
-  - {site: ohsu, hospital_id: "adventist portland", hospital_ccn_id: ~, srtr_ccn_id: ~, ccn_facility_type: ~, ccn_in_srtr: false, include_flag: false, exclusion_reason: not_a_system_facility, analytic_hospital_id: ohsu_adventist_portland, hospital_full_name: "Adventist Health Portland (not CLIF-eligible)"}
-  - {site: ohsu, hospital_id: "adventist columbia gorge", hospital_ccn_id: ~, srtr_ccn_id: ~, ccn_facility_type: ~, ccn_in_srtr: false, include_flag: false, exclusion_reason: not_a_system_facility, analytic_hospital_id: ohsu_adventist_columbia_gorge, hospital_full_name: "Adventist Health Columbia Gorge (not CLIF-eligible)"}
 
   # ── penn ────────────────────────────────────────────────────────────────
   - {site: penn, hospital_id: "penn_hup", hospital_ccn_id: "390111", srtr_ccn_id: "390111", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: penn_390111, hospital_full_name: "Hospital of the University of Pennsylvania"}
@@ -105,7 +103,6 @@ hospitals:
 
   # ── rush ────────────────────────────────────────────────────────────────
   - {site: rush, hospital_id: "rumc", hospital_ccn_id: "140119", srtr_ccn_id: "140119", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: rush_140119, hospital_full_name: "Rush University Medical Center"}
-  - {site: rush, hospital_id: "0ef9a308eadb4a18b8af3e3c8259ed86", hospital_ccn_id: "140119", srtr_ccn_id: "140119", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: rush_140119, hospital_full_name: "Rush University Medical Center"}
 
   # ── ucmc ────────────────────────────────────────────────────────────────
   - {site: ucmc, hospital_id: "ucmc", hospital_ccn_id: "140088", srtr_ccn_id: "140088", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: ucmc_140088, hospital_full_name: "University of Chicago Medical Center"}
