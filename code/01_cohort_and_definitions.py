@@ -14,6 +14,7 @@ It performs the following steps:
 # Setup
 ################################################################################
 
+import shutil
 import sys
 import duckdb
 import polars as pl
@@ -22,6 +23,7 @@ import yaml
 from utils.config import config
 from clifpy.utils.stitching_encounters import stitch_encounters
 from utils.outlier_handler import outlier_range
+from utils.calendar_years import complete_years, in_partial_year, month_index, ym
 from utils.checks import mixed_tz_awareness, usable_number_sql
 from utils.dtypes import align_time_zone, hours_between
 from utils.death_time import (SOURCES as DEATH_TIME_SOURCES, add_death_anchor, has_time_of_day,
@@ -173,8 +175,8 @@ print(f"Setup check passed: config valid, {len(REQ['tables']['required'])} requi
 SITE_TZ = config["timezone"]
 
 
-def _year_local(df: pl.DataFrame, col: str) -> pl.Expr:
-    """Calendar year of `col` on the site's wall clock.
+def _local(df: pl.DataFrame, col: str) -> pl.Expr:
+    """`col` on the site's wall clock.
 
     CLIF timestamps are stored in UTC. The study window and SRTR's recovery
     years are calendar years where the hospital is, so a death at 21:00 on
@@ -184,7 +186,11 @@ def _year_local(df: pl.DataFrame, col: str) -> pl.Expr:
     e = pl.col(col)
     if getattr(df.schema[col], "time_zone", None):
         e = e.dt.convert_time_zone(SITE_TZ)
-    return e.dt.year()
+    return e
+
+
+def _year_local(df: pl.DataFrame, col: str) -> pl.Expr:
+    return _local(df, col).dt.year()
 
 
 def _require_matches(n: int, table: str, column: str, wanted: str) -> None:
@@ -218,6 +224,11 @@ RASS_MIN, RASS_MAX = outlier_range("patient_assessments", "numerical_value", "ra
 
 OUTPUT_FINAL_DIR = Path(config["output_final"])
 OUTPUT_INTERMEDIATE_DIR = Path(config["output_intermediate"])
+# Steps 01-03 rebuild the bundle in full, so a file an older kit wrote must not
+# linger in it and ship. Only a folder named *_upload_to_box is cleared; a site
+# that points output_final elsewhere keeps that folder as it is.
+if OUTPUT_FINAL_DIR.name.endswith("_upload_to_box"):
+    shutil.rmtree(OUTPUT_FINAL_DIR, ignore_errors=True)
 OUTPUT_FINAL_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_INTERMEDIATE_DIR.mkdir(parents=True, exist_ok=True)
 # DuckDB spills to disk instead of failing when a query outgrows memory, but
@@ -675,6 +686,33 @@ if not final_cohort_df.height:
 # Decedents at each excluded hospital, for hospitals.csv at the identity step.
 _n_at_excluded = dict(_terminal_hosp.filter(pl.col("hospital_id_key").is_in(list(_excluded_ids)))
                       .group_by("hospital_id_key").len().iter_rows())
+
+# Each hospital contributes only the calendar years it covers in full, and only
+# if at least study.min_hospital_decedents died there in those years (PIs, 26
+# October 2026). SRTR counts donors by calendar year, so a part-year of decedents
+# would be set against a full year of donors; and a hospital-level rate on a
+# handful of decedents says nothing. Both rules apply here, at the site, so every
+# table and figure is over the same hospitals (utils/calendar_years.py).
+final_cohort_df = final_cohort_df.with_columns(
+    month_index(_local(final_cohort_df, "final_death_dttm"), WINDOW_START_YEAR, WINDOW_END_YEAR)
+    .alias("_death_month"))
+# first and last month with a death at each hospital, for hospitals.csv
+_coverage = {h: (f, l) for h, f, l in final_cohort_df.group_by("hospital_id_key")
+             .agg(pl.min("_death_month").alias("f"), pl.max("_death_month").alias("l")).iter_rows()}
+_partial = in_partial_year("_death_month", "hospital_id_key")
+strobe_counts["2k_deaths_in_partial_calendar_years"] = int(final_cohort_df.select(_partial.sum()).item())
+final_cohort_df = final_cohort_df.filter(~_partial).drop("_death_month")
+_MIN_HOSP = int(STUDY["min_hospital_decedents"])
+_n_in_complete_years = dict(final_cohort_df.group_by("hospital_id_key").len().iter_rows())
+_small = {h for h in _coverage if _n_in_complete_years.get(h, 0) < _MIN_HOSP}
+strobe_counts["2l_deaths_at_hospitals_below_minimum"] = sum(_n_in_complete_years.get(h, 0) for h in _small)
+final_cohort_df = final_cohort_df.filter(~pl.col("hospital_id_key").is_in(list(_small)))
+print(f"Decedents in calendar years their hospital covers only in part (dropped): "
+      f"{strobe_counts['2k_deaths_in_partial_calendar_years']:,}; at hospitals with fewer than "
+      f"{_MIN_HOSP} decedents in complete years (dropped): {strobe_counts['2l_deaths_at_hospitals_below_minimum']:,}")
+if not final_cohort_df.height:
+    raise SystemExit(f"No hospital at site '{site_name}' covers a full calendar year with at least "
+                     f"{_MIN_HOSP} decedents (study.min_hospital_decedents). Check the extract's date range.")
 
 # Age at death, in years, from birth_date. Where the birth date is missing,
 # age_at_admission stands in: it understates age by the length of stay, days for
@@ -1307,6 +1345,66 @@ final_cohort_df = final_cohort_df.join(
 print(f"Final cohort with organ labs shape: {final_cohort_df.shape}")
 
 # ============================================
+# PaO2/FiO2 ratio: a Table 2 descriptor, never a criterion (Emily Vail, 2026-10-26)
+# ============================================
+# The last arterial PaO2 within clinical_care.pf_ratio.pao2_hours_before_death
+# of death, over the latest fio2_set at or before that PaO2 within
+# fio2_hours_before_pao2 (FiO2 is set, not drawn, so the pairing is anchored on
+# the blood gas). Plausibility ranges from outlier_config.yaml, as for the
+# organ labs. fio2_set is not a required column: without it the ratio is
+# unavailable and data_quality_flags.csv says so.
+_PF = CRIT["clinical_care"]["pf_ratio"]
+_PAO2_MIN, _PAO2_MAX = outlier_range("labs", "lab_value_numeric", "po2_arterial", OUTLIER_CONFIG)
+_FIO2_MIN, _FIO2_MAX = outlier_range("respiratory_support", "fio2_set", None, OUTLIER_CONFIG)
+_PF_COLS = ["pao2_value", "pao2_dttm", "fio2_value", "fio2_dttm", "pf_ratio"]
+if "fio2_set" not in duckdb.sql(f"SELECT * FROM read_parquet('{resp_filepath}') LIMIT 0").columns:
+    dq_flags.append({
+        "site": site_name, "flag": "pf_ratio_unavailable", "severity": "medium",
+        "detail": "clif_respiratory_support has no fio2_set column, so the PaO2/FiO2 ratio is not reported."})
+    print("  WARNING  no fio2_set in clif_respiratory_support: PaO2/FiO2 not reported (see data_quality_flags.csv)")
+    _pf = pl.DataFrame({"patient_id": final_cohort_df["patient_id"].head(0)}).with_columns(
+        *[pl.lit(None, pl.Float64).alias(c) for c in _PF_COLS])
+else:
+    _pf = pl.from_pandas(duckdb.sql(f"""
+    WITH pao2 AS (
+        SELECT f.patient_id, l.lab_value_numeric AS pao2_value, l.lab_collect_dttm AS pao2_dttm,
+               ROW_NUMBER() OVER (PARTITION BY f.patient_id
+                                  ORDER BY l.lab_collect_dttm DESC, l.lab_value_numeric DESC) AS rn
+        FROM read_parquet('{labs_filepath}') l
+        JOIN block_members_df f ON l.hospitalization_id = f.hospitalization_id
+        WHERE LOWER(TRIM(l.lab_category)) = 'po2_arterial'
+          AND EXTRACT(EPOCH FROM (f.final_death_dttm - l.lab_collect_dttm)) / 3600
+              BETWEEN 0 AND {float(_PF['pao2_hours_before_death'])}
+          AND {_LAB_VALUE_USABLE} AND l.lab_value_numeric BETWEEN {_PAO2_MIN} AND {_PAO2_MAX}
+    ),
+    fio2 AS (
+        SELECT p.patient_id, r.fio2 AS fio2_value, r.recorded_dttm AS fio2_dttm,
+               ROW_NUMBER() OVER (PARTITION BY p.patient_id ORDER BY r.recorded_dttm DESC, r.fio2 DESC) AS rn
+        FROM pao2 p
+        JOIN block_members_df f ON f.patient_id = p.patient_id
+        JOIN (SELECT hospitalization_id, recorded_dttm,
+                     CASE WHEN fio2_set > 1 THEN fio2_set / 100 ELSE fio2_set END AS fio2
+              FROM read_parquet('{resp_filepath}') WHERE {usable_number_sql('fio2_set')}) r
+          ON r.hospitalization_id = f.hospitalization_id
+        WHERE p.rn = 1
+          AND EXTRACT(EPOCH FROM (p.pao2_dttm - r.recorded_dttm)) / 3600
+              BETWEEN 0 AND {float(_PF['fio2_hours_before_pao2'])}
+          AND r.fio2 BETWEEN {_FIO2_MIN} AND {_FIO2_MAX}
+    )
+    SELECT p.patient_id, p.pao2_value, p.pao2_dttm, o.fio2_value, o.fio2_dttm,
+           p.pao2_value / o.fio2_value AS pf_ratio
+    FROM pao2 p LEFT JOIN fio2 o ON o.patient_id = p.patient_id AND o.rn = 1
+    WHERE p.rn = 1""").df())
+final_cohort_df = final_cohort_df.join(_pf, on="patient_id", how="left")
+_n_pao2 = int(final_cohort_df["pao2_value"].is_not_null().sum())
+_n_pf = int(final_cohort_df["pf_ratio"].is_not_null().sum())
+_gap = final_cohort_df.select(hours_between("pao2_dttm", "fio2_dttm", final_cohort_df.schema, SITE_TZ)).to_series().drop_nulls()
+print(f"✓ PaO2/FiO2: {_n_pao2:,} decedents with an arterial PaO2 within {_PF['pao2_hours_before_death']:g}h of death, "
+      f"{_n_pf:,} with an FiO2 within {_PF['fio2_hours_before_pao2']:g}h before it; "
+      + (f"FiO2-to-PaO2 gap median {_gap.median():.2f}h (IQR {_gap.quantile(.25):.2f}-{_gap.quantile(.75):.2f})"
+         if _gap.len() else "no pairs"))
+
+# ============================================
 # Create organ quality assessment flags
 # ============================================
 final_cohort_df = final_cohort_df.with_columns([
@@ -1643,7 +1741,7 @@ print(f"  hospital labels: {len(_labels)} -> hospital_label_key.csv (kept local)
 # Every decedent here died at a crosswalk hospital: stays naming none left at
 # the excluded-hospital step.
 _observed = {h for h in final_cohort_df["hospital_id_key"].drop_nulls().unique().to_list()}
-_in_study = {str(r["hospital_id"]).lower().strip() for r in _rows if _hospital_in_study(r)}
+_in_study = {str(r["hospital_id"]).lower().strip() for r in _rows if _hospital_in_study(r)} - _small
 _absent = sorted(_in_study - _observed)
 
 # A hospital in the study with no decedents is NOT an error. Deaths are attributed
@@ -1665,30 +1763,48 @@ print(f"Hospital check passed: {len(_observed)} hospital_ids contribute decedent
       + (f"; {len(_absent)} hospital(s) in the study contributed none" if _absent else ""))
 
 # Every configured hospital and what became of it: included, with its label;
-# no decedents in the window; or excluded, and why. Then every hospital_id value
-# with no crosswalk row seen on the stays of decedents dropped for having no
-# hospital, with how many decedents carried it. Ids are the crosswalk's, already
-# public beside the hospital names; the CCN stays local.
+# no decedents in the window; or excluded, and why, with the calendar years it
+# covers in full. Then every hospital_id value with no crosswalk row seen on the
+# stays of decedents dropped for having no hospital, with how many decedents
+# carried it. Ids are the crosswalk's, already public beside the hospital names;
+# the CCN stays local, and so do the first and last month with a death: a month
+# is a date element of two specific decedents, so only the local copy carries them.
 _n_included = dict(final_cohort_df.group_by("hospital_id_key").len().iter_rows())
+
+
+def _months(key: str) -> dict:
+    if key not in _coverage:
+        return {}
+    f, l = _coverage[key]
+    y0, y1 = complete_years(f, l)
+    return dict(first_month=ym(f), last_month=ym(l),
+                complete_years="" if y1 < y0 else str(y0) if y0 == y1 else f"{y0}-{y1}")
 
 
 def _hospital_row(r: dict) -> dict:
     key = str(r["hospital_id"]).lower().strip()
+    m = _months(key)
     if not _hospital_in_study(r):
         reason = str(r.get("exclusion_reason") or ("not_in_srtr" if r.get("srtr_ccn_id") else "no_cms_number"))
-        return dict(status="excluded", reason=reason, hospital_label=None, n_decedents=_n_at_excluded.get(key, 0))
-    if key not in _observed:
-        return dict(status="no_decedents", reason=None, hospital_label=None, n_decedents=0)
-    return dict(status="included", reason=None, hospital_label=_labels.get(r.get("srtr_ccn_id")),
-                n_decedents=_n_included.get(key, 0))
+        return dict(status="excluded", reason=reason, n_decedents=_n_at_excluded.get(key, 0), **m)
+    if not m:
+        return dict(status="no_decedents", n_decedents=0)
+    if key in _small:
+        return dict(status="excluded", reason="below_minimum_size" if m["complete_years"] else "no_complete_year",
+                    n_decedents=_n_in_complete_years.get(key, 0), **m)
+    return dict(status="included", hospital_label=_labels.get(r.get("srtr_ccn_id")),
+                n_decedents=_n_included.get(key, 0), **m)
 
 
-pl.DataFrame([{"site": site_name, "hospital_id": str(r["hospital_id"]), **_hospital_row(r)} for r in _rows]
-             + [{"site": site_name, "hospital_id": raw, "status": "not_in_crosswalk", "reason": "no_hospital_id",
-                 "hospital_label": None, "n_decedents": n} for raw, n in sorted(_n_unmapped.items())],
-             schema={"site": pl.Utf8, "hospital_id": pl.Utf8, "status": pl.Utf8, "reason": pl.Utf8,
-                     "hospital_label": pl.Utf8, "n_decedents": pl.Int64}
-             ).write_csv(OUTPUT_FINAL_DIR / "hospitals.csv")
+_hospitals = pl.DataFrame(
+    [{"site": site_name, "hospital_id": str(r["hospital_id"]), **_hospital_row(r)} for r in _rows]
+    + [{"site": site_name, "hospital_id": raw, "status": "not_in_crosswalk", "reason": "no_hospital_id",
+        "n_decedents": n} for raw, n in sorted(_n_unmapped.items())],
+    schema={"site": pl.Utf8, "hospital_id": pl.Utf8, "status": pl.Utf8, "reason": pl.Utf8,
+            "hospital_label": pl.Utf8, "n_decedents": pl.Int64, "complete_years": pl.Utf8,
+            "first_month": pl.Utf8, "last_month": pl.Utf8})
+_hospitals.write_csv(OUTPUT_INTERMEDIATE_DIR / "hospitals.csv")
+_hospitals.drop("first_month", "last_month").write_csv(OUTPUT_FINAL_DIR / "hospitals.csv")
 
 _audit.record("10_hospital_identity", final_cohort_df, final_cohort_df, key="patient_id",
               rule="terminal ADT hospital_id -> srtr_ccn_id via crosswalk",
@@ -1829,7 +1945,9 @@ _hr = hours_between("last_hr_above_zero_dttm", "final_death_dttm", _sch, SITE_TZ
 _VALUE_TIMES = {"creatinine": "creatinine_dttm", "bilirubin_total": "bilirubin_total_dttm",
                 "ast": "ast_dttm", "alt": "alt_dttm", "bun": "bun_dttm", "sodium": "sodium_dttm",
                 "gcs_total": "gcs_total_dttm", "rass": "rass_dttm",
-                "weight_kg": "last_weight_dttm", "height_cm": "last_height_dttm"}
+                "weight_kg": "last_weight_dttm", "height_cm": "last_height_dttm",
+                # the PaO2 behind the P/F ratio, and the FiO2 paired with it (n_with_value = pairs)
+                "po2_arterial": "pao2_dttm", "pf_ratio": "fio2_dttm"}
 
 
 def _value_timing(by: list[str]) -> pl.DataFrame:
@@ -1926,7 +2044,7 @@ print(f"\nSRTR reference -> {_SREF}")
 for _r in _hc.iter_rows(named=True):
     _fd = _r["first_year"] if _r["first_year"] else "?"
     _ld = _r["last_year"] if _r["last_year"] else "?"
-    _flag = "" if _r["first_year"] and _r["first_year"] <= WINDOW_START_YEAR else "   <-- PARTIAL COVERAGE"
+    _flag = "" if _r["first_year"] and _r["first_year"] <= WINDOW_START_YEAR else "   <-- not every window year"
     print(f"    {str(_r['hospital_id_key'])[:32]:32s} ccn={str(_r['srtr_ccn_id']):8s} "
           f"n={_r['n_decedents']:5,}  {_fd} -> {_ld}{_flag}")
 
