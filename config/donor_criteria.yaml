@@ -15,6 +15,13 @@ study:
   # admission is not an inpatient death, the denominator CMS uses for CALC
   # (85 FR 77909). The strobe row 2b_ed_only_deaths counts those decedents.
   cohort_locations: [ed, ward, stepdown, icu, hospice]
+  # Each hospital contributes only the calendar years it covers in full (first
+  # death in or before January, last death in or after December), so its
+  # decedents and its SRTR donors are counted over the same months, and only
+  # if at least this many decedents died there in those years. The decedents
+  # dropped are the strobe rows 2k_deaths_in_partial_calendar_years and
+  # 2l_deaths_at_hospitals_below_minimum; hospitals.csv shows each hospital's fate.
+  min_hospital_decedents: 50
   suppress_small_cells: false
   small_cell_suppression_n: 11
   # exclusion_codes_by_step.csv can list, for the cancer step, every ICD-10 code
@@ -99,6 +106,11 @@ calc:
 
 # ── Clinical care and contraindications (Table 3) ────────────────────────────
 clinical_care:
+  # PaO2/FiO2 ratio, a Table 2 descriptor and never a criterion (Emily Vail,
+  # 26 October 2026): the last arterial PaO2 within pao2_hours_before_death of
+  # death, over the latest fio2_set recorded at or before that PaO2 within
+  # fio2_hours_before_pao2 (a value above 1 is read as a percentage).
+  pf_ratio: {pao2_hours_before_death: 48, fio2_hours_before_pao2: 4}
   # Six neurologic procedure concepts for Table 3, as CPT codes and ICD-10-PCS
   # patterns. The file carries a description per code.
   procedures_file: utils/codes/neuro_procedures.csv
