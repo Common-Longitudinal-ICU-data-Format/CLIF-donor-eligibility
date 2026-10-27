@@ -110,7 +110,10 @@ hospitals:
   # ── ucsf ────────────────────────────────────────────────────────────────
   - {site: ucsf, hospital_id: "1000", hospital_ccn_id: "050454", srtr_ccn_id: "050454", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: ucsf_050454, hospital_full_name: "UCSF Helen Diller Medical Center at Parnassus Heights"}
   - {site: ucsf, hospital_id: "5102", hospital_ccn_id: "050454", srtr_ccn_id: "050454", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: ucsf_050454, hospital_full_name: "UCSF Medical Center at Mission Bay"}
-  - {site: ucsf, hospital_id: "2010", hospital_ccn_id: "050454", srtr_ccn_id: "050454", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: ucsf_050454, hospital_full_name: "UCSF Medical Center at Mount Zion"}
+  - {site: ucsf, hospital_id: "2000", hospital_ccn_id: "050454", srtr_ccn_id: "050454", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: ucsf_050454, hospital_full_name: "UCSF Medical Center at Mount Zion"}
+  - {site: ucsf, hospital_id: "60020", hospital_ccn_id: "050457", srtr_ccn_id: "050457", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: ucsf_050457, hospital_full_name: "UCSF Health Stanyan Hospital (formerly St. Mary's Medical Center)"}
+  - {site: ucsf, hospital_id: "80010", hospital_ccn_id: "050152", srtr_ccn_id: "050152", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: ucsf_050152, hospital_full_name: "UCSF Health Hyde Hospital (formerly Saint Francis Memorial Hospital)"}
+  - {site: ucsf, hospital_id: "20000", hospital_ccn_id: "053301", srtr_ccn_id: "053301", ccn_facility_type: childrens, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: ucsf_053301, hospital_full_name: "UCSF Benioff Children's Hospital Oakland"}
 
   # ── umn ─────────────────────────────────────────────────────────────────
   - {site: umn, hospital_id: "ummc", hospital_ccn_id: "240080", srtr_ccn_id: "240080", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: umn_240080, hospital_full_name: "M Health Fairview University of Minnesota Medical Center"}
