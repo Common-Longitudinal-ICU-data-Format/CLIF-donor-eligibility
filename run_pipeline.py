@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-"""Run the three steps of the CLIF-donor pipeline, in order, from config/config.json.
+"""Run the four steps of the CLIF-donor pipeline, in order, from config/config.json.
 
-    python run_pipeline.py                 # 01, 02, 03
+    python run_pipeline.py                 # 01, 02, 03, 04
 
 Each step's output is shown as it runs and also written to
 output/intermediate_phi/<site>/logs/<step>.log; the run stops at the first step that fails. Results land in <site>_upload_to_box/,
@@ -21,7 +21,8 @@ import time
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent
-STEPS = ["01_cohort_and_definitions.py", "02_build_tables.py", "03_diagnostics.py"]
+STEPS = ["01_cohort_and_definitions.py", "02_build_tables.py", "03_diagnostics.py",
+         "04_supplementary_tables.py"]
 G, R, B, X = "\033[32m", "\033[31m", "\033[1m", "\033[0m"
 
 
