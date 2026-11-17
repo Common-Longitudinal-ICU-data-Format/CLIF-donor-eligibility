@@ -23,9 +23,7 @@
 # CCN structure: final four digits encode facility type —
 #   0001-0879 short-term acute · 1300-1399 critical access · 2000-2299 long-term care
 #
-# analytic_hospital_id = <site>_<srtr_ccn_id>. Rows sharing a CCN coalesce into
-# one analytic hospital by construction (NU McHenry+Huntley; Penn HUP+HUPME;
-# UCSF Parnassus+Mission Bay+Mt Zion; UMN UMMC+Riverside).
+# analytic_hospital_id = <site>_<srtr_ccn_id>. Rows sharing a CCN coalesce into one analytic hospital.
 #
 # hospital_ccn_id and srtr_ccn_id are QUOTED — leading zeros (090005, 050454)
 # are load-bearing.
@@ -44,12 +42,6 @@ hospitals:
   - {site: emory, hospital_id: "eww", hospital_ccn_id: "110203", srtr_ccn_id: "110203", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: emory_110203, hospital_full_name: "Wesley Woods Geriatric Hospital"}
   - {site: emory, hospital_id: "eltac", hospital_ccn_id: "110178", srtr_ccn_id: "110178", ccn_facility_type: long_term_care, ccn_in_srtr: true, include_flag: false, exclusion_reason: long_term_care, analytic_hospital_id: emory_110178, hospital_full_name: "Emory Long Term Acute Care"}
   - {site: emory, hospital_id: "erh", hospital_ccn_id: ~, srtr_ccn_id: ~, ccn_facility_type: ~, ccn_in_srtr: false, include_flag: false, exclusion_reason: inpatient_rehabilitation, analytic_hospital_id: emory_erh, hospital_full_name: "Emory Rehabilitation Hospital (name inferred from the id)"}
-    # Emory rows rebuilt 2026-10-12 from the hospital_ids Emory's clif_adt actually holds.
-    # eclh, the old id for Midtown, is not in the ADT: Midtown is euhm. The new CCNs were
-    # matched by name and ZIP in SRTR donorhospital2506. eltac is a long-term acute care
-    # hospital (its ADT hospital_type is "ltach") although SRTR numbers it as short-term.
-    # erh has no SRTR record. The tracker's 110129 for esjh is St. Francis Hospital,
-    # Columbus GA, a different hospital.
 
   # ── hopkins ─────────────────────────────────────────────────────────────
   - {site: hopkins, hospital_id: "jhh", hospital_ccn_id: "210009", srtr_ccn_id: "210009", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: hopkins_210009, hospital_full_name: "Johns Hopkins Hospital"}
@@ -68,9 +60,6 @@ hospitals:
   - {site: nu, hospital_id: "nu_nmh", hospital_ccn_id: "140281", srtr_ccn_id: "140281", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140281, hospital_full_name: "Northwestern Memorial Hospital"}
   - {site: nu, hospital_id: "nu_cdh", hospital_ccn_id: "140242", srtr_ccn_id: "140242", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140242, hospital_full_name: "Northwestern Medicine Central DuPage Hospital"}
   - {site: nu, hospital_id: "nu_dh", hospital_ccn_id: "140154", srtr_ccn_id: "140154", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140154, hospital_full_name: "Northwestern Medicine Delnor Community Hospital"}
-    # CCN corrected 2026-08-24. The shared crosswalk carried 140211, which SRTR lists as an
-    # inactive record ("COMMUNITY HOSPITAL, Geneva"). 140154 is the active record,
-    # "Northwestern Medicine Delnor Hospital, Geneva", same ZIP 60134.
   - {site: nu, hospital_id: "nu_lfh", hospital_ccn_id: "140130", srtr_ccn_id: "140130", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140130, hospital_full_name: "Northwestern Medicine Lake Forest Hospital"}
   - {site: nu, hospital_id: "nu_kh", hospital_ccn_id: "140286", srtr_ccn_id: "140286", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140286, hospital_full_name: "Northwestern Medicine Kishwaukee Hospital"}
   - {site: nu, hospital_id: "nu_hh", hospital_ccn_id: "140116", srtr_ccn_id: "140116", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140116, hospital_full_name: "Northwestern Medicine Huntley Hospital"}
@@ -78,9 +67,6 @@ hospitals:
   - {site: nu, hospital_id: "nu_ph", hospital_ccn_id: "140062", srtr_ccn_id: "140062", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140062, hospital_full_name: "Northwestern Medicine Palos Hospital"}
   - {site: nu, hospital_id: "nu_vwh", hospital_ccn_id: "141340", srtr_ccn_id: "140203", ccn_facility_type: critical_access, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140203, hospital_full_name: "Northwestern Medicine Valley West Hospital"}
   - {site: nu, hospital_id: "nu_wh", hospital_ccn_id: "140176", srtr_ccn_id: "140176", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: nu_140176, hospital_full_name: "Northwestern Medicine Woodstock Hospital"}
-    # Added 2026-08-24: nu_wh appears in NU's ADT but was absent from the shared crosswalk.
-    # Active in SRTR, ZIP 60098.
-    # CMS-current CCN 141340 (critical access) is absent from SRTR donorhospital2506; SRTR attributes this facility to 140203.
 
   # ── ohsu ────────────────────────────────────────────────────────────────
   - {site: ohsu, hospital_id: "ohsu", hospital_ccn_id: "380009", srtr_ccn_id: "380009", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: ohsu_380009, hospital_full_name: "Oregon Health & Science University Hospital"}
@@ -96,9 +82,6 @@ hospitals:
   - {site: penn, hospital_id: "pcam", hospital_ccn_id: "390111", srtr_ccn_id: "390111", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: penn_390111, hospital_full_name: "Perelman Center for Advanced Medicine (provider-based under HUP)"}
   - {site: penn, hospital_id: "phpbr", hospital_ccn_id: "390111", srtr_ccn_id: "390111", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: true, analytic_hospital_id: penn_390111, hospital_full_name: "Medical Arts Pavilion (provider-based under HUP)"}
   - {site: penn, hospital_id: "pasyc", hospital_ccn_id: "390226", srtr_ccn_id: "390226", ccn_facility_type: short_term_acute, ccn_in_srtr: true, include_flag: false, exclusion_reason: psychiatric, analytic_hospital_id: penn_390226, hospital_full_name: "Pennsylvania Hospital psychiatric unit (provider-based under PAH)"}
-    # Penn, 2026-10-23: PASYC and HMIPP are psychiatric centres whose data should not be
-    # trusted, so both are excluded. PCAM and PHPBR are outpatient facilities under HUP and
-    # stay included: they share HUP's CCN, so a death there is a HUP death for SRTR.
   - {site: penn, hospital_id: "hmipp", hospital_ccn_id: ~, srtr_ccn_id: ~, ccn_facility_type: ~, ccn_in_srtr: false, include_flag: false, exclusion_reason: psychiatric, analytic_hospital_id: penn_hmipp, hospital_full_name: "HUP Cedar psychiatric department (per Penn)"}
 
   # ── rush ────────────────────────────────────────────────────────────────

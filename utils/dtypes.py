@@ -1,21 +1,16 @@
 """Canonical dtypes for anything this pipeline writes to parquet.
 
 Sites store timestamps differently: microsecond or nanosecond precision, labelled
-UTC (UCMC, NU), or unlabelled local time (RUSH). Every saved file is meant to be
+UTC, or unlabelled local time. Every saved file is meant to be
 readable on its own and to concatenate across sites, so every frame is
 normalised on the way out:
 
   * datetimes  -> the same instant, labelled UTC, microsecond precision. A
                   labelled column is converted; an unlabelled one is read as the
                   site's local time (config timezone) and then converted.
-  * dates      -> local midnight of that date, as above (NU stores birth_date as
-                  a date, UCMC and RUSH as a timestamp).
+  * dates      -> local midnight of that date, as above.
   * integers   -> Int64, since width varies by site.
   * durations  -> microsecond precision.
-
-Before 2026-10-07 the timezone label was dropped without converting, so UCMC and
-NU files held UTC wall-clock times and RUSH files held Chicago wall-clock times,
-with nothing in the file to tell them apart.
 """
 from __future__ import annotations
 

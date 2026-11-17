@@ -1,6 +1,4 @@
-# ── config/donor_criteria.yaml ───────────────────────────────────────────────
-# Single source of truth for every threshold and code set in this study.
-# ─────────────────────────────────────────────────────────────────────────────
+# config/donor_criteria.yaml: every threshold and code set in this study.
 
 study:
   window_start_year: 2020
@@ -15,21 +13,14 @@ study:
   # admission is not an inpatient death, the denominator CMS uses for CALC
   # (85 FR 77909). The strobe row 2b_ed_only_deaths counts those decedents.
   cohort_locations: [ed, ward, stepdown, icu, hospice]
-  # Each hospital contributes only the calendar years it covers in full (first
-  # death in or before January, last death in or after December), so its
-  # decedents and its SRTR donors are counted over the same months, and only
-  # if at least this many decedents died there in those years. The decedents
-  # dropped are the strobe rows 2k_deaths_in_partial_calendar_years and
-  # 2l_deaths_at_hospitals_below_minimum; hospitals.csv shows each hospital's fate.
+  # Each hospital contributes only the calendar years it covers in full (first death in or before January, last
+  # in or after December), and only if at least this many decedents died there in those years.
+  # hospitals.csv shows each hospital's outcome.
   min_hospital_decedents: 50
   suppress_small_cells: false
   small_cell_suppression_n: 11
-  # exclusion_codes_by_step.csv can list, for the cancer step, every ICD-10 code
-  # and how many excluded patients carried it. Most of those counts are below
-  # the small-cell threshold and some are single patients with a rare diagnosis.
-  # false: the per-code rows stay in the site's local folder and the shipped
-  # file carries one row per step. Set true only once the small-cell policy for
-  # the study allows it.
+  # false: per-code cancer counts (mostly small cells) stay in the site's local folder and the shipped file
+  # carries one row per step.
   ship_exclusion_code_detail: false
 
   # Hospitalizations of the same patient are linked into one encounter when the
@@ -38,12 +29,10 @@ study:
   # criterion is evaluated over the linked encounter.
   encounter_stitch_hours: 6
 
-  # Time of death: the anchor for every "within N hours of death" window.
-  # utils/death_time.py:
+  # Time of death: the anchor for every "within N hours of death" window (utils/death_time.py):
   #   death_dttm has a time of day  -> death_dttm
   #   death_dttm is only a date     -> discharge_dttm, kept inside that date
   #   death_dttm is missing         -> discharge_dttm
-  # The last recorded vital is no longer a fallback.
   death_time:
     # A death recorded more than this many hours AFTER discharge is not the
     # in-hospital death (a registry date, or an error); discharge_dttm is used.
@@ -56,8 +45,7 @@ clif_donor:
   # death do not count.
   imv_hours_before_death: 48
   bmi_max: 50                            # inclusive: 50 or under
-  # NO sepsis exclusion. Settled 2026-09-19; the sepsis codes and Table 2 row
-  # were removed 2026-10-05.
+  # No sepsis exclusion.
   kidney:
     creatinine_max: 4.0                  # mg/dL, strict <
     exclude_if_crrt_within_hours: 48
@@ -68,8 +56,8 @@ clif_donor:
   # A missing organ-quality value is ineligible. Absence of a CRRT record is
   # read as "not on dialysis".
   contraindications:
-    # The excluding ICD-10-CM codes, one prefix per row (C34 covers C34.11).
-    # Follows the OPTN eligible-death cancer exclusions, as decided with the PIs.
+    # The excluding ICD-10-CM codes, one prefix per row (C34 covers C34.11), following the OPTN eligible-death
+    # cancer exclusions.
     icd10_file: utils/codes/icd10_contraindications.csv
     # A code counts at any diagnosis position, present on admission or not.
     positive_blood_culture_hours: 48
@@ -93,11 +81,9 @@ calc:
   #   primary      principal discharge diagnosis only  <- PRIMARY ANALYSIS
   #   any          every diagnosis position           <- sensitivity, upper bound
   #   primary_poa  principal AND present on admission  <- diagnostic, lower bound
-  #
-  # CMS specifies the primary cause of death on the death certificate, which no
-  # EHR field reproduces; the principal discharge diagnosis is the nearest
-  # analogue. All three counts are reported at every run; this sets which one
-  # becomes calc_flag. Agreed with Will, Joel and Emily 2026-10-21.
+  # CMS specifies the primary cause of death on the death certificate, which no EHR field reproduces; the
+  # principal discharge diagnosis is the nearest analogue. All three counts are reported at every run; this
+  # sets which one becomes calc_flag.
   diagnosis_position: primary
 
 # ── Ventilated Patient — HRSA form comparator ────────────────────────────────
@@ -106,9 +92,8 @@ calc:
 
 # ── Clinical care and contraindications (Table 3) ────────────────────────────
 clinical_care:
-  # PaO2/FiO2 ratio, a Table 2 descriptor and never a criterion (Emily Vail,
-  # 26 October 2026): the last arterial PaO2 within pao2_hours_before_death of
-  # death, over the latest fio2_set recorded at or before that PaO2 within
+  # PaO2/FiO2 ratio, a Table 2 descriptor and never a criterion: the last arterial PaO2 within
+  # pao2_hours_before_death of death, over the latest fio2_set recorded at or before that PaO2 within
   # fio2_hours_before_pao2 (a value above 1 is read as a percentage).
   pf_ratio: {pao2_hours_before_death: 48, fio2_hours_before_pao2: 4}
   # Six neurologic procedure concepts for Table 3, as CPT codes and ICD-10-PCS
@@ -150,9 +135,8 @@ reporting:
   # extract (donor_administrative_code_availability.csv).
   donor_administrative_codes_file: utils/codes/donor_administrative_codes.csv
 
-# ── Supplementary tables (code/04_supplementary_tables.py) ────────────────────────────────────
-# One extra run per site after steps 01-03, for manuscript rows the main bundle
-# did not collect. Nothing above is read differently because of this block.
+# ── Supplementary tables (code/04_supplementary_tables.py): one extra step after 01-03.
+# Nothing above is read differently because of this block.
 # The 48-hour medication and proning counts use clif_donor.imv_hours_before_death.
 supplementary:
   # Counts of 1 .. min_cell-1 are written as "<min_cell" in every supplementary file.

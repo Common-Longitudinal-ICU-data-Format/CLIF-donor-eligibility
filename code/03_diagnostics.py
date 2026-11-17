@@ -126,7 +126,6 @@ print(f"\n2. patient-level: {complete:,}/{N:,} ({100*complete/N:.1f}%) complete 
       f"{len(CLIF_MEAS)} CLIF-donor measurement fields")
 print(dist.to_pandas().to_string(index=False))
 
-# which fields co-occur as missing
 patterns = (pat.filter(pl.col("n_missing") > 0)
             .with_columns(pl.concat_str(
                 [pl.when(pl.col(f).is_null()).then(pl.lit(f)).otherwise(pl.lit(""))
@@ -150,9 +149,7 @@ for s in ("top", "right"):
 fig.tight_layout()
 fig.savefig(FINAL / "missingness_patient_level.png"); plt.close(fig)
 
-# ── 2b. missingness by hospital (Table S2 heatmap) ───────────────────────────
-# Fields on one axis, hospitals on the other. Emitted as aggregate counts so the
-# heatmap can be assembled from site CSVs without patient-level data.
+# ── 2b. missingness by hospital, as aggregate counts
 HEAT_FIELDS = CLIF_MEAS + [f for f in REPORTING if f in cohort.columns]
 hrows = []
 if "hospital_label" in cohort.columns:
@@ -167,16 +164,9 @@ if "hospital_label" in cohort.columns:
 pl.DataFrame(hrows).sort(["hospital_label", "field"]).write_csv(FINAL / "missingness_by_hospital.csv")
 print(f"\n2b. missingness by hospital -> {len(hrows)} field-hospital rows")
 
-# ── 2c. element coverage: absent from the data, or absent from the cohort? ───
-# A zero in Table 2 or Table 3 has two very different causes. Either the site
-# never records that concept at all (a vocabulary gap — the row should be
-# footnoted, not reported as 0%), or the site records it and no decedent had it
-# (a real clinical finding). Those are indistinguishable in the tables, so each
-# concept is probed site-wide and in the cohort (element_coverage.csv), and, for
-# the missingness heatmap, as the share of cohort decedents with a record at
-# each hospital (element_coverage_by_hospital.csv): every lab, vital, assessment,
-# IMV and CRRT record, blood cultures, each diagnosis arm, each medication
-# category, each procedure concept and prone positioning.
+# ── 2c. element coverage: a zero in Table 2 or 3 means either the concept is never recorded at the site or no
+# decedent had it. Each concept is probed site-wide and in the cohort (element_coverage.csv) and per hospital
+# (element_coverage_by_hospital.csv).
 import duckdb  # noqa: E402
 import re as _re                                                     # noqa: E402
 import yaml as _yaml                                                 # noqa: E402
@@ -247,8 +237,7 @@ def _probe(concept: str, group: str, table: str, col: str | None = None,
 
 
 if "hospitalization_id" in cohort.columns:
-    # neuro procedures, by concept, across both vocabularies (exact codes and
-    # anchored PCS patterns are OR-ed)
+    # neuro procedures, by concept, across both vocabularies
     _np = pl.read_csv(REPO / _CRIT["clinical_care"]["procedures_file"], comment_prefix="#",
                       infer_schema_length=0)
     for concept in sorted(set(_np["concept"])):
@@ -393,16 +382,11 @@ audit.record("50_missingness_upset", cohort, cohort, key="patient_id",
 audit.write()
 
 
-
-# ── 2e. donor administrative codes (Emily Vail, 2026-08-26) ──────────────────
-# Face-validity check: do administrative markers of an actual donation, or of
-# brain death, appear at all? Reported three ways per code, because a zero has
-# three different meanings:
-#   n_hosp_site_wide   the code exists in this site's data at all
+# ── 2e. donor administrative codes: do markers of donation or brain death appear at all? Per code:
+#   n_hosp_site_wide   the code exists in this site's data
 #   n_decedents        it appears on a cohort decedent
-#   n_clif_donor       it appears on someone CLIF-donor already identifies
-# Codes and vocabulary labels are normalised on BOTH sides (upper-case, strip
-# non-alphanumerics) because the sites spell the vocabulary three different ways.
+#   n_clif_donor       it appears on a CLIF-donor decedent
+# Codes and vocabulary labels are normalised on both sides.
 _dac_path = REPO / _CRIT["reporting"]["donor_administrative_codes_file"]
 if _dac_path.exists() and "hospitalization_id" in cohort.columns:
     _dac = pl.read_csv(_dac_path, comment_prefix="#", infer_schema_length=0)
@@ -413,8 +397,7 @@ if _dac_path.exists() and "hospitalization_id" in cohort.columns:
         .join(cohort.select(["patient_id", "clif_eligible_donors"]), on="patient_id", how="inner")
         .to_pandas())
 
-    # Normalised views of both source tables, vocabulary label included so a hit
-    # can be attributed to the vocabulary it came from.
+    # Normalised views of both source tables, with the vocabulary label.
     _srcs = {
         "icd10cm": (f"clif_hospital_diagnosis.{FT}", "diagnosis_code", "diagnosis_code_format"),
         "cpt": (f"clif_patient_procedures.{FT}", "procedure_code", "procedure_code_format"),
@@ -467,9 +450,7 @@ if _dac_path.exists() and "hospitalization_id" in cohort.columns:
                   f"decedents={r['n_cohort_decedents']:5,} "
                   f"clif-donors={r['n_among_clif_donors']:4,}")
 
-# ── Figure 1 for this site: the cohort flow, from this run's own counts ──────
-# The counts behind it ship in figure1_counts.csv, so the coordinating centre
-# pools the same figure over sites without patient-level data (utils/figure1.py).
+# ── Figure 1 for this site, from this run's counts; they ship in figure1_counts.csv (utils/figure1.py)
 from utils import figure1                                 # noqa: E402
 _strobe = dict(pl.read_csv(FINAL / "strobe_counts.csv").select("metric", "n").iter_rows())
 _dc = pl.read_csv(FINAL / "definition_counts.csv").row(0, named=True)
@@ -487,11 +468,7 @@ _f1 = figure1.render(_flow, _organ, figure1.excluded_text(pl.read_csv(FINAL / "h
                      1, FINAL / "figure1_cohort")
 print(f"\nFigure 1 -> {_f1[0].name}; counts -> figure1_counts.csv")
 
-# ── provenance: one document, and a check that the artifacts agree ───────────
-# Last site step, so every artifact exists by now. A mismatch between the
-# STROBE counts, the CONSORT, definition_counts and the Table 2 denominators
-# means one of them is wrong, and a wrong number that only appears in one place
-# is exactly what nobody notices.
+# ── provenance, and a check that the STROBE counts, CONSORT, definition_counts and Table 2 denominators agree
 from utils.provenance import reconcile, render          
 _problems = reconcile(FINAL)
 _prov = render(FINAL, _problems)

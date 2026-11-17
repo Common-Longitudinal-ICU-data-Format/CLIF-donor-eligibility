@@ -35,12 +35,8 @@ def icd_range_sql(col: str, lo: str, hi: str) -> str:
             f"AND SUBSTR({col}, 1, 3) BETWEEN '{lo}' AND '{hi}')")
 
 
-# ── contraindication list (utils/codes/icd10_contraindications.csv) ────────────────
-# The ICD-10-CM codes that exclude a patient, one prefix per row: 'C34' covers
-# C34.11 without listing it. `source` says why each is on the list: OPTN 1.2
-# (OPTN eligible-death definition), CMS-3380-P (the 2019 proposed rule's list),
-# or study decision. What is deliberately not excluded, and why, is recorded
-# in the coordinating centre's notes.
+# ── contraindication list (utils/codes/icd10_contraindications.csv): one ICD-10-CM prefix per row (C34 covers
+# C34.11); `source` gives the reason: OPTN 1.2, CMS-3380-P, or study decision.
 _PREFIX = re.compile(r"^[a-z][0-9a-z]{2,6}$")
 
 

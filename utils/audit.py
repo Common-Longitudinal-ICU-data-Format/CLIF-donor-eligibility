@@ -10,7 +10,7 @@ read is not an audit trail, and the samples were the only patient-level content.
 
 Usage
 -----
-    audit = StageAudit(site="ucmc", outdir=Path("output/intermediate_phi/ucmc"))
+    audit = StageAudit(site="<site>", outdir=Path("output/intermediate_phi/<site>"))
     audit.record("02_age", df_in, df_out, key="patient_id",
                  rule="age at death <= 75",
                  reason="older than 75 at death")
@@ -68,8 +68,7 @@ class StageAudit:
 
     def record(self, name, df_in, df_out, *, key=None, rule="", reason="",
                sample_cols=None, n_sample=5, **extra) -> None:
-        # sample_cols / n_sample are accepted and ignored: callers still pass
-        # them, and no patient rows are recorded.
+        # sample_cols / n_sample are accepted and ignored; no patient rows are recorded.
         self.stages.append(Stage(name, rule, reason, key,
                                  _n(df_in, key), _n(df_out, key), [], extra))
 
@@ -86,10 +85,7 @@ class StageAudit:
         } for s in self.stages]
         pl.DataFrame(rows).write_csv(self.audit_dir / f"{self.label}_stage_counts.csv")
 
-        # CSV only. A markdown twin of the same table had to be read by a human
-        # per site and could not be concatenated; the counts are what the
-        # coordinating centre aggregates, and provenance.md is the one narrative
-        # document per site.
+        # CSV only: counts the coordinating centre can concatenate; provenance.md is the narrative document.
         return self.audit_dir / f"{self.label}_stage_counts.csv"
 
     def summary(self) -> str:

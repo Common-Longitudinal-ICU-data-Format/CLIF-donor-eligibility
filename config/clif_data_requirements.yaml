@@ -1,13 +1,6 @@
-# ── config/clif_data_requirements.yaml ───────────────────────────────────────
-# CLIF tables, columns and mCIDE category values this study requires.
-# Replaces the previous srtr_clif_data_requirements.yaml, whose contents were an
-# APS (Acute Physiology Score) crosswalk left over from another project.
-#
-# 01_cohort_and_definitions.py reads this file and reports, per site, which
-# requirements are met. A missing REQUIRED table halts the run; a missing
-# OPTIONAL table is recorded as site-level missingness and the dependent rows
-# are reported as unavailable rather than blank.
-# ─────────────────────────────────────────────────────────────────────────────
+# config/clif_data_requirements.yaml: CLIF tables, columns and mCIDE category values this study requires.
+# Step 01 reports which are met. A missing REQUIRED table halts the run; a missing OPTIONAL table is recorded
+# as site-level missingness and the dependent rows are reported as unavailable.
 
 tables:
   required:
@@ -27,8 +20,7 @@ tables:
     medication_admin_intermittent: [hospitalization_id, admin_dttm, med_category]
     position:                    [hospitalization_id, recorded_dttm, position_category]
 
-# Consequence of each optional table being absent, so the effect on the
-# manuscript is explicit rather than discovered at table-build time.
+# Consequence of each optional table being absent.
 optional_table_impact:
   patient_procedures:            "Table 3 CPT rows (craniotomy, EVD, angiography, cEEG) unavailable"
   patient_assessments:           "Table 2 GCS and RASS rows unavailable"

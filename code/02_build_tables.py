@@ -104,11 +104,7 @@ def add_flag(name: str, table: str, sql: str) -> None:
 
 print("\n-- clinical care variables --")
 
-# Neurologic procedures — CPT and ICD-10-PCS OR-ed together.
-# Sites code inpatient procedures in different vocabularies (some PCS only,
-# some CPT only for these concepts), and spell the format label differently
-# ("icd10pcs" / "ICD10PCS" / "ICD-10-PCS"), so the label is normalised by
-# lowercasing and stripping non-alphanumerics before comparison.
+# Neurologic procedures: CPT and ICD-10-PCS OR-ed together; the vocabulary label is normalised before comparison.
 PROC = pl.read_csv(REPO / CARE["procedures_file"], comment_prefix="#", infer_schema_length=0)
 FMT_NORM = "regexp_replace(lower(CAST(procedure_code_format AS VARCHAR)),'[^a-z0-9]','','g')"
 CODE = "upper(CAST(procedure_code AS VARCHAR))"
@@ -131,10 +127,7 @@ for concept in sorted(PROC["concept"].unique()):
           AND ({' OR '.join(clauses)})
         GROUP BY 1""")
 
-# ── donor administrative codes (v6 Tables 1 and 2) ───────────────────────────
-# Diagnosis codes go through hospital_diagnosis, CPT
-# through patient_procedures. Codes and vocabulary labels are both normalised —
-# the sites spell the vocabulary three different ways.
+# ── donor administrative codes: diagnosis codes from hospital_diagnosis, CPT from patient_procedures
 DAC_PATH = REPO / CRIT["reporting"]["donor_administrative_codes_file"]
 if DAC_PATH.exists():
     DAC = pl.read_csv(DAC_PATH, comment_prefix="#", infer_schema_length=0)
@@ -156,9 +149,7 @@ if DAC_PATH.exists():
                 WHERE CAST(hospitalization_id AS VARCHAR) IN (SELECT hospitalization_id FROM ids_df)
                   AND {PRC} = '{code}' GROUP BY 1""")
 
-# Cancer alone, separated from the pooled contraindication flag, because v6
-# Table 1 lists "Cancer" and "Positive blood culture" as separate rows. Same
-# list and matching as step 01.
+# Cancer alone, a separate Table 1 row from positive blood culture. Same list and matching as step 01.
 CONTRA_CODES = load_contraindications(REPO / _CD["contraindications"]["icd10_file"])
 _DX_NORM = "lower(regexp_replace(CAST(diagnosis_code AS VARCHAR),'[^0-9A-Za-z]','','g'))"
 _DX_SYS = "regexp_replace(lower(CAST(diagnosis_code_format AS VARCHAR)),'[^a-z0-9]','','g')"
@@ -170,8 +161,7 @@ add_flag("icd10_cancer_only", "hospital_diagnosis", f"""
       AND {contraindication_sql(_DX_NORM, CONTRA_CODES)}
     GROUP BY 1""")
 
-# Infectious screening, from microbiology_culture. This is culture positivity,
-# NOT serostatus — serologies live in microbiology_nonculture, which not every site has.
+# Infectious screening from microbiology_culture: culture positivity, not serostatus.
 for _org, _rx in [("cmv", "cytomegalo|cmv"), ("ebv", "epstein|ebv"),
                   ("tuberculosis", "tubercul|mycobact"), ("aspergillus", "aspergill")]:
     add_flag(f"micro_{_org}", "microbiology_culture", f"""
@@ -181,7 +171,6 @@ for _org, _rx in [("cmv", "cytomegalo|cmv"), ("ebv", "epstein|ebv"),
           AND regexp_matches(lower(CAST(organism_category AS VARCHAR)), '{_rx}')
         GROUP BY 1""")
 
-# Medications
 for group, cats in CARE["medications"].items():
     lst = ",".join(f"'{c}'" for c in cats)
     for table in ("medication_admin_continuous", "medication_admin_intermittent"):
@@ -193,7 +182,7 @@ for group, cats in CARE["medications"].items():
               AND lower(CAST(med_category AS VARCHAR)) IN ({lst})
             GROUP BY 1""")
 
-# Fungemia — the one clinical contraindication CLIF can actually see (DECISIONS F-11)
+# Fungemia
 add_flag("contra_fungemia", "microbiology_culture", f"""
     SELECT CAST(hospitalization_id AS VARCHAR) hospitalization_id, TRUE flag
     FROM read_parquet('{{p}}')
@@ -203,7 +192,7 @@ add_flag("contra_fungemia", "microbiology_culture", f"""
                          '{CARE["fungemia"]["organism_regex"]}')
     GROUP BY 1""")
 
-# Denominator for Joel's "% tested" — was a blood culture drawn at all?
+# Denominator for "% tested": was a blood culture drawn at all?
 add_flag("tested_blood_culture", "microbiology_culture", """
     SELECT CAST(hospitalization_id AS VARCHAR) hospitalization_id, TRUE flag
     FROM read_parquet('{p}')
@@ -289,7 +278,7 @@ for cat in ("race_category", "ethnicity_category"):
             row(f"{cat.replace('_category','').title()}: {v}",
                 lambda m, c=cat, val=v: pct(int(cohort.filter(m & (pl.col(c) == val)).height), int(m.sum())))
 
-# Contraindications — % positive, and % positive among tested (Joel, 2026-08-17)
+# Contraindications: % positive, and % positive among tested
 row("Positive blood culture <=48h before death",
     lambda m: pct(int(cohort.filter(m & (~pl.col("no_positive_culture_48hrs"))).height), int(m.sum())))
 if cohort["contra_fungemia"].null_count() < cohort.height:
@@ -302,12 +291,8 @@ if cohort["contra_fungemia"].null_count() < cohort.height:
                       int(cohort.filter(m & pl.col("tested_blood_culture").fill_null(False)).height)))
 row(">=1 relative contraindication", lambda m: pct(int(cohort.filter(m & pl.col("contra_any")).height), int(m.sum())))
 
-# ── machine-readable long form, so the aggregator can pool exactly ───────────
-# The display tables above hold formatted strings ("3,246 (60.7%)"), which cannot
-# be summed across sites. Every statistic is therefore ALSO emitted with its raw
-# numerator, denominator and quantiles, so coordinating/01_combined_report.py can pool counts
-# exactly and recompute proportions on the pooled denominator rather than
-# averaging percentages.
+# ── machine-readable long form: raw numerator, denominator and quantiles for every statistic, so counts pool
+# exactly and proportions are recomputed on the pooled denominator.
 raw: list[dict] = []
 
 
@@ -356,9 +341,7 @@ for _d, _c in DEFS:
             for _v in sorted(x for x in cohort[_cat].unique().to_list() if x):
                 raw_count("table2", f"{_cat.replace('_category','').title()}: {_v}", _d, _m,
                           pl.col(_cat) == _v)
-    # v6 Table 1 lists the CALC cause ranges and the donor/brain-death codes as
-    # their own rows, so they are emitted individually rather than only as the
-    # combined calc_flag.
+    # The CALC cause ranges and the donor and brain-death codes are emitted as their own rows.
     for _lbl, _col in [("Ischemic heart disease", "icd10_ischemic"),
                        ("Cerebrovascular disease", "icd10_cerebro"),
                        ("External causes", "icd10_external"),
@@ -376,8 +359,7 @@ for _d, _c in DEFS:
         raw_count("table2", "Fungemia", _d, _m, pl.col("contra_fungemia").fill_null(False))
         raw_count("table2", "Blood culture obtained", _d, _m, pl.col("tested_blood_culture").fill_null(False))
     raw_count("table2", ">=1 relative contraindication", _d, _m, pl.col("contra_any"))
-    # Brain death (G93.82). Reporting only — see 01; it is the face-validity
-    # check, so it deliberately does not feed any eligibility criterion.
+    # Brain death (G93.82): reporting only, a face-validity check; it feeds no eligibility criterion.
     if "icd10_brain_death" in cohort.columns:
         raw_count("table2", "Brain death (G93.82)", _d, _m,
                   pl.col("icd10_brain_death").fill_null(False))
@@ -390,9 +372,7 @@ for _d, _c in DEFS:
 pl.DataFrame(raw).write_csv(FINAL / "table_stats_raw.csv")
 print(f"raw long-form stats: {len(raw)} rows -> table_stats_raw.csv")
 
-# ── binned counts, so the coordinating centre can pool medians exactly ───────
-# A median of the pooled patients is not a function of the site medians. Counts
-# per fixed-width bin are, to the width of the bin, and they add across sites.
+# ── binned counts: fixed-width bins add across sites, so pooled medians can be computed from them
 _BINS = [("Age at death", "age_at_death", 1), ("Weight [kg]", "last_weight_kg", 1),
          ("Height [cm]", "last_height_cm", 1), ("BMI", "bmi", .5),
          ("Terminal creatinine [mg/dL]", "creatinine_value", .1),
@@ -453,7 +433,7 @@ for t in sorted(set(missing_tables)):
 pl.DataFrame(miss).write_csv(FINAL / "tableS2_missingness.csv")
 print(f"Table S2: {len(miss)} rows -> tableS2_missingness.csv")
 
-# ── hospital-level (Will, 2026-08-20) ────────────────────────────────────────
+# ── hospital-level
 hosp = (cohort.filter(pl.col("hospital_label").is_not_null())
         .group_by(["hospital_label", "srtr_ccn_id"])
         .agg([pl.col("patient_id").n_unique().alias("n_decedents"),
@@ -461,21 +441,13 @@ hosp = (cohort.filter(pl.col("hospital_label").is_not_null())
               pl.col("hospital_type").drop_nulls().first().alias("hospital_type"),
               *[pl.col(c).fill_null(False).sum().alias(d.replace(" ", "_").replace("-", "_"))
                 for d, c in DEFS],
-              # CALC under each diagnosis-position reading, so the pooled figures
-              # can be drawn for a reading other than the configured one
-              # (calc.diagnosis_position) without a re-run. CALC above is the
-              # configured reading.
+              # CALC under each diagnosis-position reading, so a reading other than the configured one needs no re-run.
               *[(pl.col(c).fill_null(False) & pl.col("age_75_less").fill_null(False)).sum().alias(n)
                 for n, c in (("CALC_any", "calc_cause_any"), ("CALC_primary", "calc_cause_primary"),
                              ("CALC_primary_poa", "calc_cause_primary_poa"))]])
         .sort("n_decedents", descending=True)
         .with_columns(pl.lit(SITE).alias("site")))
-# Counts are written UNSUPPRESSED. Suppressing here silently broke pooling:
-# a cell of 1-10 became null, and summing nulls across sites read as zero, which
-# understated the pooled denominator. These are hospital-level
-# aggregate decedent counts, not patient-identifying; masking belongs at the
-# publication layer, which is where the dashboard applies it. A `low_cell`
-# column marks the rows a published table must mask.
+# Counts are written unsuppressed so they pool exactly; a `low_cell` column marks the rows a published table must mask.
 low = pl.any_horizontal([pl.col(c).is_between(1, SUPPRESS - 1)
                          for c in hosp.columns if hosp.schema[c] in (pl.Int64, pl.UInt32, pl.Int32)])
 hosp = hosp.with_columns(low.alias("has_low_cell"))
@@ -488,10 +460,7 @@ audit.record("40_tables_built", cohort, cohort, key="patient_id",
 audit.write()
 print(f"\nall outputs -> {FINAL}")
 
-# ── academic vs community ────────────────────────────────────────────────────
-# The manuscript compares academic and community hospitals but nothing was ever
-# computed for it. hospital_type comes from the terminal ADT record (CLIF field),
-# not the crosswalk, which carries no such column. Counts only, so they pool.
+# ── academic vs community: hospital_type comes from the terminal ADT record. Counts only, so they pool.
 _by_type = (cohort.with_columns(pl.col("hospital_type").fill_null("unknown"))
             .group_by("hospital_type")
             .agg([pl.col("patient_id").n_unique().alias("n_decedents"),
@@ -505,11 +474,8 @@ print("hospital_type: " + ", ".join(
     f"{r['hospital_type']}={r['n_decedents']:,} ({r['n_hospitals']} hosp)"
     for r in _by_type.iter_rows(named=True)))
 
-# ── the cancer codes behind the contraindication criterion ───────────────────
-# The criteria are applied in parallel, so the question is not which codes
-# dropped patients at a step but which codes the decedents with a
-# contraindication carry: per code, decedents carrying it, and decedents
-# carrying no other contraindicating code.
+# ── cancer codes behind the contraindication criterion: per code, decedents carrying it and decedents carrying
+# no other contraindicating code.
 con.register("dx_all", con.sql(f"""
     SELECT CAST(hospitalization_id AS VARCHAR) hid, {_DX_NORM} code
     FROM read_parquet('{TABLES}/clif_hospital_diagnosis.{FT}')
@@ -544,11 +510,8 @@ else:
                  ).select("site", "code", "description", "n_decedents", "n_only_this_code").write_csv(FINAL / "contraindication_codes.csv")
 print(f"Contraindication codes: {_contra_pts.height:,} decedents, {_codes.height} codes -> contraindication_codes.csv")
 
-# ── CALC-eligible decedents who are not CLIF-donor eligible (Will, 2026-10-26) ─
-# Which CLIF-donor criteria the CALC-eligible fail, under the configured reading
-# (CALC) and the any-position reading (CALC_any). Criteria overlap, so the
-# failure columns add to more than n_not_clif_donor; organ_only is the decedents
-# failing nothing but the kidney-or-liver check. Age cannot fail: CALC requires it.
+# ── CALC-eligible decedents who are not CLIF-donor eligible: which criteria they fail, under the configured and
+# the any-position reading. Criteria overlap, so failure columns add to more than n_not_clif_donor.
 # Site level ships; the by-hospital file stays local.
 _f = lambda c: pl.col(c).fill_null(False)   # noqa: E731
 _FAILS = {"not_ventilated_48h": ~_f("ventilated_patient_no_age_limit"),
