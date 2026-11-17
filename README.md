@@ -39,13 +39,6 @@ cp config/config_template.json config/config.json
 #    check. Before you run, list your hospital ids and check each against
 #    your site's rows:
 #        SELECT DISTINCT hospital_id FROM clif_adt
-#    A value with no row is reported as a warning; a decedent whose stay names
-#    no crosswalk hospital leaves the cohort at the no-hospital step, and
-#    hospitals.csv lists the value with its decedent count. A blank or a
-#    placeholder such as 'Missing' needs no row. Send any real hospital that
-#    is missing to the coordinating centre before you run: a bundle that
-#    dropped decedents at an unlisted hospital cannot be pooled. A hospital
-#    in the study that contributes no decedents is reported as a warning.
 
 # 2. Install (Python 3.12; uv installs it if needed)
 uv sync
@@ -57,6 +50,7 @@ uv run python run_pipeline.py
 uv run python code/01_cohort_and_definitions.py
 uv run python code/02_build_tables.py
 uv run python code/03_diagnostics.py
+uv run python code/04_supplementary_tables.py
 ```
 
 ## What to return
@@ -71,6 +65,7 @@ What each file holds is described in [`output/README.md`](output/README.md).
 code/01_cohort_and_definitions.py   cohort, then CLIF-donor / CALC / Ventilated
 code/02_build_tables.py             clinical-care flags, Tables 2-3, binned counts
 code/03_diagnostics.py              missingness, coverage, overlap, reconciliation
+code/04_supplementary_tables.py     SOFA, HIV, 48-hour care, CALC variants -> supplementary/
 code/coordinating/                  pooling and SRTR linkage — coordinating centre only
 config/donor_criteria.yaml          every criterion
 config/clif_data_requirements.yaml  required tables, columns and mCIDE values
