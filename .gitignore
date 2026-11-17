@@ -35,7 +35,8 @@ guides/contraindications.md
 guides/questions.md
 
 # site bundles collected for pooling: never commit
-all_site_data_manuscript/
+all_site_data_manuscript*/
+manuscript_test/
 docs/
 manuscript_results/
 guides/notes_for_manuscript.md
@@ -44,3 +45,5 @@ utils/srtr.py
 utils/pooling.py
 # coordinating centre's verification worksheet behind hospital_crosswalk.yaml
 utils/hospital_crosswalk_verified.csv
+all_site_data_manuscript_old/
+.vscode/
