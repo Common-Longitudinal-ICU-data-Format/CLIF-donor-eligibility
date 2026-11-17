@@ -149,3 +149,54 @@ reporting:
   # Donor-related administrative procedure codes, checked for presence in the
   # extract (donor_administrative_code_availability.csv).
   donor_administrative_codes_file: utils/codes/donor_administrative_codes.csv
+
+# ── Supplementary tables (code/04_supplementary_tables.py) ────────────────────────────────────
+# One extra run per site after steps 01-03, for manuscript rows the main bundle
+# did not collect. Nothing above is read differently because of this block.
+# The 48-hour medication and proning counts use clif_donor.imv_hours_before_death.
+supplementary:
+  # Counts of 1 .. min_cell-1 are written as "<min_cell" in every supplementary file.
+  # 0 follows the site's main bundle: the threshold it already masks at when its
+  # table_stats_raw.csv or value_bins.csv carries "<k" cells, else
+  # study.small_cell_suppression_n when study.suppress_small_cells is true,
+  # else raw counts.
+  min_cell: 0
+  # HIV disease (B20) or asymptomatic HIV infection status (Z21), any diagnosis
+  # position on the death encounter block. Reporting only.
+  hiv_icd10_prefixes: [B20, Z21]
+  # Z52.x, the whole donor-of-organs-or-tissues family, beside the exact Z52.9
+  # the main bundle reports.
+  donor_family_icd10_prefixes: [Z52]
+  sofa:
+    # Hours scored from the first ICU admission (cut at the time of death), and
+    # hours scored before the time of death.
+    window_hours: 24
+    # Decedents scored per clifpy call; lower it if SOFA runs out of memory.
+    batch_size: 5000
+  # CALC cause-of-death variants, each counted under the principal and the
+  # any-position reading, with age <= clif_donor.age_at_death_max.
+  #   ranges                  ICD-10 category ranges; position follows the reading
+  #   prefixes                ICD-10 code prefixes; position follows the reading
+  #   principal_only_ranges   counted at the principal position under BOTH readings
+  calc_variants:
+    i_current:              {ranges: [[I20, I25], [I60, I69], [V01, Y89]]}
+    ii_ihd_cvd:             {ranges: [[I20, I25], [I60, I69]]}
+    iii_ihd_cvd_injury:     {ranges: [[I20, I25], [I60, I69]], principal_only_ranges: [[S00, T88]]}
+    iv_ihd_cvd_injury_anoxic: {ranges: [[I20, I25], [I60, I69]], principal_only_ranges: [[S00, T88]], prefixes: [G93.1]}
+  # Diagnosis groups counted per overlap group of CLIF-donor and CALC, at the
+  # principal and at any position (ICD-10 only), in supplementary_diagnosis_groups.csv.
+  diagnosis_groups:
+    als:                             {prefixes: [G12.21]}
+    neuromuscular_neurodegenerative: {prefixes: [G12, G35], ranges: [[G70, G73]]}
+    cardiogenic_shock:               {prefixes: [R57.0]}
+    cardiac_arrest:                  {prefixes: [I46]}
+    anoxic_brain_injury:             {prefixes: [G93.1]}
+    respiratory_failure:             {prefixes: [J96]}
+    sepsis:                          {prefixes: [A40, A41, R65.2]}
+    # poisoning only: 6th character 1-4 (accidental, self-harm, assault, undetermined), not adverse effect (5) or underdosing (6)
+    poisoning_overdose:              {regex: ['^t(3[6-9]|4[0-9]|50)..[1-4]']}
+    traumatic_brain_injury:          {prefixes: [S06]}
+    covid19:                         {prefixes: [U07.1]}
+  # mar_action_category values that are not an administration. The `_given`
+  # medication rows leave these out, and rows with a dose of 0.
+  mar_actions_not_given: [not_given, stop]
