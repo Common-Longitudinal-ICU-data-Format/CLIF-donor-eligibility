@@ -379,6 +379,26 @@ def skip(r, output: str, why: str) -> None:
     r.log(f"  SKIPPED {output}: {why}")
 
 
+def local_error(r, where: str, e: Exception) -> str:
+    """For the shipped log: type, place and the message with quoted text and digits masked, since a message can
+    quote a data value. The full traceback stays in the local PHI folder."""
+    fr, log = traceback.extract_tb(e.__traceback__)[-1], r.inter / "logs" / "04_sofa_error.txt"
+    log.parent.mkdir(parents=True, exist_ok=True)
+    with open(log, "a", encoding="utf-8") as fh:
+        fh.write(f"== {where}\n{''.join(traceback.format_exception(e))}\n")
+    masked = re.sub(r"'[^']*'|\"[^\"]*\"|\d+", "#", " ".join(str(e).split()))[:300]
+    return (f"{type(e).__name__} at {Path(fr.filename).name}:{fr.lineno} in {fr.name}: {masked} "
+            f"[unmasked in output/intermediate_phi/{r.inter.name}/logs/{log.name}, local only]")
+
+
+def counter(r, when: str, what: str, query: str) -> pl.DataFrame | None:
+    """A count beside the scores: if it fails the scores still ship, without that count."""
+    try:
+        return r.con.sql(query).pl()
+    except Exception as e:
+        skip(r, f"SOFA {when}: {what}", "not computed: " + local_error(r, f"{when}: {what}", e))
+
+
 def unsure(r, *tables: str) -> str:
     """Why an output over these tables cannot be windowed against the death anchor; '' when it can."""
     hit = [c for c in r.off if c.split(".")[0] in tables]
@@ -589,14 +609,15 @@ def sofa(r, add: pl.DataFrame, adt: pl.DataFrame) -> pl.DataFrame:
             if not scored:
                 raise err
             if lost:
-                skip(r, f"SOFA {when} for {shown(lost, r.min_cell)} decedents", f"batch not scored: {type(err).__name__}")
+                skip(r, f"SOFA {when} for {shown(lost, r.min_cell)} decedents",
+                     "batch not scored: " + local_error(r, f"{when}: batch", err))
             s = pl.concat(scored, how="diagonal_relaxed")
             parts = [f"{when}_{c}" for c in SOFA_PARTS]
             s = s.select("patient_id", *[pl.col(c).cast(pl.Float64).alias(p) for c, p in zip(SOFA_PARTS, parts)],
                          pl.col("p_f").cast(pl.Float64).alias(f"{when}_p_f")).pipe(floor_unsupported_resp, when)
             # a dose with no /kg in its unit needs a weight: rows that got the fallback, and rows with none at all
             con.register("one_win", w.to_arrow())
-            gaps = con.sql(f"""
+            gaps = counter(r, when, "pressor rows by weight and unit", f"""
                 SELECT w.patient_id, COUNT(*) AS n_rows,
                        COUNT(*) FILTER (WHERE m.no_kg AND m.wt_t IS NULL AND NOT m.bad_unit) AS n_no_dose,
                        COUNT(*) FILTER (WHERE m.no_kg AND b.recorded_dttm IS NOT NULL AND NOT m.bad_unit) AS n_fallback,
@@ -611,37 +632,38 @@ def sofa(r, add: pl.DataFrame, adt: pl.DataFrame) -> pl.DataFrame:
                        ON b.hospitalization_id = m.hospitalization_id AND b.recorded_dttm = m.wt_t
                 JOIN one_win w ON w.hospitalization_id = m.hospitalization_id
                               AND m.admin_dttm BETWEEN w.start_dttm AND w.end_dttm
-                GROUP BY 1""").pl()
+                GROUP BY 1""")
             # decedents whose every MAP in the window is a calculated one
-            calc_only = con.sql(f"""
+            calc_only = counter(r, when, "scored from calculated MAP only", f"""
                 SELECT w.patient_id, TRUE AS "{when}_map_calc" FROM one_win w
                 JOIN read_parquet('{shim / "clif_vitals.parquet"}') v ON v.hospitalization_id = w.hospitalization_id
                      AND v.vital_category = 'map' AND v.recorded_dttm BETWEEN w.start_dttm AND w.end_dttm
                 LEFT JOIN read_parquet('{shim / "map_calculated.parquet"}') c
                      ON c.hospitalization_id = v.hospitalization_id AND c.recorded_dttm = v.recorded_dttm
-                GROUP BY 1 HAVING BOOL_AND(c.hospitalization_id IS NOT NULL)""").pl()
-            r.pressor_rows[when] = [shown(int(gaps[c].sum()), r.min_cell) for c in ("n_rows", "n_fallback", "n_no_dose", "n_bad_unit")]
+                GROUP BY 1 HAVING BOOL_AND(c.hospitalization_id IS NOT NULL)""")
             add = (add.join(s, on="patient_id", how="left")
                    .join(w.select("patient_id", pl.lit(True).alias(f"{when}_window")).unique(), on="patient_id", how="left")
-                   .join(gaps.select("patient_id", pl.lit(True).alias(f"{when}_pressor"), *[
-                       (pl.col(f"n_{c}") > 0).alias(f"{when}_pressor_{c}") for c in ("no_dose", "fallback", "bad_unit")]),
-                         on="patient_id", how="left")
-                   .join(calc_only, on="patient_id", how="left")
-                   .with_columns(*[f(f"{when}_{c}") for c in ("window", "pressor", "pressor_no_dose", "pressor_bad_unit",
-                                                              "pressor_fallback", "resp_floor")],
-                                 # 0 or 1 is a score from MAP alone; a scored pressor gives 2 or more
-                                 (f(f"{when}_map_calc") & (pl.col(f"{when}_sofa_cv_97") <= 1).fill_null(False)).alias(f"{when}_map_calc"),
+                   .with_columns(f(f"{when}_window"), f(f"{when}_resp_floor"),
                                  # a component with no data scores 0 (clifpy's default); no component at all is no score
                                  pl.when(pl.any_horizontal([pl.col(c).is_not_null() for c in parts]))
                                  .then(pl.sum_horizontal(parts)).alias(f"{when}_sofa_total")))
+            if gaps is not None:
+                r.pressor_rows[when] = [shown(int(gaps[c].sum()), r.min_cell) for c in ("n_rows", "n_fallback", "n_no_dose", "n_bad_unit")]
+                kinds = ("no_dose", "fallback", "bad_unit")
+                add = add.join(gaps.select("patient_id", pl.lit(True).alias(f"{when}_pressor"), *[
+                    (pl.col(f"n_{c}") > 0).alias(f"{when}_pressor_{c}") for c in kinds]), on="patient_id", how="left"
+                               ).with_columns(f(f"{when}_pressor"), *[f(f"{when}_pressor_{c}") for c in kinds])
+                r.log("  SOFA {}: {} pressor rows in the window, {} dosed on the fallback weight, {} with no weight at all, {} dropped "
+                      "for a unit that is not a mass rate".format(when, *r.pressor_rows[when]))
+            if calc_only is not None:      # 0 or 1 is a score from MAP alone; a scored pressor gives 2 or more
+                add = add.join(calc_only, on="patient_id", how="left").with_columns(
+                    (f(f"{when}_map_calc") & (pl.col(f"{when}_sofa_cv_97") <= 1).fill_null(False)).alias(f"{when}_map_calc"))
             r.sofa_done.append(when)
-            r.log("  SOFA {}: {} pressor rows in the window, {} dosed on the fallback weight, {} with no weight at all, {} dropped for a unit "
-                  "that is not a mass rate".format(when, *r.pressor_rows[when]))
             r.mark(f"SOFA: {when}")
     except Exception as e:      # type and place only: a message can quote data values
-        fr = traceback.extract_tb(e.__traceback__)[-1]
+        why = "not computed: " + local_error(r, "window", e)
         for when in [w for w in win if w not in r.sofa_done]:
-            skip(r, f"SOFA {when}", f"not computed: {type(e).__name__} at {Path(fr.filename).name}:{fr.lineno} in {fr.name}")
+            skip(r, f"SOFA {when}", why)
     finally:
         shutil.rmtree(shim, ignore_errors=True)
     return add
@@ -691,10 +713,12 @@ def aggregates(r, full: pl.DataFrame, exposures: dict, variants: list[str]) -> d
                    (NEW + "_sofa", f"{label}: score missing", ~scored, None),
                    (NEW + "_sofa", f"{label}: P/F < 200 without ventilatory support, respiratory scored 2",
                     pl.col(f"{when}_resp_floor"), window),
-                   (NEW + "_sofa", f"{label}: cardiovascular scored from calculated MAP only", pl.col(f"{when}_map_calc"), window),
+                   *[(NEW + "_sofa", f"{label}: cardiovascular scored from calculated MAP only", pl.col(f"{when}_map_calc"), window)
+                     ] * (f"{when}_map_calc" in full.columns),      # a counter that failed has no column and no row
                    *[(NEW + "_sofa", f"{label}: pressor row {t}", pl.col(f"{when}_pressor_{c}"), pl.col(f"{when}_pressor"))
                      for c, t in (("fallback", "dosed on the nearest weight in the encounter block"),
-                                  ("no_dose", "with no weight-normalised dose"), ("bad_unit", "with a unit that is not a mass rate"))]]
+                                  ("no_dose", "with no weight-normalised dose"), ("bad_unit", "with a unit that is not a mass rate"))
+                     if f"{when}_pressor" in full.columns]]
         if when == "icu_admission":      # an ICU row before the admission time is passed over: how often
             counts.append((NEW + "_sofa", f"{label}: window does not start at the first ICU in_dttm",
                            (pl.col("sofa_icu_in_dttm") != pl.col("first_icu_in_dttm")).fill_null(True), has_icu))
