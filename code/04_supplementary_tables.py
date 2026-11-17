@@ -256,7 +256,7 @@ def write_sofa_shim(con: duckdb.DuckDBPyConnection, src, shim: Path, site_tz: st
             keep.append(f"CASE {low(cat)} " + " ".join(
                 f"WHEN '{c}' THEN {v} BETWEEN {lo} AND {hi}" for c, (lo, hi) in bounds.items()) + " ELSE TRUE END")
         if val == "med_dose":                # a stop or pause row charted at dose 0 would score cardiovascular 3
-            keep.append(f"{v} > 0")
+            keep += [f"{v} > 0", MASS_RATE if "med_dose_unit" in have else "FALSE"]
         sel = {c: f"CAST(NULL AS {ty})" if c not in have else low(c) if c == cat else v if c == val
                else special.get(c) or (f"TRY_CAST({c} AS DOUBLE)" if ty == "DOUBLE" else f"CAST({c} AS VARCHAR)")
                for c, ty in cols.items()}
@@ -269,62 +269,7 @@ def write_sofa_shim(con: duckdb.DuckDBPyConnection, src, shim: Path, site_tz: st
                     AND ({always} OR EXISTS (SELECT 1 FROM sofa_win w WHERE w.hospitalization_id = {hid}
                                              AND {instant} BETWEEN w.lo AND w.hi)))
             TO '{target}' (FORMAT parquet)""")
-    target.rename(shim / "pressor_rows.parquet")      # every pressor row, kept so the ones clifpy does not get are counted
-    con.sql(f"""COPY (SELECT * FROM read_parquet('{shim / "pressor_rows.parquet"}') WHERE {MASS_RATE})
-                TO '{target}' (FORMAT parquet)""")
     return unbounded
-
-
-def append_vitals(con: duckdb.DuckDBPyConnection, shim: Path, extra: Path) -> None:
-    vit = shim / "clif_vitals.parquet"
-    con.sql(f"""COPY (SELECT * FROM read_parquet('{vit}') UNION ALL BY NAME SELECT * FROM read_parquet('{extra}'))
-                TO '{vit}.tmp' (FORMAT parquet)""")
-    Path(f"{vit}.tmp").replace(vit)
-
-
-def add_calculated_map(con: duckdb.DuckDBPyConnection, vitals: Path, shim: Path, site_tz: str) -> None:
-    """clifpy scores cardiovascular from `map` and pressors only, and some extracts hold arterial-line MAP alone: a time
-    with sbp and dbp but no recorded map gets (sbp + 2*dbp)/3, kept in map_calculated.parquet so its use is counted."""
-    import clifpy
-    ranges = Path(clifpy.__file__).parent / "schemas/outlier_config.yaml"      # what clifpy applies to a recorded MAP
-    (s0, s1), (d0, d1), (m0, m1) = (outlier_range("vitals", "vital_value", c, ranges) for c in ("sbp", "dbp", "map"))
-    vit, calc = shim / "clif_vitals.parquet", shim / "map_calculated.parquet"
-    have = dict(r[:2] for r in con.sql(f"DESCRIBE SELECT * FROM read_parquet('{vitals}')").fetchall()) if Path(vitals).is_file() else {}
-    if not {"recorded_dttm", "vital_category", "vital_value"} <= have.keys():
-        vitals, have = vit, {"recorded_dttm": "TIMESTAMP WITH TIME ZONE"}      # no usable table: nothing to calculate from
-    instant, hid = utc_sql("t.recorded_dttm", have["recorded_dttm"], site_tz), "CAST(t.hospitalization_id AS VARCHAR)"
-    cat, v = "lower(trim(CAST(vital_category AS VARCHAR)))", "TRY_CAST(vital_value AS DOUBLE)"
-    con.sql(f"""COPY (
-        WITH bp AS (SELECT {hid} AS hospitalization_id, {instant} AS recorded_dttm,
-                           AVG({v}) FILTER (WHERE {cat} = 'sbp') AS sbp, AVG({v}) FILTER (WHERE {cat} = 'dbp') AS dbp
-                    FROM read_parquet('{vitals}') t
-                    WHERE (({cat} = 'sbp' AND {v} BETWEEN {s0} AND {s1}) OR ({cat} = 'dbp' AND {v} BETWEEN {d0} AND {d1}))
-                      AND {hid} IN (SELECT hospitalization_id FROM sofa_win)
-                      AND EXISTS (SELECT 1 FROM sofa_win w WHERE w.hospitalization_id = {hid} AND {instant} BETWEEN w.lo AND w.hi)
-                    GROUP BY 1, 2)
-        SELECT hospitalization_id, recorded_dttm, 'map' AS vital_category, (sbp + 2 * dbp) / 3 AS vital_value
-        FROM bp ANTI JOIN (SELECT hospitalization_id, recorded_dttm FROM read_parquet('{vit}') WHERE vital_category = 'map')
-             USING (hospitalization_id, recorded_dttm)
-        WHERE dbp > 0 AND sbp > dbp AND (sbp + 2 * dbp) / 3 BETWEEN {m0} AND {m1}) TO '{calc}' (FORMAT parquet)""")
-    append_vitals(con, shim, calc)
-
-
-def add_fallback_weights(con: duckdb.DuckDBPyConnection, shim: Path) -> None:
-    """clifpy takes the latest weight at or before a dose under the same hospitalization_id. An id with none before its
-    first pressor row gets the decedent's nearest weight in the encounter block (`members` in `con`), timed at that row."""
-    vit, fb = shim / "clif_vitals.parquet", shim / "weight_fallback.parquet"
-    con.sql(f"""COPY (
-        WITH wt AS (SELECT m.patient_id, v.hospitalization_id, v.recorded_dttm AS t, v.vital_value AS kg
-                    FROM read_parquet('{vit}') v JOIN members m USING (hospitalization_id)
-                    WHERE v.vital_category = 'weight_kg' AND v.vital_value IS NOT NULL),
-             p AS (SELECT hospitalization_id, MIN(admin_dttm) AS t0
-                   FROM read_parquet('{shim / "clif_medication_admin_continuous.parquet"}') GROUP BY 1)
-        SELECT p.hospitalization_id, p.t0 AS recorded_dttm, 'weight_kg' AS vital_category,
-               arg_min(wt.kg, (wt.t > p.t0, abs(epoch(wt.t) - epoch(p.t0)))) AS vital_value    -- latest before, else earliest after
-        FROM p JOIN members m USING (hospitalization_id) JOIN wt USING (patient_id)
-        WHERE NOT EXISTS (SELECT 1 FROM wt x WHERE x.hospitalization_id = p.hospitalization_id AND x.t <= p.t0)
-        GROUP BY 1, 2) TO '{fb}' (FORMAT parquet)""")
-    append_vitals(con, shim, fb)
 
 
 def floor_unsupported_resp(s: pl.DataFrame, when: str) -> pl.DataFrame:
@@ -389,14 +334,6 @@ def local_error(r, where: str, e: Exception) -> str:
     masked = re.sub(r"'[^']*'|\"[^\"]*\"|\d+", "#", " ".join(str(e).split()))[:300]
     return (f"{type(e).__name__} at {Path(fr.filename).name}:{fr.lineno} in {fr.name}: {masked} "
             f"[unmasked in output/intermediate_phi/{r.inter.name}/logs/{log.name}, local only]")
-
-
-def counter(r, when: str, what: str, query: str) -> pl.DataFrame | None:
-    """A count beside the scores: if it fails the scores still ship, without that count."""
-    try:
-        return r.con.sql(query).pl()
-    except Exception as e:
-        skip(r, f"SOFA {when}: {what}", "not computed: " + local_error(r, f"{when}: {what}", e))
 
 
 def unsure(r, *tables: str) -> str:
@@ -592,8 +529,6 @@ def sofa(r, add: pl.DataFrame, adt: pl.DataFrame) -> pl.DataFrame:
                 "hospitalization_id", (pl.col("start_dttm") - pl.duration(hours=24)).alias("lo"),
                 pl.col("end_dttm").alias("hi")).to_arrow())
             r.unbounded = write_sofa_shim(con, lambda t: tbl(r, t), shim, tz, r.log)
-            add_calculated_map(con, tbl(r, "vitals"), shim, tz)
-            add_fallback_weights(con, shim)
             r.mark("SOFA: local copy of the scored rows")
         for when, w in win.items():
             ids = w["patient_id"].unique().sort()      # scored in even batches: clifpy's hourly grid grows with the cohort
@@ -615,49 +550,12 @@ def sofa(r, add: pl.DataFrame, adt: pl.DataFrame) -> pl.DataFrame:
             parts = [f"{when}_{c}" for c in SOFA_PARTS]
             s = s.select("patient_id", *[pl.col(c).cast(pl.Float64).alias(p) for c, p in zip(SOFA_PARTS, parts)],
                          pl.col("p_f").cast(pl.Float64).alias(f"{when}_p_f")).pipe(floor_unsupported_resp, when)
-            # a dose with no /kg in its unit needs a weight: rows that got the fallback, and rows with none at all
-            con.register("one_win", w.to_arrow())
-            gaps = counter(r, when, "pressor rows by weight and unit", f"""
-                SELECT w.patient_id, COUNT(*) AS n_rows,
-                       COUNT(*) FILTER (WHERE m.no_kg AND m.wt_t IS NULL AND NOT m.bad_unit) AS n_no_dose,
-                       COUNT(*) FILTER (WHERE m.no_kg AND b.recorded_dttm IS NOT NULL AND NOT m.bad_unit) AS n_fallback,
-                       COUNT(*) FILTER (WHERE m.bad_unit) AS n_bad_unit
-                FROM (SELECT m.hospitalization_id, m.admin_dttm, NOT {MASS_RATE} AS bad_unit,
-                             NOT COALESCE(regexp_matches(lower(replace(m.med_dose_unit, ' ', '')), '/(kg|lb)'), false) AS no_kg,
-                             (SELECT MAX(v.recorded_dttm) FROM read_parquet('{shim / "clif_vitals.parquet"}') v
-                              WHERE v.hospitalization_id = m.hospitalization_id
-                                AND v.vital_category = 'weight_kg' AND v.recorded_dttm <= m.admin_dttm) AS wt_t
-                      FROM read_parquet('{shim / "pressor_rows.parquet"}') m) m
-                LEFT JOIN read_parquet('{shim / "weight_fallback.parquet"}') b      -- the weight used is the fallback
-                       ON b.hospitalization_id = m.hospitalization_id AND b.recorded_dttm = m.wt_t
-                JOIN one_win w ON w.hospitalization_id = m.hospitalization_id
-                              AND m.admin_dttm BETWEEN w.start_dttm AND w.end_dttm
-                GROUP BY 1""")
-            # decedents whose every MAP in the window is a calculated one
-            calc_only = counter(r, when, "scored from calculated MAP only", f"""
-                SELECT w.patient_id, TRUE AS "{when}_map_calc" FROM one_win w
-                JOIN read_parquet('{shim / "clif_vitals.parquet"}') v ON v.hospitalization_id = w.hospitalization_id
-                     AND v.vital_category = 'map' AND v.recorded_dttm BETWEEN w.start_dttm AND w.end_dttm
-                LEFT JOIN read_parquet('{shim / "map_calculated.parquet"}') c
-                     ON c.hospitalization_id = v.hospitalization_id AND c.recorded_dttm = v.recorded_dttm
-                GROUP BY 1 HAVING BOOL_AND(c.hospitalization_id IS NOT NULL)""")
             add = (add.join(s, on="patient_id", how="left")
                    .join(w.select("patient_id", pl.lit(True).alias(f"{when}_window")).unique(), on="patient_id", how="left")
                    .with_columns(f(f"{when}_window"), f(f"{when}_resp_floor"),
                                  # a component with no data scores 0 (clifpy's default); no component at all is no score
                                  pl.when(pl.any_horizontal([pl.col(c).is_not_null() for c in parts]))
                                  .then(pl.sum_horizontal(parts)).alias(f"{when}_sofa_total")))
-            if gaps is not None:
-                r.pressor_rows[when] = [shown(int(gaps[c].sum()), r.min_cell) for c in ("n_rows", "n_fallback", "n_no_dose", "n_bad_unit")]
-                kinds = ("no_dose", "fallback", "bad_unit")
-                add = add.join(gaps.select("patient_id", pl.lit(True).alias(f"{when}_pressor"), *[
-                    (pl.col(f"n_{c}") > 0).alias(f"{when}_pressor_{c}") for c in kinds]), on="patient_id", how="left"
-                               ).with_columns(f(f"{when}_pressor"), *[f(f"{when}_pressor_{c}") for c in kinds])
-                r.log("  SOFA {}: {} pressor rows in the window, {} dosed on the fallback weight, {} with no weight at all, {} dropped "
-                      "for a unit that is not a mass rate".format(when, *r.pressor_rows[when]))
-            if calc_only is not None:      # 0 or 1 is a score from MAP alone; a scored pressor gives 2 or more
-                add = add.join(calc_only, on="patient_id", how="left").with_columns(
-                    (f(f"{when}_map_calc") & (pl.col(f"{when}_sofa_cv_97") <= 1).fill_null(False)).alias(f"{when}_map_calc"))
             r.sofa_done.append(when)
             r.mark(f"SOFA: {when}")
     except Exception as e:      # type and place only: a message can quote data values
@@ -712,13 +610,7 @@ def aggregates(r, full: pl.DataFrame, exposures: dict, variants: list[str]) -> d
                    (NEW + "_sofa", f"{label}: score available", scored, None),
                    (NEW + "_sofa", f"{label}: score missing", ~scored, None),
                    (NEW + "_sofa", f"{label}: P/F < 200 without ventilatory support, respiratory scored 2",
-                    pl.col(f"{when}_resp_floor"), window),
-                   *[(NEW + "_sofa", f"{label}: cardiovascular scored from calculated MAP only", pl.col(f"{when}_map_calc"), window)
-                     ] * (f"{when}_map_calc" in full.columns),      # a counter that failed has no column and no row
-                   *[(NEW + "_sofa", f"{label}: pressor row {t}", pl.col(f"{when}_pressor_{c}"), pl.col(f"{when}_pressor"))
-                     for c, t in (("fallback", "dosed on the nearest weight in the encounter block"),
-                                  ("no_dose", "with no weight-normalised dose"), ("bad_unit", "with a unit that is not a mass rate"))
-                     if f"{when}_pressor" in full.columns]]
+                    pl.col(f"{when}_resp_floor"), window)]
         if when == "icu_admission":      # an ICU row before the admission time is passed over: how often
             counts.append((NEW + "_sofa", f"{label}: window does not start at the first ICU in_dttm",
                            (pl.col("sofa_icu_in_dttm") != pl.col("first_icu_in_dttm")).fill_null(True), has_icu))
@@ -941,8 +833,7 @@ def write(r, tables: dict[str, pl.DataFrame]) -> None:
 - A component with no data scores 0 in the total; no component at all is no score.
 - Inputs bounded by `config/outlier_config.yaml`; pressor rows with dose 0 or missing, or a unit that is not a mass rate (mcg, mg, ng or g, per kg or lb or not, per min or h), dropped; FiO2 above 1 read as a percentage. No range defined, none applied: {", ".join(r.unbounded) or "n/a"}.
 - Respiratory (`P/F < 200 without ventilatory support, respiratory scored 2`): clifpy scores 3-4 on IMV, NIPPV or CPAP and leaves other devices null under 200; set to 2 here, as SOFA defines.
-- MAP: a time with systolic and diastolic pressure but no recorded MAP gets (SBP + 2 x DBP) / 3; a recorded MAP is never replaced (`cardiovascular scored from calculated MAP only`: no recorded MAP and no scored pressor in the window).
-- Pressor weight: a dose with no /kg unit and no earlier weight under its hospitalization_id uses the decedent's nearest weight in the encounter block (`dosed on the nearest weight`); with no weight at all it does not score (`no weight-normalised dose`). Pressor rows in the window, on the fallback, unscored, and dropped for their unit: {"; ".join(f"{w} {', '.join(v)}" for w, v in r.pressor_rows.items()) or "n/a"}.
+- Not adjusted: a vasopressor dose with no /kg unit and no earlier weight under its hospitalization_id, and a decedent with no recorded MAP, are scored as clifpy 2.1.0 scores them (component missing, counted as 0).
 - Labs by lab_result_dttm; renal is creatinine only; respiratory needs an arterial PaO2 with FiO2 in the prior 4 h.
 """, encoding="utf-8")
     r.log(f"done: {len(tables) + 3} files -> {r.final.name}/{NEW}/")
@@ -965,7 +856,7 @@ def main() -> None:
                         sofa_hours=float(crit[NEW]["sofa"]["window_hours"]), lines=lines, log=log,
                         mark=lambda section: lines.append(progress.mark(section)),
                         sofa_batch=int(crit[NEW]["sofa"].get("batch_size", 5000)), mem=config.get("duckdb_memory_limit"),
-                        checks=[], sofa_done=[], unbounded=[], pressor_rows={}, not_given={})
+                        checks=[], sofa_done=[], unbounded=[], not_given={})
     load_inputs(r)
     add, adt, exposures, variants = patient_variables(r)
     add = sofa(r, add, adt)
