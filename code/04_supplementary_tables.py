@@ -209,6 +209,18 @@ def diagnostic_counts(full: pl.DataFrame, adt: pl.DataFrame, tz: str, y0: int, y
                          for c, s, e, by_year in checks for y, g in groups[:None if by_year else 1]])
 
 
+def last_location(adt: pl.DataFrame, site: str, fold: int = 11) -> pl.DataFrame:
+    """Decedents per unit of their last ADT row (step 01's terminal location), so a category such as 'other' can be read.
+    A unit with fewer than `fold` decedents is folded into one row per category."""
+    last = adt.sort("in_dttm", descending=True, nulls_last=True).group_by("patient_id", maintain_order=True).agg(
+        pl.col("location_category").first().str.to_lowercase(), pl.col("location_name").first().cast(pl.Utf8))
+    n = last.group_by("location_category", "location_name").len("n")
+    n = n.with_columns(pl.when(pl.col("n") >= fold).then("location_name").otherwise(pl.lit(f"(units under {fold})")))
+    return (n.group_by("location_category", "location_name").agg(pl.col("n").sum())
+            .sort(["n", "location_category", "location_name"], descending=[True, False, False], nulls_last=True)
+            .select(pl.lit(site).alias("site"), "location_category", "location_name", "n"))
+
+
 def write_sofa_shim(con: duckdb.DuckDBPyConnection, src, shim: Path, site_tz: str, log=print) -> list[str]:
     """Copy the rows clifpy's SOFA reads (stays and hours of `sofa_win` in `con`); return the unbounded inputs.
     Why: clifpy loads whole tables in pandas, matches categories by case, reads naive time two ways, bounds little."""
@@ -408,7 +420,8 @@ def patient_variables(r):
     con, cv, tz = r.con, r.cv, r.tz
     add = cv.select("patient_id", "final_death_dttm")
     adt = con.sql(f"""
-        SELECT m.patient_id, a.in_dttm, a.out_dttm, CAST(a.location_category AS VARCHAR) location_category
+        SELECT m.patient_id, a.in_dttm, a.out_dttm, CAST(a.location_category AS VARCHAR) location_category,
+               {"CAST(a.location_name AS VARCHAR)" if "location_name" in col_types(r, "adt") else "NULL::VARCHAR"} location_name
         FROM read_parquet('{tbl(r, "adt")}') a
         JOIN members m ON CAST(a.hospitalization_id AS VARCHAR) = m.hospitalization_id""").pl()
     stays = icu_stays(adt).select("patient_id", "^first_.*$").join(      # last stay: an out_dttm from 2100 on is unknown too
@@ -828,6 +841,7 @@ def write(r, tables: dict[str, pl.DataFrame]) -> None:
 - `CALC[<variant>|<reading>]` definition columns: Tables 1-2 under each other CALC reading, age 75 or less. Age bins: 90 is 90 and over.
 - `{NEW}_diagnosis_groups.csv`: decedents with each named diagnosis group (principal and any position) and each ICD-10 chapter (principal) per overlap group of CLIF-donor and the bundle's CALC; a decedent with several principal rows counts in each chapter.
 - CALC variants: `principal_only_ranges` (S00-T88) are read at the principal position under both readings.
+- `{NEW}_last_location.csv`: decedents per unit (location_name) of their last ADT row; units with fewer than 11 decedents are folded into one row per location category.
 - `{NEW}_diagnostics.csv`: decedents per data-quality stratum (diagnosis flags, missing rows, location mix, external-cause codes, death-time source), the ICU share of all adult admissions, and each table's file date, row count and latest month.
 - Clock changes: naive timestamps are site time and windows are elapsed time; step 01 subtracts wall-clock readings, so a window spanning a clock change can differ by one hour at its edge.
 
@@ -865,7 +879,8 @@ def main() -> None:
     add = sofa(r, add, adt)
     assert add["patient_id"].equals(r.cv["patient_id"]), "a join reordered or repeated decedents"
     full = pl.concat([r.cv, add.drop("patient_id", "final_death_dttm")], how="horizontal")
-    write(r, aggregates(r, full, exposures, variants) | {"diagnostics": diagnostics(r, full, adt)})
+    write(r, aggregates(r, full, exposures, variants) | {"diagnostics": diagnostics(r, full, adt),
+                                                             "last_location": mask_counts(last_location(adt, r.site), ["n"], r.min_cell)})
 
 
 if __name__ == "__main__":
