@@ -47,7 +47,7 @@ T2_FLAGS = [("HCV infection", "icd10_hcv"), ("Hypertension", "icd10_htn"), ("Dia
             ("Cerebrovascular disease", "icd10_cerebro"), ("External causes", "icd10_external"),
             ("Z52.9 donor of organs", "dx_z529"), ("Cancer", "icd10_cancer_only"), ("Admitted to an ICU", "ever_icu"),
             ("Invasive mechanical ventilation", "imv_48hr_expire"), ("Brain death (G93.82)", "icd10_brain_death")]
-DTTM = {"patient": ["death_dttm"], "hospitalization": ["admission_dttm"], "adt": ["in_dttm", "out_dttm"],
+DTTM = {"patient": ["death_dttm"], "hospitalization": ["admission_dttm", "discharge_dttm"], "adt": ["in_dttm", "out_dttm"],
         "medication_admin_continuous": ["admin_dttm"], "medication_admin_intermittent": ["admin_dttm"],
         "position": ["recorded_dttm"], "labs": ["lab_result_dttm"], "vitals": ["recorded_dttm"],
         "respiratory_support": ["recorded_dttm"], "patient_assessments": ["recorded_dttm"]}
@@ -70,11 +70,14 @@ def utc_sql(col: str, duck_type: str, site_tz: str) -> str:
     return col if duck_type.upper() == "TIMESTAMP WITH TIME ZONE" else f"timezone('{site_tz}', CAST({col} AS TIMESTAMP))"
 
 
-def tz_mismatched(types: dict[str, str], reference: str) -> list[str]:
-    """Columns whose timezone awareness differs from the reference's; all of them when it is unusable."""
+def tz_mismatched(types: dict[str, str], reference: str, if_date: str | None = None) -> list[str]:
+    """Columns whose timezone awareness differs from the reference's; all of them when it is unusable.
+    A DATE reference has no time of day, so step 01 took the time from `if_date`, which then is the reference."""
     kind = {c: t.upper() == "TIMESTAMP WITH TIME ZONE" if t.upper().startswith("TIMESTAMP") else None
             for c, t in types.items()}
     ref = kind.pop(reference, None)
+    if ref is None and types.get(reference, "").upper() == "DATE":
+        ref = kind.get(if_date)
     return sorted(c for c, k in kind.items() if ref is None or k != ref)
 
 
@@ -395,7 +398,7 @@ def load_inputs(r) -> None:
     # Step 01 built the death anchor from patient.death_dttm. A column that is naive where that one is aware
     # (or the reverse) may hold site time or UTC, so outputs windowed on it are skipped, not guessed.
     r.dttm = {f"{t}.{c}": col_types(r, t)[c] for t, cs in DTTM.items() for c in cs if c in col_types(r, t)}
-    r.off = tz_mismatched(r.dttm, "patient.death_dttm")
+    r.off = tz_mismatched(r.dttm, "patient.death_dttm", if_date="hospitalization.discharge_dttm")
     r.log(f"timestamps: {len(r.dttm)} columns read, {len(r.off)} with a different timezone convention from death_dttm")
 
 
