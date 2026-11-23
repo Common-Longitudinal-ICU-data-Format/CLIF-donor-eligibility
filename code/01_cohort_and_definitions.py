@@ -292,6 +292,17 @@ print(f"Window {WINDOW_START_YEAR}-{WINDOW_END_YEAR} "
 _hosp_ids_in_window = hospitalization_df['hospitalization_id'].unique().to_list()
 adt_df = adt_df.filter(pl.col('hospitalization_id').is_in(_hosp_ids_in_window))
 
+# UCSF branch: this extract writes the morgue as an ADT row after death. Dropped here, so the last
+# location and the hospital of death come from the unit the patient died in.
+if "location_name" in adt_df.columns:
+    _morgue = pl.col("location_name").cast(pl.Utf8).str.to_lowercase().str.contains("morgue").fill_null(False)
+    _morgue_rows = adt_df.filter(_morgue)
+    print(f"Morgue ADT rows dropped: {_morgue_rows.height:,} rows on "
+          f"{_morgue_rows['hospitalization_id'].n_unique():,} hospitalizations")
+    adt_df = adt_df.filter(~_morgue)
+else:
+    _morgue_rows = adt_df.clear()
+
 # An out_dttm before its own in_dttm is a placeholder, not a time.
 _out_before_in = pl.col("out_dttm") < pl.col("in_dttm")
 _n_out_before_in = adt_df.filter(_out_before_in).height
@@ -495,6 +506,25 @@ if missing_in_adt:
           f"(ids written to the local intermediate folder, never shipped)")
 else:
     print(f"✓ All {len(all_decedent_hosp_ids)} decedent hospitalizations present in ADT table")
+
+# UCSF branch: what the dropped morgue rows changed among decedents, for data_quality_flags.csv.
+_m = (_morgue_rows.filter(pl.col('hospitalization_id').is_in(all_decedent_hosp_ids))
+      .sort('in_dttm', descending=True, nulls_last=True).group_by('hospitalization_id')
+      .agg(pl.col('in_dttm').first().alias('_m_in'), pl.col('hospital_id').first().cast(pl.Utf8).alias('_m_hosp'))
+      .join(adt_df.sort('in_dttm', descending=True, nulls_last=True).group_by('hospitalization_id')
+            .agg(pl.col('in_dttm').first().alias('_u_in'), pl.col('hospital_id').first().cast(pl.Utf8).alias('_u_hosp'),
+                 pl.len().alias('_u_rows')), on='hospitalization_id', how='left'))
+if _m.height:
+    _was_last = pl.col('_u_in').is_null() | (pl.col('_m_in') > pl.col('_u_in'))
+    _n = lambda e: (lambda k: "fewer than 11" if 0 < k < 11 else f"{k:,}")(_m.filter(e).height)
+    dq_flags.append({
+        "site": site_name, "flag": "adt_morgue_rows_dropped", "severity": "medium",
+        "detail": (f"{_n(pl.lit(True))} of {len(all_decedent_hosp_ids):,} decedent hospitalizations had a morgue ADT row, "
+                   f"which was dropped. It was the last ADT row for {_n(_was_last)}; for "
+                   f"{_n(_was_last & pl.col('_u_hosp').is_not_null() & (pl.col('_m_hosp') != pl.col('_u_hosp')))} of those "
+                   f"its hospital_id differed from the unit before it, so the hospital of death changed; "
+                   f"{_n(pl.col('_u_rows').is_null())} had no other ADT row and are now without an ADT record.")})
+    print("  Morgue rows among decedents: see adt_morgue_rows_dropped in data_quality_flags.csv")
 
 last_location_per_hosp = (
       adt_df
