@@ -424,6 +424,8 @@ def patient_variables(r):
                {"CAST(a.location_name AS VARCHAR)" if "location_name" in col_types(r, "adt") else "NULL::VARCHAR"} location_name
         FROM read_parquet('{tbl(r, "adt")}') a
         JOIN members m ON CAST(a.hospitalization_id AS VARCHAR) = m.hospitalization_id""").pl()
+    # UCSF branch: morgue rows are dropped, as in step 01
+    adt = adt.filter(~pl.col("location_name").str.to_lowercase().str.contains("morgue").fill_null(False))
     stays = icu_stays(adt).select("patient_id", "^first_.*$").join(      # last stay: an out_dttm from 2100 on is unknown too
         icu_stays(adt, max_out_year=2100).select("patient_id", "^last_.*$"), on="patient_id")
     stays = stays.with_columns(
