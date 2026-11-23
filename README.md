@@ -4,7 +4,7 @@ Identifies medically eligible deceased organ donors among in-hospital decedents 
 CLIF, and compares that definition against the two administrative definitions in
 current use.
 
-**CLIF version:** 2.1 · **Study window:** 2020-01-01 to 2025-12-31
+**CLIF version:** 3.0 (this branch; `main` is 2.1) · **Study window:** 2020-01-01 to 2025-12-31
 
 ## Definitions
 

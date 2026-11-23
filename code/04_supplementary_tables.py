@@ -227,8 +227,13 @@ def write_sofa_shim(con: duckdb.DuckDBPyConnection, src, shim: Path, site_tz: st
     from clifpy.utils.sofa_polars import (DEVICE_RANK_DICT, REQUIRED_ASSESSMENTS, REQUIRED_LABS,
                                           REQUIRED_MEDS, REQUIRED_VITALS)
     low = "lower(trim(CAST({} AS VARCHAR)))".format
-    special = {"device_category": f"CASE {low('device_category')} " + " ".join(
-                   f"WHEN '{k.lower()}' THEN '{k}'" for k in DEVICE_RANK_DICT) + " ELSE CAST(device_category AS VARCHAR) END",
+    # CLIF 3.0 spellings (room_air, hfnc, acvc, ps_or_cpap) are put back in the 2.1 spelling clifpy 2.1.0 matches on
+    v3 = {"hfnc": "High Flow NC", "acvc": "Assist Control-Volume Control", "prvc": "Pressure-Regulated Volume Control",
+          "ps or cpap": "Pressure Support/CPAP"}
+    as21 = lambda c, known: (f"CASE replace({low(c)}, '_', ' ') " + " ".join(              # noqa: E731
+        f"WHEN '{k.lower()}' THEN '{v}'" for k, v in {**{k: k for k in known}, **v3}.items())
+        + f" ELSE replace(CAST({c} AS VARCHAR), '_', ' ') END")
+    special = {"device_category": as21("device_category", DEVICE_RANK_DICT), "mode_category": as21("mode_category", []),
                "fio2_set": "CASE WHEN fio2_set > 1 THEN fio2_set / 100 ELSE fio2_set END",   # a percentage, as step 01 reads it
                "categorical_value": "CAST(NULL AS VARCHAR)"}                                # folded into numerical_value below
     spec = {   # table: (timestamp, category column, categories kept, value column, {output column: type})

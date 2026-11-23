@@ -262,6 +262,11 @@ patient_filepath = f"{tables_path}/clif_patient.{file_type}"
 adt_df = pl.read_parquet(adt_filepath)
 hospitalization_df = pl.read_parquet(hospitalization_filepath)
 patient_df = pl.read_parquet(patient_filepath)
+# CLIF 3.0 spells these categories in snake_case. Row labels are built from the values, so they are put back
+# in the 2.1 spelling the other sites return (non_hispanic -> non-hispanic, black_or_african_american -> black or african american).
+patient_df = patient_df.with_columns(
+    pl.col("race_category").cast(pl.Utf8).str.replace_all("_", " "),
+    pl.col("ethnicity_category").cast(pl.Utf8).str.replace_all("_", " ").str.replace("(?i)^non hispanic$", "non-hispanic"))
 
 # Informational baseline (entire CLIF dataset at this site, all years)
 total_patients = patient_df["patient_id"].n_unique()
